@@ -4,7 +4,7 @@ const fetch = require('node-fetch');
 const disbot = require('./disbot');
 const { Beatmap, Score } = require('./osu-entities');
 const app = express();
-const port = 1337;
+const port = process.env.PORT || 1337;
 const key = process.env.OSUKEY;
 const osuapi = process.env.OSUAPI;
 
