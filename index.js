@@ -2,11 +2,11 @@ const express = require('express');
 const bodyparser = require('body-parser');
 const fetch = require('node-fetch');
 const disbot = require('./disbot');
-const { Beatmap, Score } = require('./OsuEntities');
+const { Beatmap, Score } = require('./osu-entities');
 const app = express();
 const port = 1337;
-const key = "87cfce833b4bbf091bdba792204f0ee971b6d5ca";
-const osuapi = "https://osu.ppy.sh/api";
+const key = process.env.OSUKEY;
+const osuapi = process.env.OSUAPI;
 
 // Mod bitwise
 const HR = 1 << 4;
@@ -17,19 +17,19 @@ const DIFFMODS = HR | DT | HT;
 // ==============================================================
 // ========== These values should be updated each week ==========
 // ==============================================================
-const openMin = 5.4;
-const openMax = 6.0;
-const fiftMin = 4.4;
-const fiftMax = 5.0;
-const minLength = 60;
-const maxLength = 5 * 60;
-const absoluteMax = 6 * 60;
-const minTotal = 20 * 60;
-const maxTotal = 35 * 60;
-const overUnderMax = 2;
-const drainBuffer = 15;
-const earliest = new Date(2009, 1);
-const leaderboard = 20;
+const openMin = process.env.OPEN_MIN;
+const openMax = process.env.OPEN_MAX;
+const fiftMin = process.env.FIFT_MIN;
+const fiftMax = process.env.FIFT_MAX;
+const minLength = process.env.MIN_LENGTH;
+const maxLength = process.env.MAX_LENGTH;
+const absoluteMax = process.env.ABSOLUTE_MAX;
+const minTotal = process.env.MIN_TOTAL;
+const maxTotal = process.env.MAX_TOTAL;
+const overUnderMax = process.env.OVER_UNDER_MAX;
+const drainBuffer = process.env.DRAIN_BUFFER;
+const earliest = new Date(process.env.EARLIEST);
+const leaderboard = process.env.LEADERBOARD;
 // ==============================================================
 // ==============================================================
 
