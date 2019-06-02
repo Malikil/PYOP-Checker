@@ -1,9 +1,9 @@
 const Discord = require('discord.js');
-const { Mod } = require('./OsuEntities');
+const { Mod } = require('./osu-entities');
 const client = new Discord.Client();
 
-const guildId = "296768999377731594";
-const channelId = "322645304816173057";
+const guildId = process.env.DISCORD_GUILD;
+const channelId = process.env.DISCORD_CHANNEL;
 
 /** @type {Discord.Guild} */
 var guild;
@@ -59,4 +59,4 @@ module.exports = {
     rejectMaps
 };
 
-client.login('NTgzNjk0NzMxNDY1NDU3NjY0.XPBrQA.J4ooLjHI5nTcZwr4eiHV2FrICzc');
+client.login(process.env.DISCORD_TOKEN);
