@@ -50,7 +50,7 @@ app.use(bodyparser.urlencoded({
 }));
 
 app.post('/', (req, res) => {
-    console.log(req.body);
+    console.log(`\x1b[36mGot request:\x1b[0m ${req.body}`);
     var min;
     var max;
     if (req.body.range === "15k")
@@ -119,6 +119,8 @@ app.post('/', (req, res) => {
                 // Check the drain time
                 if (length < minLength)
                 {
+                    console.log(`${length} < ${minLength} returned true`);
+                    console.log(`Currently ${overUnder} within buffer range`);
                     if (length < minLength - drainBuffer)
                         return {
                             passed: false,
@@ -138,7 +140,7 @@ app.post('/', (req, res) => {
                 else if (length > maxLength)
                 {
                     console.log(`${length} > ${maxLength} returned true`);
-                    console.log(`typeof(length) returns ${typeof length} | typeof(maxLength) returns ${typeof maxLength}`);
+                    console.log(`Currently ${overUnder} within buffer range`);
                     if (length > maxLength + drainBuffer)
                         return {
                             passed: false,
@@ -240,7 +242,7 @@ app.post('/', (req, res) => {
                 }
             });
         disbot.rejectMaps(req.body.name, results);
-        console.log(util.inspect(results, { depth: 3 }));
+        console.log(`\x1b[32mSent response:\x1b[0m ${util.inspect(results, { depth: 3 })}`);
         res.status(200).json(results);
     }).catch(failed => {
         console.log(failed);
