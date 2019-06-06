@@ -50,7 +50,7 @@ app.use(bodyparser.urlencoded({
 }));
 
 app.post('/', (req, res) => {
-    console.log(`\x1b[36mGot request:\x1b[0m ${req.body}`);
+    console.log(`\x1b[36mGot request:\x1b[0m ${util.inspect(req.body)}`);
     var min;
     var max;
     if (req.body.range === "15k")
