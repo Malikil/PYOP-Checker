@@ -18,19 +18,20 @@ const DIFFMODS = HR | DT | HT;
 // ==============================================================
 // ========== These values should be updated each week ==========
 // ==============================================================
-const openMin = process.env.OPEN_MIN;
-const openMax = process.env.OPEN_MAX;
-const fiftMin = process.env.FIFT_MIN;
-const fiftMax = process.env.FIFT_MAX;
-const minLength = process.env.MIN_LENGTH;
-const maxLength = process.env.MAX_LENGTH;
-const absoluteMax = process.env.ABSOLUTE_MAX;
-const minTotal = process.env.MIN_TOTAL;
-const maxTotal = process.env.MAX_TOTAL;
-const overUnderMax = process.env.OVER_UNDER_MAX;
-const drainBuffer = process.env.DRAIN_BUFFER;
+const openMin = parseFloat(process.env.OPEN_MIN);
+const openMax = parseFloat(process.env.OPEN_MAX);
+const fiftMin = parseFloat(process.env.FIFT_MIN);
+const fiftMax = parseFloat(process.env.FIFT_MAX);
+const minLength = parseInt(process.env.MIN_LENGTH);
+const maxLength = parseInt(process.env.MAX_LENGTH);
+const absoluteMax = parseInt(process.env.ABSOLUTE_MAX);
+const minTotal = parseInt(process.env.MIN_TOTAL);
+const maxTotal = parseInt(process.env.MAX_TOTAL);
+const overUnderMax = parseInt(process.env.OVER_UNDER_MAX);
+const drainBuffer = parseInt(process.env.DRAIN_BUFFER);
 const earliest = new Date(process.env.EARLIEST);
-const leaderboard = process.env.LEADERBOARD;
+const leaderboard = parseInt(process.env.LEADERBOARD);
+const poolSize = parseInt(process.env.POOL_SIZE);
 // ==============================================================
 // ==============================================================
 
@@ -94,19 +95,19 @@ app.post('/', (req, res) => {
                 {
                     length *= (2.0 / 3.0);
                     fullLength *= (2.0 / 3.0);
-                    length = length.toFixed(0);
-                    fullLength.toFixed(0);
+                    length = length | 0;
+                    fullLength = fullLength | 0;
                 }
                 else if (info.mod & HT)
                 {
                     length *= (4.0 / 3.0);
                     fullLength *= (4.0 / 3.0);
-                    length = length.toFixed(0);
-                    fullLength = fullLength.toFixed(0);
+                    length = length | 0;
+                    fullLength = fullLength | 0;
                 }
-                totalDrain += parseInt(length);
+                totalDrain += length;
                 // Check the total length
-                console.log(`Drain after mod: ${info.mod}: ${length}`);
+                console.log(`Drain after mods ${info.mod}: ${length}`);
                 if (fullLength > absoluteMax)
                     return {
                         passed: false,
@@ -136,6 +137,8 @@ app.post('/', (req, res) => {
                 }
                 else if (length > maxLength)
                 {
+                    console.log(`${length} > ${maxLength} returned true`);
+                    console.log(`typeof(length) returns ${typeof length} | typeof(maxLength) returns ${typeof maxLength}`);
                     if (length > maxLength + drainBuffer)
                         return {
                             passed: false,
@@ -154,8 +157,8 @@ app.post('/', (req, res) => {
                 }
                 // Check stars
                 console.log(beatmap.difficultyrating);
-                let stars = Math.floor(beatmap.difficultyrating * 100) / 100;
-                console.log(`After truncating: ${beatmap.difficultyrating}`);
+                let stars = parseFloat(parseFloat(beatmap.difficultyrating).toFixed(2));
+                console.log(`After rounding: ${stars}`);
                 if (stars < min)
                     return {
                         passed: false,
@@ -221,14 +224,15 @@ app.post('/', (req, res) => {
                 passed: undefined
             });
     })).then(results => {
-        if (totalDrain < minTotal)
+        let missing = poolSize - results.length;
+        if (totalDrain < (minTotal - (missing * (maxLength - drainBuffer))))
             results.push({
                 passed: false,
                 reject: {
                     reason: `Total pool drain time is under the ${convertSeconds(minTotal)} minimum. (${convertSeconds(totalDrain)})`
                 }
             });
-        else if (totalDrain > maxTotal)
+        else if (totalDrain > (maxTotal + (missing * (minLength + drainBuffer))))
             results.push({
                 passed: false,
                 reject: {
