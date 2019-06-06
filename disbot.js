@@ -40,7 +40,7 @@ function rejectMaps(name, rejects)
                 if (item.passed === false)
                 {
                     if (!!item.reject.map)
-                        rejectMessage += `**Map:** ${item.reject.map.id} +${modmanager.modBitwiseToString(item.reject.map.mod)}\n**Reason:** `;
+                        rejectMessage += `**Map:** https://osu.ppy.sh/b/${item.reject.map.id} +${modmanager.modBitwiseToString(item.reject.map.mod)}\n**Reason:** `;
                     rejectMessage += `${item.reject.reason}\n\n`;
                 }
             });
