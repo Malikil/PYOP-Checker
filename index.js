@@ -164,7 +164,7 @@ app.post('/', (req, res) => {
                         passed: false,
                         reject: {
                             map: info,
-                            reason: `The star rating of this map is below the ${min} minimum allowed for this week. (${beatmap.difficultyrating})`
+                            reason: `The star rating of this map is below the ${min} minimum allowed for this week. (${stars})`
                         }
                     };
                 else if (stars > max)
@@ -172,7 +172,7 @@ app.post('/', (req, res) => {
                         passed: false,
                         reject: {
                             map: info,
-                            reason: `The star rating of this map is above the ${max} maximum allowed for this week. (${beatmap.difficultyrating})`
+                            reason: `The star rating of this map is above the ${max} maximum allowed for this week. (${stars})`
                         }
                     };
                 // Check date
