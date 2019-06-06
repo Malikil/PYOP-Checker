@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyparser = require('body-parser');
 const fetch = require('node-fetch');
+const util = require('util');
 const disbot = require('./disbot');
 const { Beatmap, Score } = require('./osu-entities');
 const app = express();
@@ -75,6 +76,7 @@ app.post('/', (req, res) => {
                     return {
                         passed: undefined
                     };
+                console.log(`Checking map ${beatmap.beatmap_id}`);
                 // Make sure it's a standard map
                 if (beatmap.mode != 0)
                     return {
@@ -104,6 +106,7 @@ app.post('/', (req, res) => {
                 }
                 totalDrain += parseInt(length);
                 // Check the total length
+                console.log(`Drain after mod: ${info.mod}: ${length}`);
                 if (fullLength > absoluteMax)
                     return {
                         passed: false,
@@ -150,8 +153,10 @@ app.post('/', (req, res) => {
                         };
                 }
                 // Check stars
-                beatmap.difficultyrating = parseFloat(beatmap.difficultyrating).toFixed(2);
-                if (beatmap.difficultyrating < min)
+                console.log(beatmap.difficultyrating);
+                let stars = Math.floor(beatmap.difficultyrating * 100) / 100;
+                console.log(`After truncating: ${beatmap.difficultyrating}`);
+                if (stars < min)
                     return {
                         passed: false,
                         reject: {
@@ -159,7 +164,7 @@ app.post('/', (req, res) => {
                             reason: `The star rating of this map is below the ${min} minimum allowed for this week. (${beatmap.difficultyrating})`
                         }
                     };
-                else if (beatmap.difficultyrating > max)
+                else if (stars > max)
                     return {
                         passed: false,
                         reject: {
@@ -169,6 +174,7 @@ app.post('/', (req, res) => {
                     };
                 // Check date
                 let updated = new Date(parseInt(beatmap.last_update.substring(0, 4)), parseInt(beatmap.last_update.substring(5, 7)));
+                console.log(`Date string: ${beatmap.last_update} => ${updated}`);
                 if (updated < earliest)
                     return {
                         passed: false,
@@ -189,10 +195,12 @@ app.post('/', (req, res) => {
                     };
                 // If the map is ranked proper, it can probably get partially approved. Otherwise it should be left to manual
                 // Make sure there's a reasonable amount of scores on the leaderboard first though
+                console.log(`Check for leaderboard? (${beatmap.approved} == 1)`);
                 if (beatmap.approved == 1)
                     return fetch(`${osuapi}/get_scores?k=${key}&b=${info.id}&mods=${info.mod}`)
                     .then(response => response.json())
                     .then(/** @param {Score[]} scores */scores => {
+                        console.log(`Found ${scores.length} scores`);
                         if (scores.length > leaderboard)
                             return {
                                 passed: true,
@@ -228,7 +236,7 @@ app.post('/', (req, res) => {
                 }
             });
         disbot.rejectMaps(req.body.name, results);
-        console.log(results);
+        console.log(util.inspect(results, { depth: 3 }));
         res.status(200).json(results);
     }).catch(failed => {
         console.log(failed);
