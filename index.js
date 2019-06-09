@@ -206,7 +206,25 @@ app.post('/', (req, res) => {
                     .then(response => response.json())
                     .then(/** @param {Score[]} scores */scores => {
                         console.log(`Found ${scores.length} scores`);
+                        // If there are enough passes
                         if (scores.length > leaderboard)
+                            return {
+                                passed: true,
+                                map: info
+                            };
+                        // If there aren't any plays, forget it
+                        else if (scores.length < 1)
+                            return {
+                                passed: undefined
+                            };
+                        // If the top play is an FC
+                        else if (scores[0].perfect == 1)
+                            return {
+                                passed: true,
+                                map: info
+                            };
+                        // If the player has a play on the map
+                        else if (!!scores.find(item => item.username === req.body.name))
                             return {
                                 passed: true,
                                 map: info
