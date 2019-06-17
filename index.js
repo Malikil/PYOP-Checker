@@ -180,6 +180,7 @@ app.post('/', (req, res) => {
                 // Check date
                 let updated = new Date(beatmap.last_update + " UTC+0");
                 console.log(`Last updated ${updated}`);
+                console.log(`Is before ${earliest}? => ${updated < earliest}`);
                 if (updated < earliest)
                     return {
                         passed: false,
