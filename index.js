@@ -189,7 +189,7 @@ app.post('/', (req, res) => {
                             reason: `This map is from ${updated.getFullYear()}, maps before ${earliest.getFullYear()} aren't allowed for this time.`
                         }
                     };
-                // Check for duplicates last. The maps that might be duplicates otherwise might get caught by the otherchecks
+                // Check for duplicates last. The maps that might be duplicates otherwise might get caught by the other checks
                 if (maps.find(item => item == beatmap.beatmap_id) === undefined)
                     maps.push(beatmap.beatmap_id);
                 else
