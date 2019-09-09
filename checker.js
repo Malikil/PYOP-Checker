@@ -13,20 +13,18 @@ const DIFFMODS = HR | DT | HT;
 // ==============================================================
 // ========== These values should be updated each week ==========
 // ==============================================================
-const openMin = parseFloat(process.env.OPEN_MIN);
-const openMax = parseFloat(process.env.OPEN_MAX);
-const fiftMin = parseFloat(process.env.FIFT_MIN);
-const fiftMax = parseFloat(process.env.FIFT_MAX);
-const minLength = parseInt(process.env.MIN_LENGTH);
-const maxLength = parseInt(process.env.MAX_LENGTH);
-const absoluteMax = parseInt(process.env.ABSOLUTE_MAX);
-const minTotal = parseInt(process.env.MIN_TOTAL);
-const maxTotal = parseInt(process.env.MAX_TOTAL);
-const overUnderMax = parseInt(process.env.OVER_UNDER_MAX);
-const drainBuffer = parseInt(process.env.DRAIN_BUFFER);
-const earliest = new Date(process.env.EARLIEST);
-const leaderboard = parseInt(process.env.LEADERBOARD);
-const poolSize = parseInt(process.env.POOL_SIZE);
+const minStar = parseFloat(process.env.OPEN_MIN);   // Minimum star rating
+const maxStar = parseFloat(process.env.OPEN_MAX);   // Maximum star rating
+const minLength = parseInt(process.env.MIN_LENGTH); // Minimum drain time
+const maxLength = parseInt(process.env.MAX_LENGTH); // Maximum drain time
+const absoluteMax = parseInt(process.env.ABSOLUTE_MAX); // Maximum length limit
+const minTotal = parseInt(process.env.MIN_TOTAL);       // Pool drain limit
+const maxTotal = parseInt(process.env.MAX_TOTAL);       // Pool drain limit
+const overUnderMax = parseInt(process.env.OVER_UNDER_MAX);  // Number of maps allowed outside time range
+const drainBuffer = parseInt(process.env.DRAIN_BUFFER);     // How much time can drain be outside the limits
+const earliest = new Date(process.env.EARLIEST);            // Earliest allowed rank date - possibly being phased out
+const leaderboard = parseInt(process.env.LEADERBOARD);      // How many leaderboard scores are required for auto-approval
+const poolSize = parseInt(process.env.POOL_SIZE);           // How many maps are there in a pool
 // ==============================================================
 // ==============================================================
 
@@ -44,11 +42,13 @@ function convertSeconds(length)
 }
 
 /**
- * Checks a pool for items like duplicate maps
- * @param {*} maps An array of maps to check for consistency
+ * Checks an entire pool, including things like duplicates or total drain time, and
+ * map-specific things like drain time, length, stars, and ranked status
+ * @param {*} maps An array of map ids and mods to check. Mod should be in integer form
  */
 function checkPool(maps)
 {
+    // TODO rewrite
     return new Promise((resolve, reject) => {
         var poolProblems = {
             duplicates: false,
@@ -85,7 +85,6 @@ function checkPool(maps)
 
 /**
  * @param {any} map An object with the map's id and mod
- * @param {String} range The rank bracket for the beatmap
  * @param {String} user The username of the player
  * @returns {Promise<any>} Returns a promise which will resolve to an object containing the pass/fail status
  */
@@ -102,8 +101,8 @@ function checkMap(map, range, user)
             }
             else
             {
-                min = openMin;
-                max = openMax;
+                min = minStar;
+                max = maxStar;
             }
             fetch(`${osuapi}/get_beatmaps?k=${key}&b=${map.id}&mods=${map.mod & DIFFMODS}`)
             .then(response => response.json())
