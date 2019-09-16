@@ -1,5 +1,4 @@
 const fetch = require('node-fetch');
-const { Beatmap, Score } = require('./osu-entities');
 
 const key = process.env.OSUKEY;
 const osuapi = process.env.OSUAPI;
@@ -44,49 +43,51 @@ function convertSeconds(length)
 /**
  * Checks an entire pool, including things like duplicates or total drain time, and
  * map-specific things like drain time, length, stars, and ranked status
- * @param {*} maps An array of map ids and mods to check. Mod should be in integer form
+ * @param maps An array of beatmap objects to check.
  */
 function checkPool(maps)
 {
-    // TODO rewrite
     return new Promise((resolve, reject) => {
-        var poolProblems = {
-            duplicates: false,
-            drainRange: false
-        };
         var checkedmaps = [];
         var overUnder = 0;
         var totalDrain = 0;
-        var mapcount = 0;
+        var duplicates = 0;
         maps.forEach(map => {
-            // Check for duplicates
-            if (map.passed !== false)
+            // Make sure the map hasn't been picked yet
+            if (checkedmaps.find(item => item == map.id))
+                duplicates++;
+            else
             {
-                totalDrain += map.drain;
-                mapcount++;
-                if (map.passed)
-                {
-                    if (checkedmaps.find(item => item == map.map.id) === undefined)
-                        maps.push(map.map.id);
-                    else
-                        poolProblems.duplicates = true;
-                }
+                // Add the map to the list
+                // Make sure the map is valid
+                checkMap(map)
+                .then(result => {
+                    // result is an object containing pass/fail status and the map info itself
+                    // Passed status can be: true, false, undefined
+                    if (result.passed !== false)
+                    {
+                        checkedmaps.push(result.beatmap.beatmap_id);
+                        // Add to the total drain time
+                        totalDrain += result.beatmap.hit_length;
+                        // Count maps outside the drain limit, but inside the buffer
+                        let overdrain = result.beatmap.hit_length - maxLength;
+                        let underdrain = minLength - result.beatmap.hit_length;
+                        if ((overdrain > 0 && overdrain <= drainBuffer)
+                                || (underdrain > 0 && underdrain <= drainBuffer))
+                            overUnder++;
+                    }
+                })
             }
+            // Verify values
         });
-    });
-    resolve({
-        passed: false,
-        reject: {
-            reason: `You have more than two maps outside the normal allowed drain range. Only two maps are allowed to use the ${drainBuffer} second buffer.`
-        },
-        drain: length
     });
 }
 
 /**
- * @param {any} map An object with the map's id and mod
+ * @param {*} map An object with the map's id and mod
  * @param {String} user The username of the player
- * @returns {Promise<any>} Returns a promise which will resolve to an object containing the pass/fail status
+ * @returns {Promise<any>} Returns a promise which will resolve to an object
+ *     containing the pass/fail status and the full map info
  */
 function checkMap(map, range, user)
 {
