@@ -17,13 +17,11 @@ const maxStar = parseFloat(process.env.OPEN_MAX);   // Maximum star rating
 const minLength = parseInt(process.env.MIN_LENGTH); // Minimum drain time
 const maxLength = parseInt(process.env.MAX_LENGTH); // Maximum drain time
 const absoluteMax = parseInt(process.env.ABSOLUTE_MAX); // Maximum length limit
-const minTotal = parseInt(process.env.MIN_TOTAL);       // Pool drain limit
-const maxTotal = parseInt(process.env.MAX_TOTAL);       // Pool drain limit
+const minTotal = parseInt(process.env.MIN_TOTAL);       // Pool drain limit, per map
+const maxTotal = parseInt(process.env.MAX_TOTAL);       // Pool drain limit, per map
 const overUnderMax = parseInt(process.env.OVER_UNDER_MAX);  // Number of maps allowed outside time range
 const drainBuffer = parseInt(process.env.DRAIN_BUFFER);     // How much time can drain be outside the limits
-const earliest = new Date(process.env.EARLIEST);            // Earliest allowed rank date - possibly being phased out
 const leaderboard = parseInt(process.env.LEADERBOARD);      // How many leaderboard scores are required for auto-approval
-const poolSize = parseInt(process.env.POOL_SIZE);           // How many maps are there in a pool
 // ==============================================================
 // ==============================================================
 
@@ -44,8 +42,10 @@ function convertSeconds(length)
  * Checks an entire pool, including things like duplicates or total drain time, and
  * map-specific things like drain time, length, stars, and ranked status
  * @param maps An array of beatmap objects to check.
+ * @param {Number} userid The id of the user submitting the pool
+ * @returns {Promise<boolean>} True or false for whether the pool as a whole passes
  */
-function checkPool(maps)
+function checkPool(maps, userid)
 {
     return new Promise((resolve, reject) => {
         var checkedmaps = [];
@@ -58,25 +58,20 @@ function checkPool(maps)
                 duplicates++;
             else
             {
-                // Add the map to the list
+                // Add the map to the list if it passes the early check
                 // Make sure the map is valid
-                checkMap(map)
-                .then(result => {
-                    // result is an object containing pass/fail status and the map info itself
-                    // Passed status can be: true, false, undefined
-                    if (result.passed !== false)
-                    {
-                        checkedmaps.push(result.beatmap.beatmap_id);
-                        // Add to the total drain time
-                        totalDrain += result.beatmap.hit_length;
-                        // Count maps outside the drain limit, but inside the buffer
-                        let overdrain = result.beatmap.hit_length - maxLength;
-                        let underdrain = minLength - result.beatmap.hit_length;
-                        if ((overdrain > 0 && overdrain <= drainBuffer)
-                                || (underdrain > 0 && underdrain <= drainBuffer))
-                            overUnder++;
-                    }
-                })
+                if (quickCheck(map))
+                {
+                    checkedmaps.push(map.beatmap_id);
+                    // Add to the total drain time
+                    totalDrain += result.beatmap.hit_length;
+                    // Count maps outside the drain limit, but inside the buffer
+                    let overdrain = result.beatmap.hit_length - maxLength;
+                    let underdrain = minLength - result.beatmap.hit_length;
+                    if ((overdrain > 0 && overdrain <= drainBuffer)
+                            || (underdrain > 0 && underdrain <= drainBuffer))
+                        overUnder++;
+                }
             }
             // Verify values
         });
