@@ -41,83 +41,96 @@ function convertSeconds(length)
 /**
  * Checks an entire pool, including things like duplicates or total drain time, and
  * map-specific things like drain time, length, stars, and ranked status
- * @param maps An array of beatmap objects to check.
+ * @param {*[]} maps An array of beatmap objects to check.
  * @param {Number} userid The id of the user submitting the pool
- * @returns {Promise<boolean>} True or false for whether the pool as a whole passes
+ * @returns {Promise} An array of objects containing the beatmap and pass status,
+ *     as well as some stats on the pool itself:
+ *     {
+ *         overUnder: Number,
+ *         totalDrain: Number,
+ *         duplicates: Number,
+ *         maps: *[],
+ *         passed: boolean,
+ *         message: string
+ *     }
  */
 function checkPool(maps, userid)
 {
     return new Promise((resolve, reject) => {
         var checkedmaps = [];
-        var overUnder = 0;
-        var totalDrain = 0;
-        var duplicates = 0;
-        maps.forEach(map => {
+        let results = {
+            overUnder = 0,
+            totalDrain = 0,
+            duplicates = 0
+        }
+        results.maps = maps.map(map => {
+            let status = quickCheck(map, userid);
+            // Add the map to the list if it passes the early check
+            // Make sure the map is valid
+            if (status)
+                return {
+                    map: map,
+                    passed: false,
+                    message: status
+                };
+        
             // Make sure the map hasn't been picked yet
             if (checkedmaps.find(item => item == map.id))
                 duplicates++;
             else
-            {
-                // Add the map to the list if it passes the early check
-                // Make sure the map is valid
-                if (quickCheck(map))
-                {
-                    checkedmaps.push(map.beatmap_id);
-                    // Add to the total drain time
-                    totalDrain += result.beatmap.hit_length;
-                    // Count maps outside the drain limit, but inside the buffer
-                    let overdrain = result.beatmap.hit_length - maxLength;
-                    let underdrain = minLength - result.beatmap.hit_length;
-                    if ((overdrain > 0 && overdrain <= drainBuffer)
-                            || (underdrain > 0 && underdrain <= drainBuffer))
-                        overUnder++;
-                }
-            }
+                checkedmaps.push(map.beatmap_id);
+            // Add to the total drain time
+            totalDrain += map.hit_length;
+            // Count maps outside the drain limit, but inside the buffer
+            let overdrain = map.hit_length - maxLength;
+            let underdrain = minLength - map.hit_length;
+            if ((overdrain > 0 && overdrain <= drainBuffer)
+                    || (underdrain > 0 && underdrain <= drainBuffer))
+                overUnder++;
+            else if (overdrain > 0)
+                return {
+                    map: map,
+                    passed: false,
+                    message: `Map is more than ${drainBuffer} seconds above the ${convertSeconds(maxLength)} limit. (${convertSeconds(map.hit_length)})`
+                };
+            else if (underdrain > 0)
+                return {
+                    map: map,
+                    passed: false,
+                    message: `Map is more than ${drainBuffer} seconds below the ${convertSeconds(minLength)} limit. (${convertSeconds(map.hit_length)})`
+                };
             // Verify values
         });
+        resolve(results);
     });
 }
 
 /**
  * Checks a single beatmap for simple itmes like drain time, star rating, and mode
- * @param {*} beatmap The beatmap to check
- * @returns The beatmap object, along with pass/fail status. If the map fails
- *     a fail message will also be included.
- *     {
- *         beatmap: [Object],
- *         passed: false,
- *         message: "Drain time is too long"
- *     }
+ * @param beatmap The beatmap to check
+ * @returns If the map fails, a message will be returned. Otherwise undefined.
  */
 function quickCheck(beatmap, userid)
 {
-    // Prepare response object
-    let result = {
-        beatmap: beatmap,
-        passed: false
-    };
     // Check the game mode
     if (beatmap.mode != 0)
-        result.message = "This map is for the wrong gamemode";
+        return "This map is for the wrong gamemode";
     // Check drain time
     else if (beatmap.hit_length - drainBuffer > maxLength)
-        result.message = `Drain time is above the ${convertSeconds(maxLength)} maximum. (${convertSeconds(beatmap.hit_length)})`;
+        return `Drain time is above the ${convertSeconds(maxLength)} maximum. (${convertSeconds(beatmap.hit_length)})`;
     else if (beatmap.hit_length + drainBuffer < minLength)
-        result.message = `Drain time is below the ${convertSeconds(maxLength)} minimum. (${convertSeconds(beatmap.hit_length)})`;
+        return `Drain time is below the ${convertSeconds(maxLength)} minimum. (${convertSeconds(beatmap.hit_length)})`;
     // Check total time
     else if (beatmap.total_length > absoluteMax)
-        result.message = `Total map time is above the ${convertSeconds(absoluteMax)} limit. (${convertSeconds(beatmap.total_length)})`;
+        return `Total map time is above the ${convertSeconds(absoluteMax)} limit. (${convertSeconds(beatmap.total_length)})`;
     // Check difficulty
     else if (beatmap.difficultyrating > maxStar)
-        result.message = `Star rating is above the ${maxStar} maximum. (${beatmap.difficultyrating})`;
+        return `Star rating is above the ${maxStar} maximum. (${beatmap.difficultyrating})`;
     else if (beatmap.difficultyrating < minStar)
-        result.message = `Star rating is below the ${minStar} minimum. (${beatmap.difficultyrating})`;
+        return `Star rating is below the ${minStar} minimum. (${beatmap.difficultyrating})`;
     // Make sure the user didn't make this map themself
     else if (beatmap.approved != 1 && beatmap.creator_id == userid)
-        result.message = `You can't submit your own maps unless they're ranked`;
-    else
-        result.passed = true;
-    return result;
+        return `You can't submit your own maps unless they're ranked`;
 }
 
 /**
