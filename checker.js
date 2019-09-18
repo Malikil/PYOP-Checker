@@ -1,19 +1,30 @@
+/*
+This module is meant for checking the status of maps that get submitted, either
+one at a time or whole pools. The actual handling of the maps should be outside
+this module. Only methods for checking validity are here, and they can be
+called from elsewhere where maps are known and need to be checked.
+*/
 const fetch = require('node-fetch');
 
 const key = process.env.OSUKEY;
 const osuapi = process.env.OSUAPI;
 
 // Mod bitwise
-const HR = 1 << 4;
-const DT = 1 << 6;
-const HT = 1 << 8;
-const DIFFMODS = HR | DT | HT;
+const MODS = {
+    EZ: 1 << 1,
+    HD: 1 << 3,
+    HR: 1 << 4,
+    DT: 1 << 6,
+    HT: 1 << 8,
+    DIFFMODS: 0
+};
+MODS.DIFFMODS = MODS.HR | MODS.DT | MODS.HT;
 
 // ==============================================================
 // ========== These values should be updated each week ==========
 // ==============================================================
-const minStar = parseFloat(process.env.OPEN_MIN);   // Minimum star rating
-const maxStar = parseFloat(process.env.OPEN_MAX);   // Maximum star rating
+const minStar = parseFloat(process.env.MIN_STAR);   // Minimum star rating
+const maxStar = parseFloat(process.env.MAX_STAR);   // Maximum star rating
 const minLength = parseInt(process.env.MIN_LENGTH); // Minimum drain time
 const maxLength = parseInt(process.env.MAX_LENGTH); // Maximum drain time
 const absoluteMax = parseInt(process.env.ABSOLUTE_MAX); // Maximum length limit
@@ -36,6 +47,33 @@ function convertSeconds(length)
         seconds += '0';
     seconds += length % 60;
     return (Math.floor(length / 60) + ':' + seconds);
+}
+
+/**
+ * Gets a map id from a link, or just returns the id received if given one
+ * @param {string} mapString A string containing a link to the new or old site, or just the id
+ * @returns The map id for the given link, or undefined if no id was found
+ */
+function parseMapId(mapString)
+{
+    // If link is already a number then nothing needs to be done
+    if (isNaN(mapString))
+    {
+        // If the link isn't to a beatmap, then ignore it
+        // If the link is a /s/ link, ignore it
+        if (mapString.includes("sh/b"))
+        {
+            // Get everything after the last slash, this should be the beatmap id
+            mapString = mapString.substring(mapString.lastIndexOf("/") + 1);
+            // The parseInt function will convert the beginning of a string to a number
+            // until it finds a non-number character
+            mapString = parseInt(mapString);
+        }
+        else
+            return undefined;
+    }
+  
+    return mapString | 0;
 }
 
 /**
@@ -162,7 +200,7 @@ function quickCheck(beatmap, userid)
  */
 function leaderboardCheck(mapid, mod, userid)
 {
-    return fetch(`${osuapi}/get_scores?k=${key}&b=${mapid}&mods=${mod & DIFFMODS}`)
+    return fetch(`${osuapi}/get_scores?k=${key}&b=${mapid}&mods=${mod & MODS.DIFFMODS}`)
         .then(response => response.json())
         .then(scores => {
             // The leaderboard passes if there are more than 'n' scores, if the
@@ -182,7 +220,7 @@ function leaderboardCheck(mapid, mod, userid)
  */
 function getBeatmap(mapid, mod)
 {
-    return fetch(`${osuapi}/get_beatmaps?k=${key}&b=${mapid}&mods=${mod & DIFFMODS}`)
+    return fetch(`${osuapi}/get_beatmaps?k=${key}&b=${mapid}&mods=${mod & MODS.DIFFMODS}`)
         .then(response => response.json())
         .then(data => data[0])
         .then(beatmap => {
@@ -192,12 +230,12 @@ function getBeatmap(mapid, mod)
             beatmap.hit_length = parseInt(beatmap.hit_length);
             beatmap.total_length = parseInt(beatmap.total_length);
             // Update length if DT/HT
-            if (mod & DT)
+            if (mod & MODS.DT)
             {
                 beatmap.hit_length = (beatmap.hit_length * (2.0 / 3.0)) | 0;
                 beatmap.total_length = (beatmap.total_length * (2.0 / 3.0)) | 0;
             }
-            else if (mod & HT)
+            else if (mod & MODS.HT)
             {
                 beatmap.hit_length = (beatmap.hit_length * (4.0 / 3.0)) | 0;
                 beatmap.total_length = (beatmap.total_length * (4.0 / 3.0)) | 0;
@@ -214,5 +252,7 @@ module.exports = {
     quickCheck,
     leaderboardCheck,
     checkPool,
-    getBeatmap
+    getBeatmap,
+    MODS,
+    parseMapId
 };

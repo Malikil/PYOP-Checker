@@ -1,5 +1,10 @@
+/*
+This is the main entry point for the app.
+Connection to discord should be handled here. Commands should be handled with
+the 'commands' module, but those methods will be called from here.
+*/
 const Discord = require('discord.js');
-const { Mod } = require('./osu-entities');
+const commands = require('./commands');
 const client = new Discord.Client();
 
 const guildId = process.env.DISCORD_GUILD;
@@ -14,12 +19,14 @@ client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}.`);
     guild = client.guilds.get(guildId);
     channel = guild.channels.get(channelId);
-})
+});
 
 client.on('message', msg => {
     if (msg.content === 'ping')
         msg.reply('Pong!');
-})
+    else if (msg.content.startsWith('!check'))
+        commands.checkMap(msg);
+});
 
 /**
  * Send a message in the map rejection channel to tell user about rejected maps
@@ -54,9 +61,5 @@ function rejectMaps(name, rejects)
         }
     });
 }
-
-module.exports = {
-    rejectMaps
-};
 
 client.login(process.env.DISCORD_TOKEN);
