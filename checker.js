@@ -40,7 +40,7 @@ function convertSeconds(length)
 
 /**
  * Checks an entire pool, including things like duplicates or total drain time, and
- * map-specific things like drain time, length, stars, and ranked status
+ * map-specific things like drain time, length, and stars
  * @param {*[]} maps An array of beatmap objects to check.
  * @param {Number} userid The id of the user submitting the pool
  * @returns {Promise} An array of objects containing the beatmap and pass status,
@@ -59,9 +59,12 @@ function checkPool(maps, userid)
     return new Promise((resolve, reject) => {
         var checkedmaps = [];
         let results = {
-            overUnder = 0,
-            totalDrain = 0,
-            duplicates = 0
+            overUnder: 0,
+            totalDrain: 0,
+            duplicates: 0,
+            maps: [],
+            passed: false,
+            message: undefined
         }
         results.maps = maps.map(map => {
             let status = quickCheck(map, userid);
@@ -99,8 +102,23 @@ function checkPool(maps, userid)
                     passed: false,
                     message: `Map is more than ${drainBuffer} seconds below the ${convertSeconds(minLength)} limit. (${convertSeconds(map.hit_length)})`
                 };
-            // Verify values
+            // By this point, maps should be passable
+            return {
+                map: map,
+                passed: true,
+                message: undefined
+            };
         });
+        // Verify values
+        if (results.overUnder > overUnderMax)
+            results.message = `You can't have more than ${overUnderMax} maps in the drain time buffer range.`;
+        else if (results.totalDrain < minTotal * results.maps.length)
+            results.message = `Average song length across all maps is too short (${convertSeconds(results.totalDrain)} vs ${minTotal * results.maps.length})`;
+        else if (results.totalDrain > maxTotal * results.maps.length)
+            results.message = `Average song length across all maps is too long (${convertSeconds(results.totalDrain)} vs ${minTotal * results.maps.length})`;
+        else
+            results.passed = true;
+        
         resolve(results);
     });
 }
@@ -189,7 +207,7 @@ function getBeatmap(mapid, mod)
             beatmap.approved = parseInt(beatmap.approved);
             beatmap.last_update = new Date(beatmap.last_update);
             return beatmap;
-        })
+        });
 }
 
 module.exports = {
@@ -197,4 +215,4 @@ module.exports = {
     leaderboardCheck,
     checkPool,
     getBeatmap
-}
+};
