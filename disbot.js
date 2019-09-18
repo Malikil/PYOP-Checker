@@ -22,7 +22,11 @@ client.on('ready', () => {
 });
 
 client.on('message', msg => {
-    if (msg.content === 'ping')
+    if (msg.author.bot || msg.content[0] != '!')
+        return;
+    console.log(`\x1b[36mReceived message:\x1b[0m ${msg.content}`);
+
+    if (msg.content === '!ping')
         msg.reply('Pong!');
     else if (msg.content.startsWith('!check'))
         commands.checkMap(msg);

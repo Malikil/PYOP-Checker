@@ -168,6 +168,7 @@ function checkPool(maps, userid)
  */
 function quickCheck(beatmap, userid)
 {
+    console.log(beatmap);
     // Check the game mode
     if (beatmap.mode != 0)
         return "This map is for the wrong gamemode";
@@ -181,9 +182,9 @@ function quickCheck(beatmap, userid)
         return `Total map time is above the ${convertSeconds(absoluteMax)} limit. (${convertSeconds(beatmap.total_length)})`;
     // Check difficulty
     else if (beatmap.difficultyrating > maxStar)
-        return `Star rating is above the ${maxStar} maximum. (${beatmap.difficultyrating})`;
+        return `Star rating is above the ${maxStar.toFixed(2)} maximum. (${beatmap.difficultyrating})`;
     else if (beatmap.difficultyrating < minStar)
-        return `Star rating is below the ${minStar} minimum. (${beatmap.difficultyrating})`;
+        return `Star rating is below the ${minStar.toFixed(2)} minimum. (${beatmap.difficultyrating})`;
     // Make sure the user didn't make this map themself
     else if (beatmap.approved != 1 && beatmap.creator_id == userid)
         return `You can't submit your own maps unless they're ranked`;
@@ -217,6 +218,8 @@ function leaderboardCheck(mapid, mod, userid)
  * Gets a single beatmap from the server, and verifies all values are proper
  * @param {Number} mapid The map id to get info for
  * @param {Number} mod The bitwise value of the selected mods
+ * @returns {Promise} A promise which will resolve to a beatmap object, or undefined if
+ *     no beatmap was found
  */
 function getBeatmap(mapid, mod)
 {
