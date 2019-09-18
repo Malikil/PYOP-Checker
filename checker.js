@@ -128,18 +128,9 @@ function checkPool(maps, userid)
             if ((overdrain > 0 && overdrain <= drainBuffer)
                     || (underdrain > 0 && underdrain <= drainBuffer))
                 overUnder++;
-            else if (overdrain > 0)
-                return {
-                    map: map,
-                    passed: false,
-                    message: `Map is more than ${drainBuffer} seconds above the ${convertSeconds(maxLength)} limit. (${convertSeconds(map.hit_length)})`
-                };
-            else if (underdrain > 0)
-                return {
-                    map: map,
-                    passed: false,
-                    message: `Map is more than ${drainBuffer} seconds below the ${convertSeconds(minLength)} limit. (${convertSeconds(map.hit_length)})`
-                };
+            // Shouldn't need to check for maps outside the limit here,
+            // that's done in quickCheck()
+
             // By this point, maps should be passable
             return {
                 map: map,
@@ -174,9 +165,9 @@ function quickCheck(beatmap, userid)
         return "This map is for the wrong gamemode";
     // Check drain time
     else if (beatmap.hit_length - drainBuffer > maxLength)
-        return `Drain time is above the ${convertSeconds(maxLength)} maximum. (${convertSeconds(beatmap.hit_length)})`;
+        return `Drain time is more than ${drainBuffer} seconds above the ${convertSeconds(maxLength)} limit. (${convertSeconds(map.hit_length)})`;
     else if (beatmap.hit_length + drainBuffer < minLength)
-        return `Drain time is below the ${convertSeconds(maxLength)} minimum. (${convertSeconds(beatmap.hit_length)})`;
+        return `Drain time is more than ${drainBuffer} seconds below the ${convertSeconds(minLength)} limit. (${convertSeconds(map.hit_length)})`;
     // Check total time
     else if (beatmap.total_length > absoluteMax)
         return `Total map time is above the ${convertSeconds(absoluteMax)} limit. (${convertSeconds(beatmap.total_length)})`;
