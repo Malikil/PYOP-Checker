@@ -5,6 +5,8 @@ should also be put here or in a different file.
 */
 const Discord = require('discord.js');
 const checker = require('./checker');
+const db = require('./db-manager');
+
 /**
  * Checks whether a given map would be accepted
  * @param {Discord.Message} msg The discord message starting with !check
@@ -16,10 +18,18 @@ async function checkMap(msg)
     if (args.length < 2 || args.length > 3)
         return msg.channel.send(`Usage: !check <map> [mod]
             Map should be a link or map id
-            (Optional) mod should be one of HD/HR/DT/HT/EZ, leave blank for nomod`);
+            (Optional) mod should be one of HD|HR|DT|HT|EZ, leave blank for nomod`);
     let mod = 0;
     if (args.length == 3)
-        mod = checker.MODS[args[2].toUpperCase()] || 0;
+    {
+        let modstr = args[2].toUpperCase();
+        // Parse mods
+        if (modstr.includes('HD')) mod = mod | checker.MODS.HD;
+        if (modstr.includes('HR')) mod = mod | checker.MODS.HR;
+        else if (modstr.includes('EZ')) mod = mod | checker.MODS.EZ;
+        if (modstr.includes('DT')) mod = mod | checker.MODS.DT;
+        else if (modstr.includes('HT')) mod = mod | checker.MODS.HT;
+    }
     let mapid = checker.parseMapId(args[1]);
     if (!mapid)
         return msg.channel.send(`Couldn't recognise beatmap id`);
@@ -43,6 +53,13 @@ async function checkMap(msg)
         });
 }
 
+async function listDb(msg)
+{
+    console.log(db);
+    //db.getAllDocuments();
+}
+
 module.exports = {
-    checkMap
+    checkMap,
+    listDb
 };

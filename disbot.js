@@ -1,5 +1,4 @@
 /*
-This is the main entry point for the app.
 Connection to discord should be handled here. Commands should be handled with
 the 'commands' module, but those methods will be called from here.
 */
@@ -7,18 +6,8 @@ const Discord = require('discord.js');
 const commands = require('./commands');
 const client = new Discord.Client();
 
-const guildId = process.env.DISCORD_GUILD;
-const channelId = process.env.DISCORD_CHANNEL;
-
-/** @type {Discord.Guild} */
-var guild;
-/** @type {Discord.GuildChannel} */
-var channel;
-
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}.`);
-    guild = client.guilds.get(guildId);
-    channel = guild.channels.get(channelId);
 });
 
 client.on('message', msg => {
@@ -30,12 +19,15 @@ client.on('message', msg => {
         msg.reply('Pong!');
     else if (msg.content.startsWith('!check'))
         commands.checkMap(msg);
+    else if (msg.content === '!list')
+        commands.listDb(msg);
 });
 
 /**
  * Send a message in the map rejection channel to tell user about rejected maps
  * @param {String} name Player name
  * @param {Array} rejects Array of json objects giving pass/fail status
+ * @deprecated Do not use, kept only for reference
  */
 function rejectMaps(name, rejects)
 {
@@ -66,4 +58,4 @@ function rejectMaps(name, rejects)
     });
 }
 
-client.login(process.env.DISCORD_TOKEN);
+module.exports = client;
