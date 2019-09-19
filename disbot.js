@@ -7,7 +7,7 @@ const commands = require('./commands');
 const client = new Discord.Client();
 
 client.on('ready', () => {
-    console.log(`Logged in as ${client.user.tag}.`);
+    console.log(`Logged in as ${client.user.tag}`);
 });
 
 client.on('message', msg => {
@@ -23,39 +23,7 @@ client.on('message', msg => {
         commands.listDb(msg);
 });
 
-/**
- * Send a message in the map rejection channel to tell user about rejected maps
- * @param {String} name Player name
- * @param {Array} rejects Array of json objects giving pass/fail status
- * @deprecated Do not use, kept only for reference
- */
-function rejectMaps(name, rejects)
-{
-    return new Promise((resolve, reject) => {
-        try
-        {
-            let modmanager = new Mod();
-            let member = guild.members.find(member => 
-                ((!!member.nickname && member.nickname.toLowerCase().includes(name.toLowerCase()))
-                    || (!!!member.nickname && member.user.username.toLowerCase().includes(name.toLowerCase()))));
-            let rejectMessage = !!member ? `${member}\n` : `@${name}\n`;
-            rejects.forEach(item => {
-                if (item.passed === false)
-                {
-                    if (!!item.reject.map)
-                        rejectMessage += `**Map:** <https://osu.ppy.sh/b/${item.reject.map.id}> +${modmanager.modBitwiseToString(item.reject.map.mod)}\n**Reason:** `;
-                    rejectMessage += `${item.reject.reason}\n\n`;
-                }
-            });
-            if (rejectMessage.lastIndexOf('\n') !== rejectMessage.indexOf('\n'))
-                channel.send(rejectMessage);
-            resolve();
-        }
-        catch (error)
-        {
-            reject(error);
-        }
-    });
-}
+client.login(process.env.DISCORD_TOKEN)
+.then(val => console.log(val));
 
 module.exports = client;

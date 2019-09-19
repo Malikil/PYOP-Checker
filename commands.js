@@ -6,6 +6,7 @@ should also be put here or in a different file.
 const Discord = require('discord.js');
 const checker = require('./checker');
 const db = require('./db-manager');
+const util = require('util');
 
 /**
  * Checks whether a given map would be accepted
@@ -37,25 +38,26 @@ async function checkMap(msg)
     // Try to get the user id based on who sent the message
     // msg.author.id
 
-    return checker.getBeatmap(mapid, mod)
-        .then(beatmap => {
-            let quick = checker.quickCheck(beatmap);
-            console.log(`Quick check returned: ${quick}`);
-            if (quick)
-                return msg.channel.send(quick);
-            return checker.leaderboardCheck(mapid, mod)
-                .then(passed => {
-                    if (passed)
-                        return msg.channel.send("This map can be accepted automatically");
-                    else
-                        return msg.channel.send("This map would need to be manually approved");
-                });
-        });
+    let beatmap = await checker.getBeatmap(mapid, mod);
+    let quick = checker.quickCheck(beatmap);
+    console.log(`Quick check returned: ${quick}`);
+    if (quick)
+        return msg.channel.send(quick);
+    
+    let passed = await checker.leaderboardCheck(mapid, mod);
+    if (passed)
+        return msg.channel.send("This map can be accepted automatically");
+    else
+        return msg.channel.send("This map would need to be manually approved");
 }
 
+/**
+ * Lists everything in the database for debugging purposes
+ * @param {Discord.Message} msg 
+ */
 async function listDb(msg)
 {
-    console.log(db);
+    return msg.channel.sendCode('json', util.inspect(db));
     //db.getAllDocuments();
 }
 

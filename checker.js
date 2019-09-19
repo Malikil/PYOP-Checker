@@ -190,19 +190,17 @@ function quickCheck(beatmap, userid)
  * @param {Number} userid The user to check on the leaderboard for
  * @returns {Promise<boolean>} Whether the leaderboard would make the map accepted
  */
-function leaderboardCheck(mapid, mod, userid)
+async function leaderboardCheck(mapid, mod, userid)
 {
-    return fetch(`${osuapi}/get_scores?k=${key}&b=${mapid}&mods=${mod & MODS.DIFFMODS}`)
-        .then(response => response.json())
-        .then(scores => {
-            // The leaderboard passes if there are more than 'n' scores, if the
-            // first score is perfect, or if the user themself has a score
-            if (scores.length >= leaderboard
-                    || scores[0].perfect == 1
-                    || scores.find(score => score.user_id == userid) !== undefined)
-                return true;
-            return false;
-        });
+    let response = await fetch(`${osuapi}/get_scores?k=${key}&b=${mapid}&mods=${mod & MODS.DIFFMODS}`);
+    let scores = response.json();
+    // The leaderboard passes if there are more than 'n' scores, if the
+    // first score is perfect, or if the user themself has a score
+    if (scores.length >= leaderboard
+            || scores[0].perfect == 1
+            || scores.find(score => score.user_id == userid) !== undefined)
+        return true;
+    return false;
 }
 
 /**
