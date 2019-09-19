@@ -1,4 +1,5 @@
 /*
+This will be the main entry point.
 Connection to discord should be handled here. Commands should be handled with
 the 'commands' module, but those methods will be called from here.
 */
@@ -15,15 +16,13 @@ client.on('message', msg => {
         return;
     console.log(`\x1b[36mReceived message:\x1b[0m ${msg.content}`);
 
-    if (msg.content === '!ping')
-        msg.reply('Pong!');
-    else if (msg.content.startsWith('!check'))
-        commands.checkMap(msg);
-    else if (msg.content === '!list')
-        commands.listDb(msg);
+    if (msg.content === '!ping')                msg.reply('Pong!');
+    else if (msg.content === '!debug')          commands.debug(msg);
+    else if (msg.content === '!commands')       commands.commands(msg);
+    else if (msg.content.startsWith('!check'))  commands.checkMap(msg);
+    else if (msg.content === '!list')           commands.listDb(msg);
 });
 
-client.login(process.env.DISCORD_TOKEN)
-.then(val => console.log(val));
+client.login(process.env.DISCORD_TOKEN);
 
 module.exports = client;

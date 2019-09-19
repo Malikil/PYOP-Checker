@@ -164,20 +164,22 @@ function quickCheck(beatmap, userid)
     if (beatmap.mode != 0)
         return "This map is for the wrong gamemode";
     // Check drain time
-    else if (beatmap.hit_length - drainBuffer > maxLength)
+    if (beatmap.hit_length - drainBuffer > maxLength)
         return `Drain time is more than ${drainBuffer} seconds above the ${convertSeconds(maxLength)} limit. (${convertSeconds(map.hit_length)})`;
     else if (beatmap.hit_length + drainBuffer < minLength)
         return `Drain time is more than ${drainBuffer} seconds below the ${convertSeconds(minLength)} limit. (${convertSeconds(map.hit_length)})`;
     // Check total time
-    else if (beatmap.total_length > absoluteMax)
+    if (beatmap.total_length > absoluteMax)
         return `Total map time is above the ${convertSeconds(absoluteMax)} limit. (${convertSeconds(beatmap.total_length)})`;
     // Check difficulty
-    else if (beatmap.difficultyrating > maxStar)
+    if (beatmap.difficultyrating > maxStar)
         return `Star rating is above the ${maxStar.toFixed(2)} maximum. (${beatmap.difficultyrating})`;
     else if (beatmap.difficultyrating < minStar)
         return `Star rating is below the ${minStar.toFixed(2)} minimum. (${beatmap.difficultyrating})`;
     // Make sure the user didn't make this map themself
-    else if (beatmap.approved != 1 && beatmap.creator_id == userid)
+    console.log(`Did ${userid} map this?`);
+    console.log(`Unranked: ${beatmap.approved != 1} | Creator matches: ${beatmap.creator_id == userid}`);
+    if (beatmap.approved != 1 && beatmap.creator_id == userid)
         return `You can't submit your own maps unless they're ranked`;
 }
 

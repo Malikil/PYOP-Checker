@@ -2,6 +2,7 @@
 This module should handle connecting to the database and all the CRUD operations
 */
 const { MongoClient, Db } = require('mongodb');
+const util = require('util');
 
 const mongoUser = process.env.MONGO_USER;
 const mongoPass = process.env.MONGO_PASS;
@@ -27,28 +28,42 @@ client.connect(err => {
 /**
  * Gets all documents from the database, and performs a specified action on
  * each one.
- * @param callback A callback function to do for each of the database items
  */
-function getAllDocuments(callback)
+async function getAllDocuments()
 {
     let cursor = db.collection('teams').find();
-    cursor.forEach(callback)
-    .then(() => cursor.close());
+    let vals = await cursor.toArray();
+    cursor.close();
+    return vals;
 }
 
 /**
  * Will get an osu id from a discord id if that user is currently registered
  * on a team in the database
  * @param {string} discordid The discord userid to search for
+ * @returns {Promise<string>}
  */
-function getOsuId(discordid)
+async function getOsuId(discordid)
 {
-    let player = await db.collection('teams').findOne({
-        'players.discordid': discordid
-    });
+    console.log(`Looking for id: ${discordid}`);
+    let cursor = db.collection('teams').aggregate([
+        { $match: { 'players.discordid': discordid } },
+        { $unwind: '$players' },
+        { $match: { 'players.discordid': discordid } },
+        { $project: {
+            _id: 0,
+            discordid: '$players.discordid',
+            osuid: '$players.osuid'
+        } }
+    ]);
+
+    let info = await cursor.next();
+    console.log(`Found ${discordid} => ${util.inspect(info)}`);
+    return info.osuid;
 }
 
 module.exports = {
     client,
-    getAllDocuments
+    getAllDocuments,
+    getOsuId
 };

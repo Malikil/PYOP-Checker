@@ -37,14 +37,17 @@ async function checkMap(msg)
     console.log(`Checking map ${mapid} with mods ${mod}`);
     // Try to get the user id based on who sent the message
     // msg.author.id
+    let userid = await db.getOsuId(msg.author.id);
 
     let beatmap = await checker.getBeatmap(mapid, mod);
-    let quick = checker.quickCheck(beatmap);
+    let quick = checker.quickCheck(beatmap, userid);
     console.log(`Quick check returned: ${quick}`);
     if (quick)
         return msg.channel.send(quick);
     
-    let passed = await checker.leaderboardCheck(mapid, mod);
+    let passed = false;
+    if (beatmap.approved == 1)
+        passed = await checker.leaderboardCheck(mapid, mod, userid);
     if (passed)
         return msg.channel.send("This map can be accepted automatically");
     else
@@ -57,11 +60,36 @@ async function checkMap(msg)
  */
 async function listDb(msg)
 {
-    return msg.channel.sendCode('json', util.inspect(db));
-    //db.getAllDocuments();
+    let docs = await db.getAllDocuments();
+    return msg.channel.send(util.inspect(docs, {
+        maxArrayLength: 5,
+        depth: 5
+    }), {
+        code: 'js'
+    });
+}
+
+/**
+ * Sends a list of available commands
+ * @param {Discord.Message} msg 
+ */
+async function commands(msg)
+{
+    msg.channel.send(`Available commands are:
+        !check, !commands`);
+}
+
+/**
+ * @param {Discord.Message} msg 
+ */
+async function debug(msg)
+{
+    db.getOsuId(msg.author.id);
 }
 
 module.exports = {
     checkMap,
-    listDb
+    listDb,
+    commands,
+    debug
 };
