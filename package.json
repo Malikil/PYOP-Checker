@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node disbot.js"
+    "start": "echo \"Don't use npm to start\""
   },
   "author": "Eric",
   "license": "ISC",

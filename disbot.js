@@ -17,7 +17,6 @@ client.on('message', msg => {
     console.log(`\x1b[36mReceived message:\x1b[0m ${msg.content}`);
 
     if (msg.content === '!ping')                msg.reply('Pong!');
-    else if (msg.content === '!debug')          commands.debug(msg);
     else if (msg.content === '!commands')       commands.commands(msg);
     else if (msg.content.startsWith('!check'))  commands.checkMap(msg);
     else if (msg.content === '!list')           commands.listDb(msg);
@@ -25,4 +24,4 @@ client.on('message', msg => {
 
 client.login(process.env.DISCORD_TOKEN);
 
-module.exports = client;
+//module.exports = client;

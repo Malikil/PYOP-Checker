@@ -19,7 +19,7 @@ async function checkMap(msg)
     if (args.length < 2 || args.length > 3)
         return msg.channel.send(`Usage: !check <map> [mod]
             Map should be a link or map id
-            (Optional) mod should be one of HD|HR|DT|HT|EZ, leave blank for nomod`);
+            (Optional) mod should be some combination of HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored`);
     let mod = 0;
     if (args.length == 3)
     {
@@ -78,17 +78,8 @@ async function commands(msg)
         !check, !commands`);
 }
 
-/**
- * @param {Discord.Message} msg 
- */
-async function debug(msg)
-{
-    db.getOsuId(msg.author.id);
-}
-
 module.exports = {
     checkMap,
     listDb,
-    commands,
-    debug
+    commands
 };

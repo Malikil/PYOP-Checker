@@ -195,7 +195,7 @@ function quickCheck(beatmap, userid)
 async function leaderboardCheck(mapid, mod, userid)
 {
     console.log(`Checking leaderboard for ${mapid} +${mod}`);
-    let response = await fetch(`${osuapi}/get_scores?k=${key}&b=${mapid}&mods=${mod & MODS.DIFFMODS}`);
+    let response = await fetch(`${osuapi}/get_scores?k=${key}&b=${mapid}&mods=${mod}`);
     let scores = await response.json();
     // If there aren't any passes with the mod, the map needs manual approval
     if (scores.length < 1)
