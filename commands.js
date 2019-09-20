@@ -36,7 +36,6 @@ async function checkMap(msg)
         return msg.channel.send(`Couldn't recognise beatmap id`);
     console.log(`Checking map ${mapid} with mods ${mod}`);
     // Try to get the user id based on who sent the message
-    // msg.author.id
     let userid = await db.getOsuId(msg.author.id);
 
     let beatmap = await checker.getBeatmap(mapid, mod);

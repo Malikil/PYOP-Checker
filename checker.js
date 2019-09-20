@@ -194,10 +194,16 @@ function quickCheck(beatmap, userid)
  */
 async function leaderboardCheck(mapid, mod, userid)
 {
+    console.log(`Checking leaderboard for ${mapid} +${mod}`);
     let response = await fetch(`${osuapi}/get_scores?k=${key}&b=${mapid}&mods=${mod & MODS.DIFFMODS}`);
-    let scores = response.json();
+    let scores = await response.json();
+    // If there aren't any passes with the mod, the map needs manual approval
+    if (scores.length < 1)
+        return false;
     // The leaderboard passes if there are more than 'n' scores, if the
     // first score is perfect, or if the user themself has a score
+    console.log("Found leaderboard. Top score:");
+    console.log(scores[0]);
     if (scores.length >= leaderboard
             || scores[0].perfect == 1
             || scores.find(score => score.user_id == userid) !== undefined)
