@@ -185,7 +185,7 @@ async function movePlayer(msg)
 }
 
 /**
- * Adds a map to the team's player
+ * Adds a map to the players's team
  * @param {Discord.Message} msg 
  */
 async function addMap(msg)
