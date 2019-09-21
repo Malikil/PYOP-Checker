@@ -25,9 +25,9 @@ async function checkMap(msg)
     if (args.length < 2 || args.length > 3)
         return;
     else if (args[1] == '?')
-        return msg.channel.send(`Usage: !check <map> [mod]
-            Map should be a link or map id
-            (Optional) mod should be some combination of HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored`);
+        return msg.channel.send("Usage: !check <map> [mod]\n" +
+            "Map should be a link or map id\n" +
+            "(Optional) mod should be some combination of HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored");
     let mod = 0;
     if (args.length == 3)
     {
@@ -59,21 +59,6 @@ async function checkMap(msg)
         return msg.channel.send("This map can be accepted automatically");
     else
         return msg.channel.send("This map would need to be manually approved");
-}
-
-/**
- * Lists everything in the database for debugging purposes
- * @param {Discord.Message} msg 
- */
-async function listDb(msg)
-{
-    let docs = await db.getAllDocuments();
-    return msg.channel.send(util.inspect(docs, {
-        maxArrayLength: 5,
-        depth: 5
-    }), {
-        code: 'js'
-    });
 }
 
 /**
@@ -110,32 +95,93 @@ async function addPlayer(msg)
         return msg.channel.send("This command is only available to admins");
     
     let args = msg.content.split(' ');
-    args.shift();
-    if (args[0] == '?')
-        msg.channel.send(`Adds a player to an existing team.
-            !addPlayer "Team Name" osuid discordid`);
+    if (args.length > 1 && args[1] == '?')
+        return msg.channel.send("Adds a player to an existing team.\n" +
+            "!addPlayer \"Team Name\" <osuname> <osuid> <discordid>");
+    if (args.length < 5)
+        return;
 
+    // Remove the command argument, combining team name will require team to
+    // be the first argument
+    args.shift();
+
+    // Making a note of possible regex
+    // s.match(/(?:[^\s"]+|"[^"]*")+/g)
     // Recombine quoted team names
     if (args[0].startsWith('"'))
     {
         let team = args.shift();
-        while (!args[i].endsWith('"'))
+        while (!args[0].endsWith('"'))
             team += " " + args.shift();
-        team += args.shift();
+        team += " " + args.shift();
         args.unshift(team.substring(1, team.length - 1));
     }
 
-    if (args.length != 3)
-        msg.channel.send("Incorrect number of arguments");
+    console.log(args);
+
+    if (args.length != 4)
+        return msg.channel.send("Incorrect number of arguments");
 
     // Make sure the player isn't already on a team
-    db.removePlayer(args[1]);
+    await db.removePlayer(args[1]);
 
     // Add the player to the team
-    if (await db.addPlayer(args[0], args[1], args[2]))
-        msg.channel.send("Player added");
+    if (await db.addPlayer(args[0], args[2], args[1], args[3]))
+        return msg.channel.send("Player added");
     else
-        msg.channel.send("Couldn't add player");
+        return msg.channel.send("Couldn't add player");
+}
+
+/**
+ * Removes a player from all the teams they're on
+ * @param {Discord.Message} msg 
+ */
+async function removePlayer(msg)
+{
+    if (!msg.member.roles.has(ADMIN))
+        return msg.channel.send("This command is only available to admins");
+    
+    let args = msg.content.split(' ');
+    if (args.length != 2)
+        return;
+
+    if (args[1] == '?')
+        return msg.channel.send("Removes a player from all teams they might be on.\n" +
+            "!removePlayer osuname");
+    
+    console.log(`Removing ${args[1]}`);
+    let result = await db.removePlayer(args[1]);
+    if (result)
+        return msg.channel.send(`Removed ${args[1]} from all teams`);
+    else
+        return msg.channel.send("Unable to remove player");
+}
+
+/**
+ * Moves an existing player to a different team
+ * @param {Discord.Message} msg 
+ */
+async function movePlayer(msg)
+{
+    if (!msg.member.roles.has(ADMIN))
+        return msg.channel.send("This command is only available to admins");
+    
+    let args = msg.content.split(' ');
+    if (args.length == 2 && args[1] == '?')
+        return msg.channel.send("Moves an existing player to a different team.\n" +
+            "!movePlayer <player> <Team Name>");
+    else if (args.length < 3)
+        return;
+
+    // Recombine the team name into a single string
+    let team = args[2];
+    for (let i = 3; i < args.length; i++)
+        team += " " + args[i];
+    
+    if (await db.movePlayer(team, args[1]))
+        return msg.channel.send(`Moved ${args[1]} to ${team}`);
+    else
+        return msg.channel.send("Couldn't move player");
 }
 
 /**
@@ -146,14 +192,16 @@ async function commands(msg)
 {
     var info = "Available public commands:\n!check, !commands";
     if (msg.member.roles.has(APPROVER))
-        info += "\n\nAvailable map approver commands:\n!pending, !approve, !reject";
+        info += "\n\nAvailable map approver commands:\nNone implemented yet!";
     info += "\n\nGet more info about a command by typing a ? after the name";
     return msg.channel.send(info);
 }
 
 module.exports = {
     checkMap,
-    listDb,
     commands,
-    addTeam     // Teams
+    addTeam,    // Teams/players
+    addPlayer,
+    removePlayer,
+    movePlayer
 };

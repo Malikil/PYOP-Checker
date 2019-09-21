@@ -26,18 +26,6 @@ client.connect(err => {
 });
 
 /**
- * Gets all documents from the database, and performs a specified action on
- * each one.
- */
-async function getAllDocuments()
-{
-    let cursor = db.collection('teams').find();
-    let vals = await cursor.toArray();
-    cursor.close();
-    return vals;
-}
-
-/**
  * Will get an osu id from a discord id if that user is currently registered
  * on a team in the database
  * @param {string} discordid The discord userid to search for
@@ -98,13 +86,14 @@ async function addTeam(teamName)
  * @param {string} discordid The player's discord id
  * @returns {Promise<boolean>} Whether any records were modified
  */
-async function addPlayer(teamName, osuid, discordid)
+async function addPlayer(teamName, osuid, osuname, discordid)
 {
     console.log(`Adding ${osuname} to ${teamName}`);
     let result = await db.collection('teams').updateOne(
         { name: teamName },
         { $push: { players: {
             osuid: osuid,
+            osuname: osuname,
             discordid: discordid
         } } }
     );
@@ -113,27 +102,47 @@ async function addPlayer(teamName, osuid, discordid)
 
 /**
  * Removes a player from all teams they might be on
- * @param {string} osuid The osu id to remove
+ * @param {string} osuname The player to remove
  * @returns {Promise<boolean>} Whether any records were modified
  */
-async function removePlayer(osuid)
+async function removePlayer(osuname)
 {
-    console.log(`Removing ${osuid} from all their teams`);
+    console.log(`Removing ${osuname} from all their teams`);
     let result = await db.collection('teams').updateMany(
-        { 'players.osuid': osuid },
-        { $pull: { players: {
-            osuid: osuid
-        } } }
+        { 'players.osuname': osuname },
+        { $pull: { players: { osuname: osuname } } }
     );
     console.log(`Removed from ${result.modifiedCount} teams`);
     return result.modifiedCount > 0;
 }
 
+/**
+ * Move a player from one team to another
+ * @param {string} teamName The team name to move to
+ * @param {string} osuname The player's osu username
+ * @returns {Promise<boolean>} Whether the player was moved
+ */
+async function movePlayer(teamName, osuname)
+{
+    console.log(`Moving ${osuname} to ${teamName}`);
+    let team = await db.collection('teams').findOneAndUpdate(
+        { 'players.osuname': osuname },
+        { $pull: { players: { osuname: osuname } } }
+    );
+    let player = team.value.players.find(item => item.osuname == osuname);
+    if (!player)
+        return false;
+    let result = await db.collection('teams').updateOne(
+        { name: teamName },
+        { $push: { players: player } }
+    );
+    return result.modifiedCount > 0;
+}
+
 module.exports = {
-    client,
-    getAllDocuments,
     getOsuId,
-    addTeam,    // Teams
+    addTeam,    // Teams/players
     addPlayer,
-    removePlayer
+    removePlayer,
+    movePlayer
 };
