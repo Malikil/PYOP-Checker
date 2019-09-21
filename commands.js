@@ -229,13 +229,14 @@ async function addMap(msg)
     if (!mapid)
         return msg.channel.send(`Couldn't recognise beatmap id`);
     // Check beatmap approval
+    console.log(`Looking for map with id ${mapid}`);
     let beatmap = await checker.getBeatmap(mapid, mod);
-    let quick = checker.quickCheck(beatmap, userid);
+    let quick = checker.quickCheck(beatmap, osuid);
     let status;
     if (quick)
         return msg.channel.send(quick);
     else if (beatmap.approved == 1
-            && await checker.leaderboardCheck(mapid, mod, userid))
+            && await checker.leaderboardCheck(mapid, mod, osuid))
         status = "Accepted";
     else
         status = "Pending";
@@ -253,15 +254,17 @@ async function addMap(msg)
 
     // Check if a map should be removed to make room for this one
     // If there's a rejected map, remove that one
-    db.addMap(team.name, modpool, {
+    if (await db.addMap(team.name, modpool, {
         id: mapid,
         status: status,
         drain: beatmap.hit_length,
         stars: beatmap.difficultyrating
-    });
-    msg.channel.send(`Added map ${beatmap.artist} - ${beatmap.title} [${beatmap.version}] ` +
-        `to ${modpool.toUpperCase()} mod pool.\n` +
-        `Map approval satus: ${status}`);
+    }))
+        return msg.channel.send(`Added map ${beatmap.artist} - ${beatmap.title} [${beatmap.version}] ` +
+            `to ${modpool.toUpperCase()} mod pool.\n` +
+            `Map approval satus: ${status}`);
+    else
+        return msg.channel.send("Add map failed.");
 }
 
 /**
@@ -273,7 +276,7 @@ async function commands(msg)
     var info = "Available public commands:\n!check, !commands";
     if (msg.member.roles.has(APPROVER))
         info += "\n\nAvailable map approver commands:\nNone implemented yet!";
-    if (db.getTeam(msg.author.id))
+    if (await db.getTeam(msg.author.id))
         info != "\n\nAvailable player commands:\n!addMap";
     info += "\n\nGet more info about a command by typing a ? after the name";
     return msg.channel.send(info);

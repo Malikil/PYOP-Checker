@@ -161,9 +161,9 @@ function quickCheck(beatmap, userid)
         return "This map is for the wrong gamemode";
     // Check drain time
     if (beatmap.hit_length - drainBuffer > maxLength)
-        return `Drain time is more than ${drainBuffer} seconds above the ${convertSeconds(maxLength)} limit. (${convertSeconds(map.hit_length)})`;
+        return `Drain time is more than ${drainBuffer} seconds above the ${convertSeconds(maxLength)} limit. (${convertSeconds(beatmap.hit_length)})`;
     else if (beatmap.hit_length + drainBuffer < minLength)
-        return `Drain time is more than ${drainBuffer} seconds below the ${convertSeconds(minLength)} limit. (${convertSeconds(map.hit_length)})`;
+        return `Drain time is more than ${drainBuffer} seconds below the ${convertSeconds(minLength)} limit. (${convertSeconds(beatmap.hit_length)})`;
     // Check total time
     if (beatmap.total_length > absoluteMax)
         return `Total map time is above the ${convertSeconds(absoluteMax)} limit. (${convertSeconds(beatmap.total_length)})`;

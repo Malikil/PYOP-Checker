@@ -161,8 +161,8 @@ async function getTeam(discordid)
 async function addMap(team, mod, map)
 {
     console.log(`Adding map ${map.id} to ${team}'s ${mod} pool`);
-    let updateobj = {};
-    updateobj[`maps.${mod}`] = { $push: map };
+    let updateobj = { $push: {}};
+    updateobj.$push[`maps.${mod}`] = map;
     let teamobj = await db.collection('teams').findOneAndUpdate(
         { name: team },
         updateobj,
@@ -171,7 +171,8 @@ async function addMap(team, mod, map)
     console.log(`Team ok: ${teamobj.ok}`);
     if (teamobj.value.maps[mod].length > 2)
     {
-        updateobj[`maps.${mod}`] = { $pop: -1 };
+        updateobj = { $pop: {}};
+        updateobj.$pop[`maps.${mod}`] = -1;
         db.collection('teams').updateOne(
             { name: team },
             updateobj
