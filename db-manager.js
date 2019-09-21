@@ -139,10 +139,53 @@ async function movePlayer(teamName, osuname)
     return result.modifiedCount > 0;
 }
 
+/**
+ * Gets which team a player is on based on their discord id
+ * @param {string} discordid The player's discord id
+ */
+async function getTeam(discordid)
+{
+    console.log(`Finding team for player ${discordid}`);
+    let team = await db.collection('teams').findOne({ 'players.discordid': discordid });
+    console.log(team);
+    return team;
+}
+
+/**
+ * Adds a map to the given mod bracket. Removes the first map on the list if
+ * two maps are already present.
+ * @param {string} team The team name
+ * @param {"nm"|"hd"|"hr"|"dt"|"cm"} mod The mod to add the map to.
+ * @param {*} map Map object containing id, status, drain, stars, and mod if customMod
+ */
+async function addMap(team, mod, map)
+{
+    console.log(`Adding map ${map.id} to ${team}'s ${mod} pool`);
+    let updateobj = {};
+    updateobj[`maps.${mod}`] = { $push: map };
+    let teamobj = await db.collection('teams').findOneAndUpdate(
+        { name: team },
+        updateobj,
+        { returnOriginal: false }
+    );
+    console.log(`Team ok: ${teamobj.ok}`);
+    if (teamobj.value.maps[mod].length > 2)
+    {
+        updateobj[`maps.${mod}`] = { $pop: -1 };
+        db.collection('teams').updateOne(
+            { name: team },
+            updateobj
+        );
+    }
+    return teamobj.ok;
+}
+
 module.exports = {
     getOsuId,
     addTeam,    // Teams/players
     addPlayer,
     removePlayer,
-    movePlayer
+    movePlayer,
+    getTeam,
+    addMap      // Maps
 };
