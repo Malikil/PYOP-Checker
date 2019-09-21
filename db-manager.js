@@ -62,8 +62,38 @@ async function getOsuId(discordid)
     return info.osuid;
 }
 
+/**
+ * Adds a team to the database
+ * @param {string} teamName The team's name
+ * @returns {Promise<boolean>} Whether the team was added
+ */
+async function addTeam(teamName)
+{
+    console.log(`Looking for team: ${teamName}`);
+    let find = await db.collection('teams').findOne({name: teamName});
+    console.log(find);
+
+    if (find)
+        return undefined;
+
+    let result = await db.collection('teams').insertOne({
+        name: teamName,
+        players: [],
+        maps: {
+            nm: [],
+            hd: [],
+            hr: [],
+            dt: [],
+            cm: []
+        }
+    });
+
+    return result.insertedCount > 0;
+}
+
 module.exports = {
     client,
     getAllDocuments,
-    getOsuId
+    getOsuId,
+    addTeam     // Teams
 };

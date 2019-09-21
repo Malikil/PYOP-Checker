@@ -2,11 +2,17 @@
 This module should contain all the commands from the discord bot. If the bot
 will be connected to osu! irc at some point I'm not yet sure if those commands
 should also be put here or in a different file.
+
+Permissions should also be checked here. Ie if trying to add a team this module
+needs to make sure the user has the proper permissions to do that.
 */
 const Discord = require('discord.js');
 const checker = require('./checker');
 const db = require('./db-manager');
 const util = require('util');
+
+const ADMIN = process.env.ROLE_ADMIN;
+const APPROVER = process.env.ROLE_MAP_APPROVER;
 
 /**
  * Checks whether a given map would be accepted
@@ -17,6 +23,8 @@ async function checkMap(msg)
     // Parse the map id from msg
     let args = msg.content.split(' ');
     if (args.length < 2 || args.length > 3)
+        return;
+    else if (args[1] == '?')
         return msg.channel.send(`Usage: !check <map> [mod]
             Map should be a link or map id
             (Optional) mod should be some combination of HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored`);
@@ -69,17 +77,45 @@ async function listDb(msg)
 }
 
 /**
+ * Adds a team to the database, requires Admin role
+ * @param {Discord.Message} msg 
+ */
+async function addTeam(msg)
+{
+    if (!msg.member.roles.has(ADMIN))
+        return msg.channel.send("This command is only available to admins");
+    
+    let args = msg.content.substr(9);
+    if (args.length == 0)
+        return;
+    else if (args == '?')
+        return msg.channel.send(`Adds a new team to the database`);
+    
+    let result = await db.addTeam(args);
+    if (result === undefined)
+        return msg.channel.send("A team with that name already exists");
+    else if (result)
+        return msg.channel.send(`Added team "${args}"`);
+    else
+        return msg.channel.send("Error while adding team");
+}
+
+/**
  * Sends a list of available commands
  * @param {Discord.Message} msg 
  */
 async function commands(msg)
 {
-    msg.channel.send(`Available commands are:
-        !check, !commands`);
+    var info = "Available public commands:\n!check, !commands";
+    if (msg.member.roles.has(APPROVER))
+        info += "\n\nAvailable map approver commands:\n!pending, !approve, !reject";
+    info += "\n\nGet more info about a command by typing a ? after the name";
+    return msg.channel.send(info);
 }
 
 module.exports = {
     checkMap,
     listDb,
-    commands
+    commands,
+    addTeam     // Teams
 };

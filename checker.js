@@ -200,7 +200,7 @@ async function leaderboardCheck(mapid, mod, userid)
     // If there aren't any passes with the mod, the map needs manual approval
     if (scores.length < 1)
         return false;
-    // The leaderboard passes if there are more than 'n' scores, if the
+    // The leaderboard passes if there are more than n scores, if the
     // first score is perfect, or if the user themself has a score
     console.log("Found leaderboard. Top score:");
     console.log(scores[0]);

@@ -18,8 +18,10 @@ client.on('message', msg => {
 
     if (msg.content === '!ping')                msg.reply('Pong!');
     else if (msg.content === '!commands')       commands.commands(msg);
-    else if (msg.content.startsWith('!check'))  commands.checkMap(msg);
+    else if (msg.content.startsWith('!check '))  commands.checkMap(msg);
     else if (msg.content === '!list')           commands.listDb(msg);
+    // Team/player management
+    else if (msg.content.startsWith('!addTeam '))    commands.addTeam(msg);
 });
 
 client.login(process.env.DISCORD_TOKEN);
