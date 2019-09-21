@@ -16,14 +16,24 @@ client.on('message', msg => {
         return;
     console.log(`\x1b[36mReceived message:\x1b[0m ${msg.content}`);
 
-    if (msg.content === '!ping')                msg.reply('Pong!');
-    else if (msg.content === '!commands')       commands.commands(msg);
-    else if (msg.content.startsWith('!check '))  commands.checkMap(msg);
+    if (msg.content === '!ping')            msg.reply('Pong!');
+    else if (msg.content === '!commands')   commands.commands(msg);
+    else if (msg.content.startsWith('!check ')
+            || msg.content.startsWith('!map '))
+        commands.checkMap(msg);
     // Team/player management
-    else if (msg.content.startsWith('!addTeam '))   commands.addTeam(msg);
-    else if (msg.content.startsWith('!addPlayer ')) commands.addPlayer(msg);
-    else if (msg.content.startsWith('!removePlayer '))  commands.removePlayer(msg);
-    else if (msg.content.startsWith('!movePlayer '))    commands.movePlayer(msg);
+    else if (msg.content.startsWith('!addTeam '))
+        commands.addTeam(msg);
+    else if (msg.content.startsWith('!addPlayer ')
+            || msg.content.startsWith('!ap '))
+        commands.addPlayer(msg);
+    else if (msg.content.startsWith('!removePlayer ')
+            || msg.content.startsWith('!rp '))
+        commands.removePlayer(msg);
+    else if (msg.content.startsWith('!movePlayer ')
+            || msg.content.startsWith('!mp '))
+        commands.movePlayer(msg);
+    // Map management
 });
 
 client.login(process.env.DISCORD_TOKEN);
