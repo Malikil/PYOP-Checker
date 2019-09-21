@@ -77,8 +77,8 @@ function parseMapId(mapString)
 }
 
 /**
- * Checks an entire pool, including things like duplicates or total drain time, and
- * map-specific things like drain time, length, and stars
+ * Checks an entire pool, including things like duplicates or total drain time.
+ * Doesn't check the map things.
  * @param {*[]} maps An array of beatmap objects to check.
  * @param {Number} userid The id of the user submitting the pool
  * @returns {Promise} An array of objects containing the beatmap and pass status,
@@ -87,7 +87,14 @@ function parseMapId(mapString)
  *         overUnder: Number,
  *         totalDrain: Number,
  *         duplicates: Number,
- *         maps: *[],
+ *         maps: [
+ *             {
+ *                 id: Number,
+ *                 drain: Number,
+ *                 stars: Number,
+ *                 status: string
+ *             }
+ *         ],
  *         passed: boolean,
  *         message: string
  *     }
@@ -105,15 +112,9 @@ function checkPool(maps, userid)
             message: undefined
         }
         results.maps = maps.map(map => {
-            let status = quickCheck(map, userid);
-            // Add the map to the list if it passes the early check
-            // Make sure the map is valid
-            if (status)
-                return {
-                    map: map,
-                    passed: false,
-                    message: status
-                };
+            // Only check the map if it passed the original check
+            if (map.status === 'Rejected')
+                return map;
         
             // Make sure the map hasn't been picked yet
             if (checkedmaps.find(item => item == map.id))
@@ -131,12 +132,7 @@ function checkPool(maps, userid)
             // Shouldn't need to check for maps outside the limit here,
             // that's done in quickCheck()
 
-            // By this point, maps should be passable
-            return {
-                map: map,
-                passed: true,
-                message: undefined
-            };
+            return map;
         });
         // Verify values
         if (results.overUnder > overUnderMax)
