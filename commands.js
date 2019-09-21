@@ -101,6 +101,44 @@ async function addTeam(msg)
 }
 
 /**
+ * Adds a player to a team
+ * @param {Discord.Message} msg 
+ */
+async function addPlayer(msg)
+{
+    if (!msg.member.roles.has(ADMIN))
+        return msg.channel.send("This command is only available to admins");
+    
+    let args = msg.content.split(' ');
+    args.shift();
+    if (args[0] == '?')
+        msg.channel.send(`Adds a player to an existing team.
+            !addPlayer "Team Name" osuid discordid`);
+
+    // Recombine quoted team names
+    if (args[0].startsWith('"'))
+    {
+        let team = args.shift();
+        while (!args[i].endsWith('"'))
+            team += " " + args.shift();
+        team += args.shift();
+        args.unshift(team.substring(1, team.length - 1));
+    }
+
+    if (args.length != 3)
+        msg.channel.send("Incorrect number of arguments");
+
+    // Make sure the player isn't already on a team
+    db.removePlayer(args[1]);
+
+    // Add the player to the team
+    if (await db.addPlayer(args[0], args[1], args[2]))
+        msg.channel.send("Player added");
+    else
+        msg.channel.send("Couldn't add player");
+}
+
+/**
  * Sends a list of available commands
  * @param {Discord.Message} msg 
  */

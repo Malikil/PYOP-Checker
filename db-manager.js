@@ -70,7 +70,7 @@ async function getOsuId(discordid)
 async function addTeam(teamName)
 {
     console.log(`Looking for team: ${teamName}`);
-    let find = await db.collection('teams').findOne({name: teamName});
+    let find = await db.collection('teams').findOne({ name: teamName });
     console.log(find);
 
     if (find)
@@ -91,9 +91,49 @@ async function addTeam(teamName)
     return result.insertedCount > 0;
 }
 
+/**
+ * Adds a player to a team
+ * @param {string} teamName The team to add to
+ * @param {string} osuid The player's osu id
+ * @param {string} discordid The player's discord id
+ * @returns {Promise<boolean>} Whether any records were modified
+ */
+async function addPlayer(teamName, osuid, discordid)
+{
+    console.log(`Adding ${osuname} to ${teamName}`);
+    let result = await db.collection('teams').updateOne(
+        { name: teamName },
+        { $push: { players: {
+            osuid: osuid,
+            discordid: discordid
+        } } }
+    );
+    return result.modifiedCount == 1;
+}
+
+/**
+ * Removes a player from all teams they might be on
+ * @param {string} osuid The osu id to remove
+ * @returns {Promise<boolean>} Whether any records were modified
+ */
+async function removePlayer(osuid)
+{
+    console.log(`Removing ${osuid} from all their teams`);
+    let result = await db.collection('teams').updateMany(
+        { 'players.osuid': osuid },
+        { $pull: { players: {
+            osuid: osuid
+        } } }
+    );
+    console.log(`Removed from ${result.modifiedCount} teams`);
+    return result.modifiedCount > 0;
+}
+
 module.exports = {
     client,
     getAllDocuments,
     getOsuId,
-    addTeam     // Teams
+    addTeam,    // Teams
+    addPlayer,
+    removePlayer
 };
