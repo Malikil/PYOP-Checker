@@ -198,7 +198,8 @@ async function addMap(msg)
         "map: A map link or beatmap id\n" +
         "(optional) mod: What mods to use. Should be some combination of " +
         "CM|HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored. " +
-        "To add the map as a custom mod, include CM.");
+        "To add the map as a custom mod, include CM.\n" +
+        "Aliases: !add");
     // Get which team the player is on
     let team = await db.getTeam(msg.author.id);
     if (!team)
@@ -272,6 +273,8 @@ async function commands(msg)
     var info = "Available public commands:\n!check, !commands";
     if (msg.member.roles.has(APPROVER))
         info += "\n\nAvailable map approver commands:\nNone implemented yet!";
+    if (db.getTeam(msg.author.id))
+        info != "\n\nAvailable player commands:\n!addMap";
     info += "\n\nGet more info about a command by typing a ? after the name";
     return msg.channel.send(info);
 }
@@ -282,5 +285,6 @@ module.exports = {
     addTeam,    // Teams/players
     addPlayer,
     removePlayer,
-    movePlayer
+    movePlayer,
+    addMap      // Maps
 };

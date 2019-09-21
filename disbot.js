@@ -34,6 +34,9 @@ client.on('message', msg => {
             || msg.content.startsWith('!mp '))
         commands.movePlayer(msg);
     // Map management
+    else if (msg.content.startsWith('!addmap ')
+            || msg.content.startsWith('!add '))
+        commands.addMap(msg);
 });
 
 client.login(process.env.DISCORD_TOKEN);
