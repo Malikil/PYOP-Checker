@@ -251,6 +251,5 @@ module.exports = {
     getBeatmap,
     MODS,
     parseMapId,
-    convertSeconds,
-    modString
+    convertSeconds
 };
