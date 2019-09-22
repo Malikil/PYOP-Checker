@@ -302,16 +302,16 @@ async function removeMap(msg)
     if (args.length == 3)
     {
         args[2] = args[2].toUpperCase();
-        if (modstr.includes('NM')) mod.push('nm');
-        if (modstr.includes('HD')) mod.push('hd');
-        if (modstr.includes('HR')) mod.push('hr');
-        if (modstr.includes('DT')) mod.push('dt');
-        if (modstr.includes('CM')) mod.push('cm');
+        if (args[2].includes('NM')) mod.push('nm');
+        if (args[2].includes('HD')) mod.push('hd');
+        if (args[2].includes('HR')) mod.push('hr');
+        if (args[2].includes('DT')) mod.push('dt');
+        if (args[2].includes('CM')) mod.push('cm');
     }
 
     let result = await db.removeMap(team.name, mapid, mod);
     if (result)
-        return msg.channel.send(`Removed beatmap with id ${mapid}`);
+        return msg.channel.send(`Removed beatmap with id ${mapid} from ${mod} pool`);
     else
         return msg.channel.send("Map not found");
 }

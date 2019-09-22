@@ -191,16 +191,17 @@ async function addMap(team, mod, map)
  */
 async function removeMap(team, mapid, mod)
 {
+    // Needs to be structured like $pull: { 'maps.${m}': { id: mapid } }
     let updateobj = { $pull: {}};
     if (mod.length > 0)
-        mod.forEach(m => updateobj.$pull[`maps.${m}.id`] = mapid);
+        mod.forEach(m => updateobj.$pull[`maps.${m}`] = { id: mapid });
     else
         updateobj.$pull = {
-            'maps.nm.id': mapid,
-            'maps.hd.id': mapid,
-            'maps.hr.id': mapid,
-            'maps.dt.id': mapid,
-            'maps.cm.id': mapid
+            'maps.nm': { id: mapid },
+            'maps.hd': { id: mapid },
+            'maps.hr': { id: mapid },
+            'maps.dt': { id: mapid },
+            'maps.cm': { id: mapid }
         };
     let result = await db.collection('teams').updateOne({ name: team }, updateobj);
     return result.result.nModified;
