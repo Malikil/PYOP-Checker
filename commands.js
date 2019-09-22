@@ -329,7 +329,15 @@ async function removeMap(msg)
 
     let result = await db.removeMap(team.name, mapid, mod);
     if (result)
-        return msg.channel.send(`Removed beatmap with id ${mapid} from ${mod} pool`);
+    {
+        // Find the map info for this id, for user friendliness' sake
+        let map = team.maps.nm.find(item => item.id = mapid);
+        if (!map) map = team.maps.hd.find(item => item.id = mapid);
+        if (!map) map = team.maps.hr.find(item => item.id = mapid);
+        if (!map) map = team.maps.dt.find(item => item.id = mapid);
+        if (!map) map = team.maps.cm.find(item => item.id = mapid);
+        return msg.channel.send(`Removed ${mapString(map)} from ${mod} pool`);
+    }
     else
         return msg.channel.send("Map not found");
 }
