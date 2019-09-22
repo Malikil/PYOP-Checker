@@ -22,21 +22,25 @@ client.on('message', msg => {
             || msg.content.startsWith('!map '))
         commands.checkMap(msg);
     // Team/player management
-    else if (msg.content.startsWith('!addTeam '))
+    else if (msg.content.startsWith('!addteam '))
         commands.addTeam(msg);
-    else if (msg.content.startsWith('!addPlayer ')
+    else if (msg.content.startsWith('!addplayer ')
             || msg.content.startsWith('!ap '))
         commands.addPlayer(msg);
-    else if (msg.content.startsWith('!removePlayer ')
+    else if (msg.content.startsWith('!removeplayer ')
             || msg.content.startsWith('!rp '))
         commands.removePlayer(msg);
-    else if (msg.content.startsWith('!movePlayer ')
+    else if (msg.content.startsWith('!moveplayer ')
             || msg.content.startsWith('!mp '))
         commands.movePlayer(msg);
     // Map management
     else if (msg.content.startsWith('!addmap ')
             || msg.content.startsWith('!add '))
         commands.addMap(msg);
+    else if (msg.content.startsWith('!removemap ')
+            || msg.content.startsWith('!remove ')
+            || msg.content.startsWith('!rem '))
+        commands.removeMap(msg);
 });
 
 client.login(process.env.DISCORD_TOKEN);

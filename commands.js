@@ -272,6 +272,51 @@ async function addMap(msg)
 }
 
 /**
+ * Removes a map from a player's team's pool
+ * @param {Discord.Message} msg 
+ */
+async function removeMap(msg)
+{
+    let args = msg.content.split(' ');
+    if (args.length < 2 || args.length > 3)
+        return;
+    else if (args[1] == '?')
+        return msg.channel.send("Usage: !removemap <map> [mod]\n" +
+            "map: Beatmap link or id\n" +
+            "(optional) mod: Which mod pool to remove the map from. Should be one of " +
+            "NM|HD|HR|DT|CM. If left blank the map will be removed from all mods.\n" +
+            "Aliased: !rem, !remove");
+
+    // Get which team the player is on
+    let team = await db.getTeam(msg.author.id);
+    if (!team)
+        return msg.channel.send("Couldn't find which team you're on");
+
+    // Get the beatmap id
+    let mapid = checker.parseMapId(args[1]);
+    if (!mapid)
+        return msg.channel.send(`Couldn't recognise beatmap id`);
+
+    // Get the mod pool(s)
+    let mod = [];
+    if (args.length == 3)
+    {
+        args[2] = args[2].toUpperCase();
+        if (modstr.includes('NM')) mod.push('nm');
+        if (modstr.includes('HD')) mod.push('hd');
+        if (modstr.includes('HR')) mod.push('hr');
+        if (modstr.includes('DT')) mod.push('dt');
+        if (modstr.includes('CM')) mod.push('cm');
+    }
+
+    let result = await db.removeMap(team.name, mapid, mod);
+    if (result)
+        return msg.channel.send(`Removed beatmap with id ${mapid}`);
+    else
+        return msg.channel.send("Map not found");
+}
+
+/**
  * Sends a list of available commands
  * @param {Discord.Message} msg 
  */
@@ -280,7 +325,8 @@ async function commands(msg)
     var info = "Available public commands:\n!check, !commands";
     if (msg.member.roles.has(APPROVER))
         info += "\n\nAvailable map approver commands:\nNone implemented yet!";
-    if (await db.getTeam(msg.author.id))
+    let team = await db.getTeam(msg.author.id);
+    if (team)
         info != "\n\nAvailable player commands:\n!addMap";
     info += "\n\nGet more info about a command by typing a ? after the name";
     return msg.channel.send(info);
@@ -293,5 +339,6 @@ module.exports = {
     addPlayer,
     removePlayer,
     movePlayer,
-    addMap      // Maps
+    addMap,     // Maps
+    removeMap
 };

@@ -186,13 +186,14 @@ async function addMap(team, mod, map)
  * map are removed. If mod is included only maps from that pool will be removed.
  * @param {string} team The team name to remove the map from
  * @param {Number} mapid The beatmap id to remove
- * @param {"nm"|"hd"|"hr"|"dt"|"cm"} mod (optional) The modpool for the map
+ * @param {Array<"nm"|"hd"|"hr"|"dt"|"cm">} mod (optional) The modpool for the map
+ * @returns The number of modified documents
  */
 async function removeMap(team, mapid, mod)
 {
     let updateobj = { $pull: {}};
-    if (mod)
-        updateobj.$pull[`maps.${mod}.id`] = mapid;
+    if (mod.length > 0)
+        mod.forEach(m => updateobj.$pull[`maps.${m}.id`] = mapid);
     else
         updateobj.$pull = {
             'maps.nm.id': mapid,
