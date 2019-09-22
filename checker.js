@@ -81,23 +81,23 @@ function parseMapId(mapString)
  * Doesn't check the map things.
  * @param {*[]} maps An array of beatmap objects to check.
  * @param {Number} userid The id of the user submitting the pool
- * @returns {Promise} An array of objects containing the beatmap and pass status,
- *     as well as some stats on the pool itself:
- *     {
- *         overUnder: Number,
- *         totalDrain: Number,
- *         duplicates: Number,
- *         maps: [
- *             {
- *                 id: Number,
- *                 drain: Number,
- *                 stars: Number,
- *                 status: string
- *             }
- *         ],
- *         passed: boolean,
- *         message: string
- *     }
+ * @returns {Promise<{
+ *     overUnder: Number,
+ *     totalDrain: Number,
+ *     duplicates: Number,
+ *     maps: [
+ *         {
+ *             id: Number,
+ *             drain: Number,
+ *             stars: Number,
+ *             status: string
+ *         }
+ *     ],
+ *     passed: boolean,
+ *     message: string
+ * }
+ * >} An array of objects containing the beatmap and pass status,
+ *     as well as some stats on the pool itself
  */
 function checkPool(maps, userid)
 {
@@ -250,5 +250,7 @@ module.exports = {
     checkPool,
     getBeatmap,
     MODS,
-    parseMapId
+    parseMapId,
+    convertSeconds,
+    modString
 };

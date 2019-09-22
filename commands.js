@@ -13,6 +13,18 @@ const util = require('util');
 
 const ADMIN = process.env.ROLE_ADMIN;
 const APPROVER = process.env.ROLE_MAP_APPROVER;
+const mapString = map => `${map.artist} - ${map.title} [${map.version}]`;
+const mapLink = map => `https://osu.ppy.sh/b/${map.id}`;
+function modString(mod)
+{
+    let str = '';
+    if (mod & MODS.HD)      str += 'HD';
+    if (mod & MODS.HR)      str += 'HR';
+    else if (mod & MODS.EZ) str += 'EZ';
+    if (mod & MODS.DT)      str += 'DT';
+    else if (mod & MODS.HT) str += 'HT';
+    return str;
+}
 
 /**
  * Checks whether a given map would be accepted
@@ -258,13 +270,18 @@ async function addMap(msg)
     if (rejectmap && team.maps[modpool].length > 1)
         await db.removeMap(team.name, rejectmap.id, modpool);
 
-    if (await db.addMap(team.name, modpool, {
+    let mapitem = {
         id: mapid,
         status: status,
         drain: beatmap.hit_length,
-        stars: beatmap.difficultyrating
-    }))
-        return msg.channel.send(`Added map ${beatmap.artist} - ${beatmap.title} [${beatmap.version}] ` +
+        stars: beatmap.difficultyrating,
+        artist: beatmap.artist,
+        title: beatmap.title,
+        version: beatmap.version
+    };
+    if (modpool == 'cm') mapitem.mod = mod;
+    if (await db.addMap(team.name, modpool, mapitem))
+        return msg.channel.send(`Added map ${mapString(mapitem)}] ` +
             `to ${modpool.toUpperCase()} mod pool.\n` +
             `Map approval satus: ${status}`);
     else
@@ -285,7 +302,7 @@ async function removeMap(msg)
             "map: Beatmap link or id\n" +
             "(optional) mod: Which mod pool to remove the map from. Should be one of " +
             "NM|HD|HR|DT|CM. If left blank the map will be removed from all mods.\n" +
-            "Aliased: !rem, !remove");
+            "Aliases: !rem, !remove");
 
     // Get which team the player is on
     let team = await db.getTeam(msg.author.id);
@@ -317,17 +334,83 @@ async function removeMap(msg)
 }
 
 /**
+ * Views all the maps in a player's pool
+ * @param {Discord.Message} msg 
+ */
+async function viewPool(msg)
+{
+    let args = msg.content.split(' ');
+    if (args.length > 3
+            || !['!view', '!viewpool'].includes(args[0]))
+        return;
+    else if (args[1] === '?')
+        return msg.channel.send("Usage: !viewpool [mod]\n" +
+            "View maps in your pool and their statuses. " +
+            "Optionally limit to a specific set of mods from NM|HD|HR|DT|CM\n" +
+            "Aliases: !view");
+    
+    // Get which team the player is on
+    let team = await db.getTeam(msg.author.id);
+    if (!team)
+        return msg.channel.send("Couldn't find which team you're on");
+
+    // Add all mods if not otherwise requested
+    if (args.length == 3)
+        args[2] = args[2].toUpperCase();
+    else
+        args[2] = "NMHDHRDTCM";
+
+    let str = "";
+    if (args[2].includes('NM'))
+    {
+        str += "No Mod:\n";
+        team.maps.nm.forEach(item =>
+            str += `${mapString(item)} <${mapLink(item)}> | ` +
+                `Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`);
+    }
+    if (args[2].includes('HD'))
+    {
+        str += "Hidden:\n";
+        team.maps.hd.forEach(item =>
+            str += `${mapString(item)} <${mapLink(item)}> | ` +
+                `Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`);
+    }
+    if (args[2].includes('HR'))
+    {
+        str += "Hard Rock:\n";
+        team.maps.hr.forEach(item =>
+            str += `${mapString(item)} <${mapLink(item)}> | ` +
+                `Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`);
+    }
+    if (args[2].includes('DT'))
+    {
+        str += "Double Time:\n";
+        team.maps.dt.forEach(item =>
+            str += `${mapString(item)} <${mapLink(item)}> | ` +
+                `Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`);
+    }
+    if (args[2].includes('CM'))
+    {
+        str += "Custom Mod:\n";
+        team.maps.cm.forEach(item =>
+            str += `${mapString(item)} +${modString(item.mod)} <${mapLink(item)}> | ` +
+                `Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`);
+    }
+
+    return msg.channel.send(str);
+}
+
+/**
  * Sends a list of available commands
  * @param {Discord.Message} msg 
  */
 async function commands(msg)
 {
-    var info = "Available public commands:\n!check, !commands";
+    var info = "Available public commands:\n!check, !help";
     if (msg.member.roles.has(APPROVER))
         info += "\n\nAvailable map approver commands:\nNone implemented yet!";
-    let team = await db.getTeam(msg.author.id);
-    if (team)
-        info != "\n\nAvailable player commands:\n!addMap";
+    if (await db.getTeam(msg.author.id))
+        info += "\n\nAvailable player commands:\n!addmap, !removemap, !viewpool";
     info += "\n\nGet more info about a command by typing a ? after the name";
     return msg.channel.send(info);
 }
@@ -340,5 +423,6 @@ module.exports = {
     removePlayer,
     movePlayer,
     addMap,     // Maps
-    removeMap
+    removeMap,
+    viewPool
 };

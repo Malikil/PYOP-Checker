@@ -17,7 +17,9 @@ client.on('message', msg => {
     console.log(`\x1b[36mReceived message:\x1b[0m ${msg.content}`);
 
     if (msg.content === '!ping')            msg.reply('Pong!');
-    else if (msg.content === '!commands')   commands.commands(msg);
+    else if (msg.content === '!commands'
+            || msg.content === '!help')
+        commands.commands(msg);
     else if (msg.content.startsWith('!check ')
             || msg.content.startsWith('!map '))
         commands.checkMap(msg);
@@ -41,6 +43,9 @@ client.on('message', msg => {
             || msg.content.startsWith('!remove ')
             || msg.content.startsWith('!rem '))
         commands.removeMap(msg);
+    else if (msg.content.startsWith('!viewpool')
+            || msg.content.startsWith('!view'))
+        commands.viewPool(msg);
 });
 
 client.login(process.env.DISCORD_TOKEN);
