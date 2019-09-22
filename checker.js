@@ -78,74 +78,62 @@ function parseMapId(mapString)
 
 /**
  * Checks an entire pool, including things like duplicates or total drain time.
- * Doesn't check the map things.
- * @param {*[]} maps An array of beatmap objects to check.
- * @param {Number} userid The id of the user submitting the pool
+ * Doesn't really check the map things.
+ * @param {*[]} maps An array of map objects to check.
  * @returns {Promise<{
  *     overUnder: Number,
  *     totalDrain: Number,
- *     duplicates: Number,
- *     maps: [
- *         {
+ *     duplicates: {
  *             id: Number,
+ *             status: string,
  *             drain: Number,
  *             stars: Number,
- *             status: string
- *         }
- *     ],
- *     passed: boolean,
- *     message: string
+ *             artist: string,
+ *             title: string,
+ *             version: string
+ *         }[],
+ *     message: string[]
  * }
  * >} An array of objects containing the beatmap and pass status,
  *     as well as some stats on the pool itself
  */
-function checkPool(maps, userid)
+async function checkPool(maps)
 {
-    return new Promise((resolve, reject) => {
-        var checkedmaps = [];
-        let results = {
-            overUnder: 0,
-            totalDrain: 0,
-            duplicates: 0,
-            maps: [],
-            passed: false,
-            message: undefined
-        }
-        results.maps = maps.map(map => {
-            // Only check the map if it passed the original check
-            if (map.status === 'Rejected')
-                return map;
-        
-            // Make sure the map hasn't been picked yet
-            if (checkedmaps.find(item => item == map.id))
-                duplicates++;
-            else
-                checkedmaps.push(map.beatmap_id);
-            // Add to the total drain time
-            totalDrain += map.hit_length;
-            // Count maps outside the drain limit, but inside the buffer
-            let overdrain = map.hit_length - maxLength;
-            let underdrain = minLength - map.hit_length;
-            if ((overdrain > 0 && overdrain <= drainBuffer)
-                    || (underdrain > 0 && underdrain <= drainBuffer))
-                overUnder++;
-            // Shouldn't need to check for maps outside the limit here,
-            // that's done in quickCheck()
-
-            return map;
-        });
-        // Verify values
-        if (results.overUnder > overUnderMax)
-            results.message = `You can't have more than ${overUnderMax} maps in the drain time buffer range.`;
-        else if (results.totalDrain < minTotal * results.maps.length)
-            results.message = `Average song length across all maps is too short (${convertSeconds(results.totalDrain)} vs ${minTotal * results.maps.length})`;
-        else if (results.totalDrain > maxTotal * results.maps.length)
-            results.message = `Average song length across all maps is too long (${convertSeconds(results.totalDrain)} vs ${minTotal * results.maps.length})`;
+    let checkedmaps = [];
+    let results = {
+        overUnder: 0,
+        totalDrain: 0,
+        duplicates: [],
+        message: []
+    };
+    maps.forEach(map => {
+        // See if the map has been picked
+        if (checkedmaps.find(item => item == map.id))
+            results.duplicates.push(map);
         else
-            results.passed = true;
-        
-        resolve(results);
+            checkedmaps.push(map.id);
+
+        // Count maps within the drain buffer range
+        let overdrain = map.drain - maxLength;
+        let underdrain = minLength - map.drain;
+        if ((overdrain > 0 && overdrain <= drainBuffer)
+                || (underdrain > 0 && underdrain <= drainBuffer))
+            overUnder++;
     });
+
+    // Verify values
+    if (results.overUnder > overUnderMax)
+        results.message.push(`You can't have more than ${overUnderMax} maps in the drain time buffer range.`);
+    if (results.totalDrain < minTotal * results.maps.length)
+        results.message.push(`Average song length across all maps is too short (${maps.length} maps ->` +
+            `${convertSeconds(results.totalDrain)} vs ${convertSeconds(minTotal * results.maps.length)})`);
+    else if (results.totalDrain > maxTotal * results.maps.length)
+        results.message.push(`Average song length across all maps is too long (${maps.length} maps ->` +
+            `${convertSeconds(results.totalDrain)} vs ${convertSeconds(minTotal * results.maps.length)})`);
+    if (results.duplicates.length > 0)
+        results.message.push(`You can't have the same map more than once in your pool. (${results.duplicates.length} found)`);
+
+    return results;
 }
 
 /**

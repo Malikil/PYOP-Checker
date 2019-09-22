@@ -362,53 +362,65 @@ async function viewPool(msg)
         args[2] = "NMHDHRDTCM";
 
     let str = "";
-    let totalDrain = 0
+    let pool = [];
     if (args[2].includes('NM'))
     {
-        str += "No Mod:\n";
+        str += "**__No Mod:__**\n";
         team.maps.nm.forEach(item => {
-            str += `${mapString(item)} <${mapLink(item)}> | ` +
-                `Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
-            totalDrain += item.drain;
+            str += `${mapString(item)} <${mapLink(item)}>\n` +
+                `\t-> Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
+            pool.push(item);
         }); 
     }
     if (args[2].includes('HD'))
     {
-        str += "Hidden:\n";
+        str += "**__Hidden:__**\n";
         team.maps.hd.forEach(item => {
-            str += `${mapString(item)} <${mapLink(item)}> | ` +
-                `Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
-            totalDrain += item.drain;
+            str += `${mapString(item)} <${mapLink(item)}>\n` +
+                `\t-> Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
+            pool.push(item);
         });
     }
     if (args[2].includes('HR'))
     {
-        str += "Hard Rock:\n";
+        str += "**__Hard Rock:__**\n";
         team.maps.hr.forEach(item => {
-            str += `${mapString(item)} <${mapLink(item)}> | ` +
-                `Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
-            totalDrain += item.drain;
+            str += `${mapString(item)} <${mapLink(item)}>\n` +
+                `\t-> Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
+            pool.push(item);
         });
     }
     if (args[2].includes('DT'))
     {
-        str += "Double Time:\n";
+        str += "**__Double Time:__**\n";
         team.maps.dt.forEach(item => {
-            str += `${mapString(item)} <${mapLink(item)}> | ` +
-                `Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
-            totalDrain += item.drain;
+            str += `${mapString(item)} <${mapLink(item)}>\n` +
+                `\t-> Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
+            pool.push(item);
         });
     }
     if (args[2].includes('CM'))
     {
-        str += "Custom Mod:\n";
+        str += "**__Custom Mod:__**\n";
         team.maps.cm.forEach(item => {
-            str += `${mapString(item)} +${modString(item.mod)} <${mapLink(item)}> | ` +
-                `Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
-            totalDrain += item.drain;
+            str += `${mapString(item)} +${modString(item.mod)} <${mapLink(item)}>\n` +
+                `\t-> Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
+            pool.push(item);
         });
     }
-    str += `Total Drain: ${totalDrain}`;
+
+    // Check the pool as a whole
+    let result = await checker.checkPool(pool);
+
+    str += `\n__Total Drain__: ${checker.convertSeconds(result.totalDrain)}`;
+    str += `\n__Drain Buffer__: ${result.overUnder} in buffer range`;
+    if (result.message.length > 0)
+        result.message.forEach(item => str += `\n${item}`);
+    if (result.duplicates.length > 0)
+    {
+        str += "\nThe following maps were found more than once:";
+        result.duplicates.forEach(dupe => str += `\n\t${mapString(dupe)}`);
+    }
 
     return msg.channel.send(str);
 }
