@@ -254,6 +254,10 @@ async function addMap(msg)
 
     // Check if a map should be removed to make room for this one
     // If there's a rejected map, remove that one
+    let rejectmap = team.maps[modpool].find(map => map.status == "Rejected");
+    if (rejectmap)
+        await db.removeMap(team.name, rejectmap.id, modpool);
+
     if (await db.addMap(team.name, modpool, {
         id: mapid,
         status: status,

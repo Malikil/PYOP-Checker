@@ -181,6 +181,30 @@ async function addMap(team, mod, map)
     return teamobj.ok;
 }
 
+/**
+ * Remooves a map from a team's pool. If mod is left out all instances of the
+ * map are removed. If mod is included only maps from that pool will be removed.
+ * @param {string} team The team name to remove the map from
+ * @param {Number} mapid The beatmap id to remove
+ * @param {"nm"|"hd"|"hr"|"dt"|"cm"} mod (optional) The modpool for the map
+ */
+async function removeMap(team, mapid, mod)
+{
+    let updateobj = { $pull: {}};
+    if (mod)
+        updateobj.$pull[`maps.${mod}.id`] = mapid;
+    else
+        updateobj.$pull = {
+            'maps.nm.id': mapid,
+            'maps.hd.id': mapid,
+            'maps.hr.id': mapid,
+            'maps.dt.id': mapid,
+            'maps.cm.id': mapid
+        };
+    let result = await db.collection('teams').updateOne({ name: team }, updateobj);
+    return result.result.nModified;
+}
+
 module.exports = {
     getOsuId,
     addTeam,    // Teams/players
@@ -188,5 +212,6 @@ module.exports = {
     removePlayer,
     movePlayer,
     getTeam,
-    addMap      // Maps
+    addMap,     // Maps
+    removeMap
 };
