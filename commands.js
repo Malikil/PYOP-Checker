@@ -368,7 +368,7 @@ async function viewPool(msg)
         str += "**__No Mod:__**\n";
         team.maps.nm.forEach(item => {
             str += `${mapString(item)} <${mapLink(item)}>\n` +
-                `\t-> Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
+                `\tDrain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
             pool.push(item);
         }); 
     }
@@ -377,7 +377,7 @@ async function viewPool(msg)
         str += "**__Hidden:__**\n";
         team.maps.hd.forEach(item => {
             str += `${mapString(item)} <${mapLink(item)}>\n` +
-                `\t-> Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
+                `\tDrain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
             pool.push(item);
         });
     }
@@ -386,7 +386,7 @@ async function viewPool(msg)
         str += "**__Hard Rock:__**\n";
         team.maps.hr.forEach(item => {
             str += `${mapString(item)} <${mapLink(item)}>\n` +
-                `\t-> Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
+                `\tDrain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
             pool.push(item);
         });
     }
@@ -395,7 +395,7 @@ async function viewPool(msg)
         str += "**__Double Time:__**\n";
         team.maps.dt.forEach(item => {
             str += `${mapString(item)} <${mapLink(item)}>\n` +
-                `\t-> Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
+                `\tDrain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
             pool.push(item);
         });
     }
