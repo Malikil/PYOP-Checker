@@ -342,7 +342,7 @@ async function viewPool(msg)
 {
     let args = msg.content.split(' ');
     if (args.length > 3
-            || !['!view', '!viewpool'].includes(args[0]))
+            || !['!view', '!viewpool', '!list'].includes(args[0]))
         return;
     else if (args[1] === '?')
         return msg.channel.send("Usage: !viewpool [mod]\n" +
@@ -404,7 +404,7 @@ async function viewPool(msg)
         str += "**__Custom Mod:__**\n";
         team.maps.cm.forEach(item => {
             str += `${mapString(item)} +${modString(item.mod)} <${mapLink(item)}>\n` +
-                `\t-> Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
+                `\tDrain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
             pool.push(item);
         });
     }
@@ -412,8 +412,8 @@ async function viewPool(msg)
     // Check the pool as a whole
     let result = await checker.checkPool(pool);
 
-    str += `\n__Total Drain__: ${checker.convertSeconds(result.totalDrain)}`;
-    str += `\n__Drain Buffer__: ${result.overUnder} in buffer range`;
+    str += `\nTotal drain: ${checker.convertSeconds(result.totalDrain)}`;
+    str += `\n${result.overUnder} maps are within 15 seconds of drain time limit\n`;
     if (result.message.length > 0)
         result.message.forEach(item => str += `\n${item}`);
     if (result.duplicates.length > 0)
