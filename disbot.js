@@ -44,7 +44,8 @@ client.on('message', msg => {
             || msg.content.startsWith('!rem '))
         commands.removeMap(msg);
     else if (msg.content.startsWith('!viewpool')
-            || msg.content.startsWith('!view'))
+            || msg.content.startsWith('!view')
+            || msg.content.startsWith('!list'))
         commands.viewPool(msg);
 });
 

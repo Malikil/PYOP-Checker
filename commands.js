@@ -18,11 +18,12 @@ const mapLink = map => `https://osu.ppy.sh/b/${map.id}`;
 function modString(mod)
 {
     let str = '';
-    if (mod & MODS.HD)      str += 'HD';
-    if (mod & MODS.HR)      str += 'HR';
-    else if (mod & MODS.EZ) str += 'EZ';
-    if (mod & MODS.DT)      str += 'DT';
-    else if (mod & MODS.HT) str += 'HT';
+    if (mod & checker.MODS.HD)      str += 'HD';
+    if (mod & checker.MODS.HR)      str += 'HR';
+    else if (mod & checker.MODS.EZ) str += 'EZ';
+    if (mod & checker.MODS.DT)      str += 'DT';
+    else if (mod & checker.MODS.HT) str += 'HT';
+    if (str == '')                  str = 'NoMod';
     return str;
 }
 
@@ -281,7 +282,7 @@ async function addMap(msg)
     };
     if (modpool == 'cm') mapitem.mod = mod;
     if (await db.addMap(team.name, modpool, mapitem))
-        return msg.channel.send(`Added map ${mapString(mapitem)}] ` +
+        return msg.channel.send(`Added map ${mapString(mapitem)} ` +
             `to ${modpool.toUpperCase()} mod pool.\n` +
             `Map approval satus: ${status}`);
     else
@@ -347,7 +348,7 @@ async function viewPool(msg)
         return msg.channel.send("Usage: !viewpool [mod]\n" +
             "View maps in your pool and their statuses. " +
             "Optionally limit to a specific set of mods from NM|HD|HR|DT|CM\n" +
-            "Aliases: !view");
+            "Aliases: !view, !list");
     
     // Get which team the player is on
     let team = await db.getTeam(msg.author.id);
@@ -361,41 +362,53 @@ async function viewPool(msg)
         args[2] = "NMHDHRDTCM";
 
     let str = "";
+    let totalDrain = 0
     if (args[2].includes('NM'))
     {
         str += "No Mod:\n";
-        team.maps.nm.forEach(item =>
+        team.maps.nm.forEach(item => {
             str += `${mapString(item)} <${mapLink(item)}> | ` +
-                `Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`);
+                `Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
+            totalDrain += item.drain;
+        }); 
     }
     if (args[2].includes('HD'))
     {
         str += "Hidden:\n";
-        team.maps.hd.forEach(item =>
+        team.maps.hd.forEach(item => {
             str += `${mapString(item)} <${mapLink(item)}> | ` +
-                `Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`);
+                `Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
+            totalDrain += item.drain;
+        });
     }
     if (args[2].includes('HR'))
     {
         str += "Hard Rock:\n";
-        team.maps.hr.forEach(item =>
+        team.maps.hr.forEach(item => {
             str += `${mapString(item)} <${mapLink(item)}> | ` +
-                `Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`);
+                `Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
+            totalDrain += item.drain;
+        });
     }
     if (args[2].includes('DT'))
     {
         str += "Double Time:\n";
-        team.maps.dt.forEach(item =>
+        team.maps.dt.forEach(item => {
             str += `${mapString(item)} <${mapLink(item)}> | ` +
-                `Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`);
+                `Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
+            totalDrain += item.drain;
+        });
     }
     if (args[2].includes('CM'))
     {
         str += "Custom Mod:\n";
-        team.maps.cm.forEach(item =>
+        team.maps.cm.forEach(item => {
             str += `${mapString(item)} +${modString(item.mod)} <${mapLink(item)}> | ` +
-                `Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`);
+                `Drain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
+            totalDrain += item.drain;
+        });
     }
+    str += `Total Drain: ${totalDrain}`;
 
     return msg.channel.send(str);
 }
@@ -406,11 +419,11 @@ async function viewPool(msg)
  */
 async function commands(msg)
 {
-    var info = "Available public commands:\n!check, !help";
+    var info = "Available **Public** commands:\n!check, !help";
     if (msg.member.roles.has(APPROVER))
-        info += "\n\nAvailable map approver commands:\nNone implemented yet!";
+        info += "\nAvailable **Map Approver** commands:\nNone implemented yet!";
     if (await db.getTeam(msg.author.id))
-        info += "\n\nAvailable player commands:\n!addmap, !removemap, !viewpool";
+        info += "\nAvailable **Player** commands:\n!addmap, !removemap, !viewpool";
     info += "\n\nGet more info about a command by typing a ? after the name";
     return msg.channel.send(info);
 }
