@@ -80,7 +80,7 @@ async function checkMap(msg)
  */
 async function addTeam(msg)
 {
-    if (!msg.member.roles.has(ADMIN))
+    if (!msg.member || !msg.member.roles.has(ADMIN))
         return msg.channel.send("This command is only available to admins");
     
     let args = msg.content.substr(9);
@@ -104,7 +104,7 @@ async function addTeam(msg)
  */
 async function addPlayer(msg)
 {
-    if (!msg.member.roles.has(ADMIN))
+    if (!msg.member || !msg.member.roles.has(ADMIN))
         return msg.channel.send("This command is only available to admins");
     
     let args = msg.content.split(' ');
@@ -151,7 +151,7 @@ async function addPlayer(msg)
  */
 async function removePlayer(msg)
 {
-    if (!msg.member.roles.has(ADMIN))
+    if (!msg.member || !msg.member.roles.has(ADMIN))
         return msg.channel.send("This command is only available to admins");
     
     let args = msg.content.split(' ');
@@ -176,7 +176,7 @@ async function removePlayer(msg)
  */
 async function movePlayer(msg)
 {
-    if (!msg.member.roles.has(ADMIN))
+    if (!msg.member || !msg.member.roles.has(ADMIN))
         return msg.channel.send("This command is only available to admins");
     
     let args = msg.content.split(' ');
