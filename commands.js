@@ -40,7 +40,8 @@ async function checkMap(msg)
     else if (args[1] == '?')
         return msg.channel.send("Usage: !check <map> [mod]\n" +
             "Map should be a link or map id\n" +
-            "(Optional) mod should be some combination of HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored");
+            "(Optional) mod should be some combination of HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored\n" +
+            "Aliases: !map");
     let mod = 0;
     if (args.length == 3)
     {
