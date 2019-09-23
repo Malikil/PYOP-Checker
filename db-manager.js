@@ -213,6 +213,21 @@ async function removeMap(team, mapid, mod)
     return result.result.nModified;
 }
 
+/**
+ * Finds all teams with pending maps
+ */
+async function findPendingTeams()
+{
+    let cursor = db.collection('teams').find({ $or: [
+        { 'maps.nm.status': 'Pending' },
+        { 'maps.hd.status': 'Pending' },
+        { 'maps.hr.status': 'Pending' },
+        { 'maps.dt.status': 'Pending' },
+        { 'maps.cm.status': 'Pending' }
+    ]});
+    return cursor.toArray();
+}
+
 module.exports = {
     getOsuId,
     addTeam,    // Teams/players
@@ -221,5 +236,6 @@ module.exports = {
     movePlayer,
     getTeam,
     addMap,     // Maps
-    removeMap
+    removeMap,
+    findPendingTeams
 };

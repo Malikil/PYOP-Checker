@@ -434,6 +434,53 @@ async function viewPool(msg)
     return msg.channel.send(str);
 }
 
+// ============================================================================
+// ======================== Approver Commands =================================
+// ============================================================================
+/**
+ * Displays a list of all pending maps
+ * @param {Discord.Message} msg 
+ */
+async function viewPending(msg)
+{
+    let member = msg.member;
+    if (!member || !member.roles.has(APPROVER))
+        return msg.channel.send("This command is only available in the server to Map Approvers");
+    
+    let teamlist = await db.findPendingTeams();
+    let hd = [], hr = [], dt = [], cm = [];
+    let str = "**No Mod:**";
+    teamlist.forEach(team => {
+        team.nm.forEach(map => {
+            if (map.status == "Pending") str += `\n<${mapLink(map)}> ${mapString(map)}`;
+        });
+        team.hd.forEach(map => {
+            if (map.status == "Pending") hd.push(map);
+        });
+        team.hr.forEach(map => {
+            if (map.status == "Pending") hr.push(map);
+        });
+        team.dt.forEach(map => {
+            if (map.status == "Pending") dt.push(map);
+        });
+        team.cm.forEach(map => {
+            if (map.status == "Pending") cm.push(map);
+        });
+    });
+
+    str += "\n**Hidden:**";
+    hd.forEach(map => str += `\n<${mapLink(map)}> ${mapString(map)}`);
+    str += "\n**Hard Rock:**";
+    hr.forEach(map => str += `\n<${mapLink(map)}> ${mapString(map)}`);
+    str += "\n**Double Time:**";
+    dt.forEach(map => str += `\n<${mapLink(map)}> ${mapString(map)}`);
+    str += "\n**Custom Mod:**";
+    cm.forEach(map => str += `\n<${mapLink(map)}> ${mapString(map)} +${modString(map)}`);
+
+    return msg.channel.send(str);
+}
+
+
 /**
  * Sends a list of available commands
  * @param {Discord.Message} msg 
@@ -442,7 +489,7 @@ async function commands(msg)
 {
     var info = "Available **Public** commands:\n!check, !help";
     if (msg.member && msg.member.roles.has(APPROVER))
-        info += "\nAvailable **Map Approver** commands:\nNone implemented yet!";
+        info += "\nAvailable **Map Approver** commands:\n!pending";
     if (await db.getTeam(msg.author.id))
         info += "\nAvailable **Player** commands:\n!addmap, !removemap, !viewpool";
     info += "\n\nGet more info about a command by typing a ? after the name";
@@ -458,5 +505,6 @@ module.exports = {
     movePlayer,
     addMap,     // Maps
     removeMap,
-    viewPool
+    viewPool,
+    viewPending
 };

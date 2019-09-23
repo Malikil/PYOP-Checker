@@ -16,7 +16,7 @@ client.on('message', msg => {
         return;
     console.log(`\x1b[36mReceived message:\x1b[0m ${msg.content}`);
 
-    if (msg.content === '!ping')            msg.reply('Pong!');
+    if (msg.content === '!ping') msg.reply('Pong!');
     else if (msg.content === '!commands'
             || msg.content === '!help')
         commands.commands(msg);
@@ -47,6 +47,9 @@ client.on('message', msg => {
             || msg.content.startsWith('!view')
             || msg.content.startsWith('!list'))
         commands.viewPool(msg);
+    // Map approvers
+    else if (msg.content === "!pending")
+        commands.viewPending(msg);
 });
 
 client.login(process.env.DISCORD_TOKEN);
