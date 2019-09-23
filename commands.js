@@ -453,19 +453,19 @@ async function viewPending(msg)
     let hd = [], hr = [], dt = [], cm = [];
     let str = "**No Mod:**";
     teamlist.forEach(team => {
-        team.nm.forEach(map => {
+        team.maps.nm.forEach(map => {
             if (map.status == "Pending") str += `\n<${mapLink(map)}> ${mapString(map)}`;
         });
-        team.hd.forEach(map => {
+        team.maps.hd.forEach(map => {
             if (map.status == "Pending") hd.push(map);
         });
-        team.hr.forEach(map => {
+        team.maps.hr.forEach(map => {
             if (map.status == "Pending") hr.push(map);
         });
-        team.dt.forEach(map => {
+        team.maps.dt.forEach(map => {
             if (map.status == "Pending") dt.push(map);
         });
-        team.cm.forEach(map => {
+        team.maps.cm.forEach(map => {
             if (map.status == "Pending") cm.push(map);
         });
     });
