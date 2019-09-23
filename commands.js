@@ -447,7 +447,9 @@ async function viewPending(msg)
     if (!member || !member.roles.has(APPROVER))
         return msg.channel.send("This command is only available in the server to Map Approvers");
     
+    console.log("Finding pending maps");
     let teamlist = await db.findPendingTeams();
+    console.log(teamlist);
     let hd = [], hr = [], dt = [], cm = [];
     let str = "**No Mod:**";
     teamlist.forEach(team => {
@@ -547,7 +549,7 @@ async function commands(msg)
 {
     var info = "Available **Public** commands:\n!check, !help";
     if (msg.member && msg.member.roles.has(APPROVER))
-        info += "\nAvailable **Map Approver** commands:\n!pending";
+        info += "\nAvailable **Map Approver** commands:\n!pending, !approve";
     if (await db.getTeam(msg.author.id))
         info += "\nAvailable **Player** commands:\n!addmap, !removemap, !viewpool";
     info += "\n\nGet more info about a command by typing a ? after the name";
