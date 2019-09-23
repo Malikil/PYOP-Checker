@@ -46,8 +46,13 @@ async function getOsuId(discordid)
     ]);
 
     let info = await cursor.next();
-    console.log(`Found ${discordid} => ${util.inspect(info)}`);
-    return info.osuid;
+    if (info)
+    {
+        console.log(`Found ${discordid} => ${util.inspect(info)}`);
+        return info.osuid;
+    }
+    else
+        return null;
 }
 
 /**
