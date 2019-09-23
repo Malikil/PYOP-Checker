@@ -534,7 +534,7 @@ async function approveMap(msg)
     } if (custom)             modpool = "cm";
 
     if (custom != 'cm')
-        mod = null;
+        mod = undefined;
     
     let count = await db.approveMap(mapid, modpool, mod);
     return msg.channel.send(`Approved ${count} maps`);
