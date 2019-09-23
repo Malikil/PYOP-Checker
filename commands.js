@@ -440,7 +440,7 @@ async function viewPool(msg)
 async function commands(msg)
 {
     var info = "Available **Public** commands:\n!check, !help";
-    if (msg.member.roles.has(APPROVER))
+    if (msg.member && msg.member.roles.has(APPROVER))
         info += "\nAvailable **Map Approver** commands:\nNone implemented yet!";
     if (await db.getTeam(msg.author.id))
         info += "\nAvailable **Player** commands:\n!addmap, !removemap, !viewpool";
