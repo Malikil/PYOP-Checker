@@ -50,6 +50,8 @@ client.on('message', msg => {
     // Map approvers
     else if (msg.content === "!pending")
         commands.viewPending(msg);
+    else if (msg.content.startsWith('!approve '))
+        commands.approveMap(msg);
 });
 
 client.login(process.env.DISCORD_TOKEN);

@@ -228,6 +228,28 @@ async function findPendingTeams()
     return cursor.toArray();
 }
 
+/**
+ * Approves a map in a given modpool/with mods
+ * @param {Number} mapid The map id to update
+ * @param {string} modpool The modpool the map is in
+ * @param {Number} mods The mods the map uses, if custom mod
+ */
+async function approveMap(mapid, modpool, mods)
+{
+    console.log(`Approving ${mapid} +${mods} in ${modpool}`);
+    let findobj = { maps: {}};
+    findobj.maps[modpool] = { id: mapid, mod: mods };
+    let updateobj = { $set: { maps: {}}}
+    updateobj.$set.maps[modpool] = { '$[map]': { status: 'Approved' } };
+    let result = await db.collection('teams').updateMany(
+        findobj,
+        updateobj,
+        { 'map.mod': mods }
+    );
+    console.log(`Matched ${result.matchedCount}, modified ${result.modifiedCount}`);
+    return result.modifiedCount;
+}
+
 module.exports = {
     getOsuId,
     addTeam,    // Teams/players
@@ -237,5 +259,6 @@ module.exports = {
     getTeam,
     addMap,     // Maps
     removeMap,
-    findPendingTeams
+    findPendingTeams,
+    approveMap
 };

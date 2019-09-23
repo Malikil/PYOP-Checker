@@ -480,6 +480,64 @@ async function viewPending(msg)
     return msg.channel.send(str);
 }
 
+/**
+ * Approves a map
+ * @param {Discord.Message} msg 
+ */
+async function approveMap(msg)
+{
+    // Split the arguments
+    let args = msg.content.split(' ');
+    if (args.length < 2 || args.length > 3)
+        return;
+
+    let member = msg.member;
+    if (!member || !member.roles.has(APPROVER))
+        return msg.channel.send("This command is only available in the server to Map Approvers");
+    
+    if (args[1] == '?')
+        return msg.channel.send("Usage: !approve <map> [mod]\n" +
+            "Map: Map link or id to approve\n" +
+            "(optional) mod: What mods are used. Should be some combination of " +
+            "CM|HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored.");
+    
+    let mapid = checker.parseMapId(args[1]);
+    if (!mapid)
+        return msg.channel.send("Map not recognised");
+    
+    let mod = 0;
+    let custom = false;
+    if (args.length == 3)
+    {
+        let modstr = args[2].toUpperCase();
+        // Parse mods
+        if (modstr.includes('HD')) mod = mod | checker.MODS.HD;
+        if (modstr.includes('HR')) mod = mod | checker.MODS.HR;
+        else if (modstr.includes('EZ')) mod = mod | checker.MODS.EZ;
+        if (modstr.includes('DT')) mod = mod | checker.MODS.DT;
+        else if (modstr.includes('HT')) mod = mod | checker.MODS.HT;
+        // Custom mod status
+        if (modstr.includes('CM')
+                || ((mod - 1) & mod) != 0)
+            custom = true;
+    }
+    let modpool;
+    switch (mod)
+    {
+        case 0:               modpool = "nm"; break;
+        case checker.MODS.HD: modpool = "hd"; break;
+        case checker.MODS.HR: modpool = "hr"; break;
+        case checker.MODS.DT: modpool = "dt"; break;
+        default:              modpool = "cm"; break;
+    } if (custom)             modpool = "cm";
+
+    if (custom != 'cm')
+        mod = undefined;
+    
+    let count = await db.approveMap(mapid, modpool, mod);
+    return msg.channel.send(`Approved ${count} maps`);
+}
+
 
 /**
  * Sends a list of available commands
@@ -506,5 +564,6 @@ module.exports = {
     addMap,     // Maps
     removeMap,
     viewPool,
-    viewPending
+    viewPending,
+    approveMap
 };
