@@ -83,6 +83,7 @@ async function addTeam(teamName)
  * Adds a player to a team
  * @param {string} teamName The team to add to
  * @param {string} osuid The player's osu id
+ * @param {string} osuname The player's osu username
  * @param {string} discordid The player's discord id
  * @returns {Promise<boolean>} Whether any records were modified
  */
