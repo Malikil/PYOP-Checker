@@ -146,6 +146,8 @@ async function checkPool(maps)
 function quickCheck(beatmap, userid)
 {
     console.log(beatmap);
+    if (!beatmap)
+        return "That map doesn't exist";
     // Check the game mode
     if (beatmap.mode != 0)
         return "This map is for the wrong gamemode";
