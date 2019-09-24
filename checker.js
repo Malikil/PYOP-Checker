@@ -120,7 +120,7 @@ async function checkPool(maps)
         let underdrain = minLength - map.drain;
         if ((overdrain > 0 && overdrain <= drainBuffer)
                 || (underdrain > 0 && underdrain <= drainBuffer))
-            overUnder++;
+            results.overUnder++;
     });
 
     // Verify values
