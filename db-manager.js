@@ -242,7 +242,7 @@ async function approveMap(mapid, modpool, mods)
     if (mods) findobj[`maps.${modpool}.mod`] = mods;
     console.log(`Searching for: ${util.inspect(findobj)}`);
     let updateobj = { $set: {} };
-    updateobj.$set[`maps.${modpool}.$[map].status`] = 'Approved';
+    updateobj.$set[`maps.${modpool}.$[map].status`] = 'Accepted';
     console.log(`Updating with: ${util.inspect(updateobj)}`);
     let result = await db.collection('teams').updateMany(
         findobj,
