@@ -268,7 +268,7 @@ async function addMap(msg)
 
     // Check if a map should be removed to make room for this one
     // If there's a rejected map, remove that one
-    let rejectmap = team.maps[modpool].find(map => map.status == "Rejected");
+    let rejectmap = team.maps[modpool].find(map => map.status.startsWith("Rejected"));
     if (rejectmap && team.maps[modpool].length > 1)
         await db.removeMap(team.name, rejectmap.id, modpool);
 
@@ -553,28 +553,41 @@ async function rejectMap(msg)
         return msg.channel.send("Usage: !reject <map> [mod] <message>\n" +
             "Map: Map link or id to approve\n" +
             "(optional) mod: What mods are used. Should be some combination of " +
-            "CM|HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored.\n" +
+            "CM|HD|HR|DT|HT|EZ. Default is nomod, items do need to be correct.\n" +
             "Message: A rejection message so the player knows why the map was rejected");
 
     // Get the map, mod, and message
-    // Combine all the last arguments into the description
-    let desc = args.pop();
-    let mod;
-    while (args.length > 3)
-        desc = args.pop() + desc;
-    if (!args[2].match(/( ?nm ?| ?hd ?| ?hr ?| ?dt ?| ?cm ?)/i))
-        desc = args.pop() + desc;
-    else
-    {
-        
-    }
-    
-    if (!message)
-        return msg.channel.send('Please add a reject message');
-    
     let mapid = checker.parseMapId(args[1]);
     if (!mapid)
         return msg.channel.send("Map not recognised");
+    // Combine all the last arguments into the description
+    let desc = "";
+    let mod, modpool;
+    while (args.length > 3)
+        desc = args.pop() + desc;
+    if (!args[2].search(/^(nm|hd|hr|dt|cm)+$/i))
+        desc = args.pop() + desc;
+    else
+    {
+        let modstr = args[2].toUpperCase();
+        // Parse mods
+        if (modstr.includes('HD')) mod = mod | checker.MODS.HD;
+        if (modstr.includes('HR')) mod = mod | checker.MODS.HR;
+        else if (modstr.includes('EZ')) mod = mod | checker.MODS.EZ;
+        if (modstr.includes('DT')) mod = mod | checker.MODS.DT;
+        else if (modstr.includes('HT')) mod = mod | checker.MODS.HT;
+
+        switch (mod)
+        {
+            case 0:               modpool = "nm"; break;
+            case checker.MODS.HD: modpool = "hd"; break;
+            case checker.MODS.HR: modpool = "hr"; break;
+            case checker.MODS.DT: modpool = "dt"; break;
+        }
+    }
+    
+    if (!desc)
+        return msg.channel.send('Please add a reject message');
 }
 
 /**

@@ -275,6 +275,53 @@ async function approveMap(mapid, modpool, mods)
     return result.modifiedCount;
 }
 
+/**
+ * 
+ * @param {Number} mapid The map id to update
+ * @param {"nm"|"hd"|"hr"|"dt"} modpool Which modpool the map is in
+ * @param {Number} mods The mods the map uses
+ * @param {string} message The reject message to add to the end
+ */
+async function rejectMap(mapid, modpool, mods, message)
+{
+    console.log(`Rejecting mapid ${mapid} +${mods} from ${modpool}`);
+    let findobj = { $or: [{
+        'maps.cm': {
+            $elemMatch: {
+                id: mapid,
+                mod: mods
+            }
+        }
+    }] };
+
+    if (modpool)
+    {
+        let temp = {}; temp[`maps.${modpool}.id`] = mapid;
+        findobj.$or.push(temp);
+    }
+    console.log(`Searching for: ${util.inspect(findobj, { depth: 4 })}`);
+
+    let updateobj = { $set: {} };
+    updateobj.$set[`maps.cm.$[cmap].status`] = 'Rejected - ' + message;
+    if (modpool)
+        updateobj.$set[`maps.${modpool}.$[map].status`] = 'Rejected - ' + message;
+    console.log(`Updating with: ${util.inspect(updateobj)}`);
+
+    let result = await db.collection('teams').updateMany(
+        findobj,
+        updateobj,
+        { arrayFilters: [
+            { 'map.id': mapid },
+            {
+                'cmap.id': mapid,
+                'cmap.mod': mods
+            }
+        ] }
+    );
+    console.log(`Matched ${result.matchedCount}, modified ${result.modifiedCount}`);
+    return result.modifiedCount;
+}
+
 module.exports = {
     getOsuId,
     addTeam,    // Teams/players
@@ -285,5 +332,6 @@ module.exports = {
     addMap,     // Maps
     removeMap,
     findPendingTeams,
-    approveMap
+    approveMap,
+    rejectMap
 };
