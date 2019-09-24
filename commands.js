@@ -542,6 +542,49 @@ async function approveMap(msg)
     return msg.channel.send(`Approved ${count} maps`);
 }
 
+/**
+ * Rejects a map and provides a reason for rejection
+ * @param {Discord.Message} msg 
+ */
+async function rejectMap(msg)
+{
+    // Split the arguments
+    let args = msg.content.split(' ');
+    
+    if (args.length < 2)
+        return;
+
+    let member = msg.member;
+    if (!member || !member.roles.has(APPROVER))
+        return msg.channel.send("This command is only available in the server to Map Approvers");
+    
+    if (args[1] == '?')
+        return msg.channel.send("Usage: !reject <map> [mod] <message>\n" +
+            "Map: Map link or id to approve\n" +
+            "(optional) mod: What mods are used. Should be some combination of " +
+            "CM|HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored.\n" +
+            "Message: A rejection message so the player knows why the map was rejected");
+
+    // Get the map, mod, and message
+    // Combine all the last arguments into the description
+    let desc = args.pop();
+    let mod;
+    while (args.length > 3)
+        desc = args.pop() + desc;
+    if (!args[2].match(/( ?nm ?| ?hd ?| ?hr ?| ?dt ?| ?cm ?)/i))
+        desc = args.pop() + desc;
+    else
+    {
+        
+    }
+    
+    if (!message)
+        return msg.channel.send('Please add a reject message');
+    
+    let mapid = checker.parseMapId(args[1]);
+    if (!mapid)
+        return msg.channel.send("Map not recognised");
+}
 
 /**
  * Sends a list of available commands
