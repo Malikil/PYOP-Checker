@@ -231,23 +231,45 @@ async function findPendingTeams()
 /**
  * Approves a map in a given modpool/with mods
  * @param {Number} mapid The map id to update
- * @param {string} modpool The modpool the map is in
+ * @param {"nm"|"hd"|"hr"|"dt"} modpool The modpool the map is in
  * @param {Number} mods The mods the map uses, if custom mod
  */
 async function approveMap(mapid, modpool, mods)
 {
     console.log(`Approving ${mapid} +${mods} in ${modpool}`);
-    let findobj = {};
-    findobj[`maps.${modpool}.id`] = mapid;
-    if (mods) findobj[`maps.${modpool}.mod`] = mods;
-    console.log(`Searching for: ${util.inspect(findobj)}`);
+    // Search for maps in the given modpool OR custom mod with the given mod
+    let findobj = { $or: [{
+        'maps.cm': {
+            $elemMatch: {
+                id: mapid,
+                mod: mods
+            }
+        }
+    }] };
+
+    if (modpool)
+    {
+        let temp = {}; temp[`maps.${modpool}.id`] = mapid;
+        findobj.$or.push(temp);
+    }
+    console.log(`Searching for: ${util.inspect(findobj, { depth: 4 })}`);
+
     let updateobj = { $set: {} };
-    updateobj.$set[`maps.${modpool}.$[map].status`] = 'Approved';
+    updateobj.$set[`maps.cm.$[cmap].status`] = 'Accepted';
+    if (modpool)
+        updateobj.$set[`maps.${modpool}.$[map].status`] = 'Accepted';
     console.log(`Updating with: ${util.inspect(updateobj)}`);
+
     let result = await db.collection('teams').updateMany(
         findobj,
         updateobj,
-        { arrayFilters: [ { 'map.mod': mods } ] }
+        { arrayFilters: [
+            { 'map.id': mapid },
+            {
+                'cmap.id': mapid,
+                'cmap.mod': mods
+            }
+        ] }
     );
     console.log(`Matched ${result.matchedCount}, modified ${result.modifiedCount}`);
     return result.modifiedCount;

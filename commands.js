@@ -479,7 +479,7 @@ async function viewPending(msg)
     str += "\n**Double Time:**";
     dt.forEach(map => str += `\n<${mapLink(map)}> ${mapString(map)}`);
     str += "\n**Custom Mod:**";
-    cm.forEach(map => str += `\n<${mapLink(map)}> ${mapString(map)} +${modString(map)}`);
+    cm.forEach(map => str += `\n<${mapLink(map)}> ${mapString(map)} +${modString(map.mod)}`);
 
     return msg.channel.send(str);
 }
@@ -510,7 +510,6 @@ async function approveMap(msg)
         return msg.channel.send("Map not recognised");
     
     let mod = 0;
-    let custom = false;
     if (args.length == 3)
     {
         let modstr = args[2].toUpperCase();
@@ -520,10 +519,6 @@ async function approveMap(msg)
         else if (modstr.includes('EZ')) mod = mod | checker.MODS.EZ;
         if (modstr.includes('DT')) mod = mod | checker.MODS.DT;
         else if (modstr.includes('HT')) mod = mod | checker.MODS.HT;
-        // Custom mod status
-        if (modstr.includes('CM')
-                || ((mod - 1) & mod) != 0)
-            custom = true;
     }
     let modpool;
     switch (mod)
@@ -532,14 +527,10 @@ async function approveMap(msg)
         case checker.MODS.HD: modpool = "hd"; break;
         case checker.MODS.HR: modpool = "hr"; break;
         case checker.MODS.DT: modpool = "dt"; break;
-        default:              modpool = "cm"; break;
-    } if (custom)             modpool = "cm";
-
-    if (custom != 'cm')
-        mod = undefined;
+    }
     
     let count = await db.approveMap(mapid, modpool, mod);
-    return msg.channel.send(`Approved ${count} maps`);
+    return msg.channel.send(`Approved maps for ${count} teams`);
 }
 
 /**
