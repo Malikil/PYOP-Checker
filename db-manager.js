@@ -247,7 +247,7 @@ async function approveMap(mapid, modpool, mods)
     let result = await db.collection('teams').updateMany(
         findobj,
         updateobj,
-        { 'map.mod': mods }
+        { arrayFilters: [ { 'map.mod': mods } ] }
     );
     console.log(`Matched ${result.matchedCount}, modified ${result.modifiedCount}`);
     return result.modifiedCount;
