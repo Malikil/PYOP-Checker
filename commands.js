@@ -296,6 +296,7 @@ async function addMap(msg)
  */
 async function removeMap(msg)
 {
+    // Get args amd show help
     let args = msg.content.split(' ');
     if (args.length < 2 || args.length > 3)
         return;
@@ -328,15 +329,16 @@ async function removeMap(msg)
         if (args[2].includes('CM')) mod.push('cm');
     }
 
+    console.log(`Removing mapid ${mapid} from ${mod}`);
     let result = await db.removeMap(team.name, mapid, mod);
     if (result)
     {
         // Find the map info for this id, for user friendliness' sake
-        let map = team.maps.nm.find(item => item.id = mapid);
-        if (!map) map = team.maps.hd.find(item => item.id = mapid);
-        if (!map) map = team.maps.hr.find(item => item.id = mapid);
-        if (!map) map = team.maps.dt.find(item => item.id = mapid);
-        if (!map) map = team.maps.cm.find(item => item.id = mapid);
+        let map = team.maps.nm.find(item => item.id == mapid);
+        if (!map) map = team.maps.hd.find(item => item.id == mapid);
+        if (!map) map = team.maps.hr.find(item => item.id == mapid);
+        if (!map) map = team.maps.dt.find(item => item.id == mapid);
+        if (!map) map = team.maps.cm.find(item => item.id == mapid);
         return msg.channel.send(`Removed ${mapString(map)} from ${mod} pool`);
     }
     else
