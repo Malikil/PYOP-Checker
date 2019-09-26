@@ -379,7 +379,7 @@ async function removeMap(msg)
     {
         // Find the map info for this id, for user friendliness' sake
         let map = team.maps[modpool].find(item => item.id = mapid);
-        return msg.channel.send(`Removed ${mapString(map)} from ${mod} pool`);
+        return msg.channel.send(`Removed ${mapString(map)} from ${modpool} pool`);
     }
     else
         return msg.channel.send("Map not found");

@@ -55,8 +55,9 @@ client.on('message', msg => {
         response = commands.approveMap(msg);
     
     response.catch(reason => {
-        msg.channel.send("Malikil did a stupid, and so the bot broke. Please send him this:\n" +
-        util.inspect(reason));
+        msg.channel.send("Malikil did a stupid, and so the bot broke. " +
+        "Please tell him what you were trying to do and send him this:\n" +
+        "```" + util.inspect(reason) + "```");
     })
 });
 
