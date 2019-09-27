@@ -188,27 +188,24 @@ async function addMap(team, mod, map)
 }
 
 /**
- * Remooves a map from a team's pool. If mod is left out all instances of the
- * map are removed. If mod is included only maps from that pool will be removed.
+ * Removes a map from a team's pool. Removes all matching maps from the given modpool
  * @param {string} team The team name to remove the map from
  * @param {Number} mapid The beatmap id to remove
- * @param {Array<"nm"|"hd"|"hr"|"dt"|"cm">} mod (optional) The modpool for the map
+ * @param {"nm"|"hd"|"hr"|"dt"|"cm"} modpool The modpool for the map
+ * @param {number} mods (Optional) Which mods to use for cm maps. If not given 0 assumed
  * @returns The number of modified documents
  */
-async function removeMap(team, mapid, mod)
+async function removeMap(team, mapid, modpool, mods)
 {
     // Needs to be structured like $pull: { 'maps.${m}': { id: mapid } }
     let updateobj = { $pull: {}};
-    if (mod.length > 0)
-        mod.forEach(m => updateobj.$pull[`maps.${m}`] = { id: mapid });
-    else
-        updateobj.$pull = {
-            'maps.nm': { id: mapid },
-            'maps.hd': { id: mapid },
-            'maps.hr': { id: mapid },
-            'maps.dt': { id: mapid },
-            'maps.cm': { id: mapid }
-        };
+    updateobj.$pull[`maps.${modpool}`] = { id: mapid };
+    if (modpool == 'cm')
+        if (mods)
+            updateobj.$pull['maps.cm'].mod = mods;
+        else
+            updateobj.$pull['maps.cm'].mod = 0;
+
     let result = await db.collection('teams').updateOne({ name: team }, updateobj);
     return result.result.nModified;
 }

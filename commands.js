@@ -13,6 +13,10 @@ const util = require('util');
 
 const ADMIN = process.env.ROLE_ADMIN;
 const APPROVER = process.env.ROLE_MAP_APPROVER;
+
+// ============================================================================
+// ========================= Helper Functions =================================
+// ============================================================================
 const mapString = map => `${map.artist} - ${map.title} [${map.version}]`;
 const mapLink = map => `https://osu.ppy.sh/b/${map.id}`;
 function modString(mod)
@@ -25,6 +29,39 @@ function modString(mod)
     else if (mod & checker.MODS.HT) str += 'HT';
     if (str == '')                  str = 'NoMod';
     return str;
+}
+/**
+ * Converts a mod string into its number equivalent
+ * @param {"NM"|"HD"|"HR"|"DT"|"EZ"|"HT"} modstr Mods in string form
+ * @returns {number} The bitwise number representation of the selected mods
+ */
+function parseMod(modstr)
+{
+    let mod = 0;
+    modstr = modstr.toUpperCase();
+    // Parse mods
+    if (modstr.includes('HD')) mod = mod | checker.MODS.HD;
+    if (modstr.includes('HR')) mod = mod | checker.MODS.HR;
+    else if (modstr.includes('EZ')) mod = mod | checker.MODS.EZ;
+    if (modstr.includes('DT')) mod = mod | checker.MODS.DT;
+    else if (modstr.includes('HT')) mod = mod | checker.MODS.HT;
+    
+    return mod;
+}
+/**
+ * Gets a mod pool string from a mod combination
+ * @param {number} bitwise The bitwise number representation of the mods
+ */
+function getModpool(bitwise)
+{
+    switch (bitwise)
+    {
+        case 0:               return "nm";
+        case checker.MODS.HD: return "hd";
+        case checker.MODS.HR: return "hr";
+        case checker.MODS.DT: return "dt";
+        default:              return "cm";
+    }
 }
 
 /**
@@ -213,7 +250,10 @@ async function addMap(msg)
         "(optional) mod: What mods to use. Should be some combination of " +
         "CM|HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored. " +
         "To add the map as a custom mod, include CM.\n" +
-        "Aliases: !add");
+        "Aliases: !add\n\n" +
+        "If there are already two maps in the selected mod pool, the first map " +
+        "will be removed when adding a new one. To replace a specific map, " +
+        "remove it first before adding another one.");
     // Get which team the player is on
     let team = await db.getTeam(msg.author.id);
     if (!team)
@@ -270,7 +310,7 @@ async function addMap(msg)
     // If there's a rejected map, remove that one
     let rejectmap = team.maps[modpool].find(map => map.status.startsWith("Rejected"));
     if (rejectmap && team.maps[modpool].length > 1)
-        await db.removeMap(team.name, rejectmap.id, modpool);
+        await db.removeMap(team.name, rejectmap.id, modpool, rejectmap.mod);
 
     let mapitem = {
         id: mapid,
@@ -303,9 +343,13 @@ async function removeMap(msg)
     else if (args[1] == '?')
         return msg.channel.send("Usage: !removemap <map> [mod]\n" +
             "map: Beatmap link or id\n" +
-            "(optional) mod: Which mod pool to remove the map from. Should be one of " +
-            "NM|HD|HR|DT|CM. If left blank the map will be removed from all mods.\n" +
-            "Aliases: !rem, !remove");
+            "(optional) mod: Which mod pool to remove the map from. Should be " +
+            "some combination of NM|HD|HR|DT|CM. If left blank NM is assumed.\n" +
+            "Aliases: !rem, !remove\n\n" +
+            "If two identical maps are in the same mod bracket, both of them " +
+            "will be removed. Ie in the same modpool or in custom mod using " +
+            "the same mod combination. To replace just one of them you can use " +
+            "the add map command instead. That will replace one map with the new one.");
 
     // Get which team the player is on
     let team = await db.getTeam(msg.author.id);
@@ -317,29 +361,27 @@ async function removeMap(msg)
     if (!mapid)
         return msg.channel.send(`Couldn't recognise beatmap id`);
 
-    // Get the mod pool(s)
-    let mod = [];
-    if (args.length == 3)
+    // Get the mod pool and mods
+    let mods;
+    let modpool;
+    if (args.length > 2)
     {
-        args[2] = args[2].toUpperCase();
-        if (args[2].includes('NM')) mod.push('nm');
-        if (args[2].includes('HD')) mod.push('hd');
-        if (args[2].includes('HR')) mod.push('hr');
-        if (args[2].includes('DT')) mod.push('dt');
-        if (args[2].includes('CM')) mod.push('cm');
+        mods = parseMod(args[2]);
+        if (args[2].toUpperCase().includes("CM"))
+            modpool = 'cm';
     }
+    else
+        mods = 0;
+    if (!modpool)
+        modpool = getModpool(mods);
 
     console.log(`Removing mapid ${mapid} from ${mod}`);
-    let result = await db.removeMap(team.name, mapid, mod);
+    let result = await db.removeMap(team.name, mapid, modpool, mods);
     if (result)
     {
         // Find the map info for this id, for user friendliness' sake
-        let map = team.maps.nm.find(item => item.id == mapid);
-        if (!map) map = team.maps.hd.find(item => item.id == mapid);
-        if (!map) map = team.maps.hr.find(item => item.id == mapid);
-        if (!map) map = team.maps.dt.find(item => item.id == mapid);
-        if (!map) map = team.maps.cm.find(item => item.id == mapid);
-        return msg.channel.send(`Removed ${mapString(map)} from ${mod} pool`);
+        let map = team.maps[modpool].find(item => item.id == mapid);
+        return msg.channel.send(`Removed ${mapString(map)} from ${modpool} pool`);
     }
     else
         return msg.channel.send("Map not found");
