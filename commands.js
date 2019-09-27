@@ -604,32 +604,20 @@ async function rejectMap(msg)
         return msg.channel.send("Map not recognised");
     // Combine all the last arguments into the description
     let desc = "";
-    let mod, modpool;
+    let mod;
     while (args.length > 3)
         desc = args.pop() + desc;
     if (!args[2].search(/^(nm|hd|hr|dt|cm)+$/i))
         desc = args.pop() + desc;
     else
-    {
-        let modstr = args[2].toUpperCase();
-        // Parse mods
-        if (modstr.includes('HD')) mod = mod | checker.MODS.HD;
-        if (modstr.includes('HR')) mod = mod | checker.MODS.HR;
-        else if (modstr.includes('EZ')) mod = mod | checker.MODS.EZ;
-        if (modstr.includes('DT')) mod = mod | checker.MODS.DT;
-        else if (modstr.includes('HT')) mod = mod | checker.MODS.HT;
-
-        switch (mod)
-        {
-            case 0:               modpool = "nm"; break;
-            case checker.MODS.HD: modpool = "hd"; break;
-            case checker.MODS.HR: modpool = "hr"; break;
-            case checker.MODS.DT: modpool = "dt"; break;
-        }
-    }
+        mod = parseMod(args[2]);
     
+    // Require a reject message
     if (!desc)
         return msg.channel.send('Please add a reject message');
+
+    let result = await db.rejectMap(mapid, mod, desc);
+    return msg.channel.send(`Rejected ${mapid} +${modString(mod)} from ${result} pools`);
 }
 
 /**
@@ -640,7 +628,7 @@ async function commands(msg)
 {
     var info = "Available **Public** commands:\n!check, !help";
     if (msg.member && msg.member.roles.has(APPROVER))
-        info += "\nAvailable **Map Approver** commands:\n!pending, !approve";
+        info += "\nAvailable **Map Approver** commands:\n!pending, !approve, !reject";
     if (await db.getTeam(msg.author.id))
         info += "\nAvailable **Player** commands:\n!addmap, !removemap, !viewpool";
     info += "\n\nGet more info about a command by typing a ? after the name";
@@ -657,6 +645,6 @@ module.exports = {
     addMap,     // Maps
     removeMap,
     viewPool,
-    viewPending,
+    viewPending,    // Map approvers
     approveMap
 };

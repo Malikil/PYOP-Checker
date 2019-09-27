@@ -273,15 +273,15 @@ async function approveMap(mapid, modpool, mods)
 }
 
 /**
- * 
+ * Rejects a given map/mod combo.
  * @param {Number} mapid The map id to update
- * @param {"nm"|"hd"|"hr"|"dt"} modpool Which modpool the map is in
  * @param {Number} mods The mods the map uses
  * @param {string} message The reject message to add to the end
+ * @returns The number of documents (teams) that were modified
  */
-async function rejectMap(mapid, modpool, mods, message)
+async function rejectMap(mapid, mods, message)
 {
-    console.log(`Rejecting mapid ${mapid} +${mods} from ${modpool}`);
+    console.log(`Rejecting mapid ${mapid} +${mods}`);
     let findobj = { $or: [{
         'maps.cm': {
             $elemMatch: {
