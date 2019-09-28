@@ -235,6 +235,9 @@ async function movePlayer(msg)
         return msg.channel.send("Couldn't move player");
 }
 
+// ============================================================================
+// ========================== Player Commands =================================
+// ============================================================================
 /**
  * Adds a map to the players's team
  * @param {Discord.Message} msg 
