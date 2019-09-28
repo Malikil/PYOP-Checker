@@ -545,7 +545,8 @@ async function approveMap(msg)
         return msg.channel.send("Usage: !approve <map> [mod]\n" +
             "Map: Map link or id to approve\n" +
             "(optional) mod: What mods are used. Should be some combination of " +
-            "CM|HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored.");
+            "CM|HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored.\n" +
+            "Aliases: !accept");
     
     let mapid = checker.parseMapId(args[1]);
     if (!mapid)
