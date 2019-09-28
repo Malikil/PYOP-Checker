@@ -53,6 +53,8 @@ client.on('message', msg => {
         response = commands.viewPending(msg);
     else if (msg.content.startsWith('!approve '))
         response = commands.approveMap(msg);
+    else if (msg.content.startsWith('!reject '))
+        response = commands.rejectMap(msg);
     
     response.catch(reason => {
         msg.channel.send("Malikil did a stupid, and so the bot broke. " +

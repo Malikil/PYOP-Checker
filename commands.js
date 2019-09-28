@@ -375,7 +375,7 @@ async function removeMap(msg)
     if (!modpool)
         modpool = getModpool(mods);
 
-    console.log(`Removing mapid ${mapid} from ${mod}`);
+    console.log(`Removing mapid ${mapid} from ${modpool}`);
     let result = await db.removeMap(team.name, mapid, modpool, mods);
     if (result)
     {
@@ -604,13 +604,15 @@ async function rejectMap(msg)
         return msg.channel.send("Map not recognised");
     // Combine all the last arguments into the description
     let desc = "";
-    let mod;
+    let mod = 0;
     while (args.length > 3)
-        desc = args.pop() + desc;
-    if (!args[2].search(/^(nm|hd|hr|dt|cm)+$/i))
-        desc = args.pop() + desc;
+        desc = args.pop() + " " + desc;
+    if (args[2].search(/^(nm|hd|hr|dt|cm)+$/i) < 0)
+        desc = args.pop() + " " + desc;
     else
         mod = parseMod(args[2]);
+
+    console.log(`Mod: ${mod}, Message: ${desc}`);
     
     // Require a reject message
     if (!desc)
@@ -646,5 +648,6 @@ module.exports = {
     removeMap,
     viewPool,
     viewPending,    // Map approvers
-    approveMap
+    approveMap,
+    rejectMap
 };

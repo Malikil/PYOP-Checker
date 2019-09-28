@@ -2,6 +2,7 @@
 This module should handle connecting to the database and all the CRUD operations
 */
 const { MongoClient, Db } = require('mongodb');
+const { MODS } = require('./checker');
 const util = require('util');
 
 const mongoUser = process.env.MONGO_USER;
@@ -291,17 +292,26 @@ async function rejectMap(mapid, mods, message)
         }
     }] };
 
-    if (modpool)
+    let specialPool;
+    switch (mods)
     {
-        let temp = {}; temp[`maps.${modpool}.id`] = mapid;
+        case 0:       specialPool = 'nm'; break;
+        case MODS.HD: specialPool = 'hd'; break;
+        case MODS.HR: specialPool = 'hr'; break;
+        case MODS.DT: specialPool = 'dt'; break;
+    }
+
+    if (specialPool)
+    {
+        let temp = {}; temp[`maps.${specialPool}.id`] = mapid;
         findobj.$or.push(temp);
     }
     console.log(`Searching for: ${util.inspect(findobj, { depth: 4 })}`);
 
     let updateobj = { $set: {} };
     updateobj.$set[`maps.cm.$[cmap].status`] = 'Rejected - ' + message;
-    if (modpool)
-        updateobj.$set[`maps.${modpool}.$[map].status`] = 'Rejected - ' + message;
+    if (specialPool)
+        updateobj.$set[`maps.${specialPool}.$[map].status`] = 'Rejected - ' + message;
     console.log(`Updating with: ${util.inspect(updateobj)}`);
 
     let result = await db.collection('teams').updateMany(
