@@ -8,6 +8,9 @@ const commands = require('./commands');
 const util = require('util');
 const client = new Discord.Client();
 
+const ADMIN = process.env.ROLE_ADMIN;
+const APPROVER = process.env.ROLE_MAP_APPROVER;
+
 /**
  * Makes sure the sender is a map approver before executing the command
  * @param {Discord.Message} msg 

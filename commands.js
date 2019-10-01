@@ -11,7 +11,6 @@ const checker = require('./checker');
 const db = require('./db-manager');
 const util = require('util');
 
-const ADMIN = process.env.ROLE_ADMIN;
 const APPROVER = process.env.ROLE_MAP_APPROVER;
 
 // There's probably a better way to do this, but for now I'm just using a
