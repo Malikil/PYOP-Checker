@@ -67,7 +67,7 @@ function getModpool(bitwise)
         default:              return "cm";
     }
 }
-
+//#region Public Commands
 // ============================================================================
 // ========================= Public Functions =================================
 // ============================================================================
@@ -118,7 +118,8 @@ async function checkMap(msg)
     else
         return msg.channel.send("This map would need to be manually approved");
 }
-
+//#endregion
+//#region Admin Commands
 // ============================================================================
 // ========================== Admin Functions =================================
 // ============================================================================
@@ -245,6 +246,27 @@ async function movePlayer(msg)
         return msg.channel.send("Couldn't move player");
 }
 
+/**
+ * Locks submissions for the week, makes an announcement to players as well
+ * @param {Discord.Message} msg 
+ */
+async function lockSubmissions(msg)
+{
+    if (!msg.member || !msg.member.roles.has(ADMIN))
+        return msg.channel.send("This command is only available to admins");
+
+    if (locked)
+        return msg.channel.send("Submissions are already locked");
+
+    locked = true;
+    return msg.channel.send(
+        `${process.env.ROLE_PLAYER} pool submissions are now closed. If ` +
+        'you have a map that gets rejected you will still have a chance to ' +
+        'replace it. Pools and schedules should be released sometime tomorrow.'
+    );
+}
+//#endregion
+//#region Player Commands
 // ============================================================================
 // ========================== Player Commands =================================
 // ============================================================================
@@ -515,7 +537,8 @@ async function viewPool(msg)
 
     return msg.channel.send(str);
 }
-
+//#endregion
+//#region Approver Commands
 // ============================================================================
 // ======================== Approver Commands =================================
 // ============================================================================
@@ -660,7 +683,7 @@ async function rejectMap(msg)
     let result = await db.rejectMap(mapid, mod, desc);
     return msg.channel.send(`Rejected ${mapid} +${modString(mod)} from ${result} pools`);
 }
-
+//#endregion
 /**
  * Sends a list of available commands
  * @param {Discord.Message} msg 
@@ -679,10 +702,11 @@ async function commands(msg)
 module.exports = {
     checkMap,
     commands,
-    addTeam,    // Teams/players
+    addTeam,    // Admins
     addPlayer,
     removePlayer,
     movePlayer,
+    lockSubmissions,
     addMap,     // Maps
     removeMap,
     viewPool,

@@ -56,6 +56,9 @@ client.on('message', msg => {
         response = commands.approveMap(msg);
     else if (msg.content.startsWith('!reject '))
         response = commands.rejectMap(msg);
+    // General admin
+    else if (msg.content === "!lock")
+        response = commands.lockSubmissions(msg);
     
     if (response)
         response.catch(reason => {
