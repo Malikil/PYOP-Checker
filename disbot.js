@@ -8,6 +8,35 @@ const commands = require('./commands');
 const util = require('util');
 const client = new Discord.Client();
 
+/**
+ * Makes sure the sender is a map approver before executing the command
+ * @param {Discord.Message} msg 
+ * @param {function(Discord.Message) =>
+ * Promise<Discord.Message|Discord.Message[]>} command 
+ */
+async function approverCommand(msg, command)
+{
+    let member = msg.member;
+    if (!member || !member.roles.has(APPROVER))
+        return msg.channel.send("This command is only available in the server to Map Approvers");
+    else
+        return command(msg);
+}
+/**
+ * Makes sure the sender is an admin before executing the command
+ * @param {Discord.Message} msg 
+ * @param {function(Discord.Message) =>
+ * Promise<Discord.Message|Discord.Message[]>} command 
+ */
+async function adminCommand(msg, command)
+{
+    let member = msg.member;
+    if (!member || !member.roles.has(ADMIN))
+        return msg.channel.send("This command is only available to admins");
+    else
+        return command(msg);
+}
+
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
 });
@@ -26,16 +55,16 @@ client.on('message', msg => {
         response = commands.checkMap(msg);
     // Team/player management
     else if (msg.content.startsWith('!addteam '))
-        response = commands.addTeam(msg);
+        response = adminCommand(msg, commands.addTeam);
     else if (msg.content.startsWith('!addplayer ')
             || msg.content.startsWith('!ap '))
-        response = commands.addPlayer(msg);
+        response = adminCommand(msg, commands.addPlayer);
     else if (msg.content.startsWith('!removeplayer ')
             || msg.content.startsWith('!rp '))
-        response = commands.removePlayer(msg);
+        response = adminCommand(msg, commands.removePlayer);
     else if (msg.content.startsWith('!moveplayer ')
             || msg.content.startsWith('!mp '))
-        response = commands.movePlayer(msg);
+        response = adminCommand(msg, commands.movePlayer);
     // Map management
     else if (msg.content.startsWith('!addmap ')
             || msg.content.startsWith('!add '))
@@ -50,15 +79,15 @@ client.on('message', msg => {
         response = commands.viewPool(msg);
     // Map approvers
     else if (msg.content === "!pending")
-        response = commands.viewPending(msg);
+        response = approverCommand(msg, commands.viewPending);
     else if (msg.content.startsWith('!approve ')
             || msg.content.startsWith('!accept '))
-        response = commands.approveMap(msg);
+        response = approverCommand(msg, commands.approveMap);
     else if (msg.content.startsWith('!reject '))
-        response = commands.rejectMap(msg);
+        response = approverCommand(msg, commands.rejectMap);
     // General admin
     else if (msg.content === "!lock")
-        response = commands.lockSubmissions(msg);
+        response = adminCommand(msg, commands.lockSubmissions);
     
     if (response)
         response.catch(reason => {
