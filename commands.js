@@ -14,6 +14,10 @@ const util = require('util');
 const ADMIN = process.env.ROLE_ADMIN;
 const APPROVER = process.env.ROLE_MAP_APPROVER;
 
+// There's probably a better way to do this, but for now I'm just using a
+// global variable to store whether submissions are open or closed
+var locked = false;
+
 // ============================================================================
 // ========================= Helper Functions =================================
 // ============================================================================
@@ -64,6 +68,9 @@ function getModpool(bitwise)
     }
 }
 
+// ============================================================================
+// ========================= Public Functions =================================
+// ============================================================================
 /**
  * Checks whether a given map would be accepted
  * @param {Discord.Message} msg The discord message starting with !check
@@ -112,6 +119,9 @@ async function checkMap(msg)
         return msg.channel.send("This map would need to be manually approved");
 }
 
+// ============================================================================
+// ========================== Admin Functions =================================
+// ============================================================================
 /**
  * Adds a team to the database, requires Admin role
  * @param {Discord.Message} msg 
@@ -265,6 +275,12 @@ async function addMap(msg)
     let osuid = team.players.find(item => item.discordid == msg.author.id).osuid;
     if (!osuid)
         console.warn("Team found but osu id was not");
+    // Make sure submissions are open
+    if (locked)
+        return msg.channel.send("Submissions are currently locked. "+
+            "Please wait until after pools are released before submitting next week's maps.\n" +
+            "If you're submitting a replacement for a map that was rejected after submissions " +
+            "closed, please send it to a Map Approver directly.");
     // Get beatmap information
     let mod = 0;
     let custom = false;
@@ -363,6 +379,25 @@ async function removeMap(msg)
     let mapid = checker.parseMapId(args[1]);
     if (!mapid)
         return msg.channel.send(`Couldn't recognise beatmap id`);
+
+    if (locked)
+    {
+        await msg.channel.send("Map submissions are locked. Any changes made now won't be " +
+            "seen until the following pool. Do you still want to remove this map? (y/yes/n/no)");
+        let aborted = await msg.channel.awaitMessages(
+            message => ['y', 'yes', 'n', 'no'].includes(message.content.toLowerCase()),
+            { maxMatches: 1, time: 30000, errors: ['time'] }
+        ).then(results => {
+            let response = results.first();
+            return ['y', 'yes'].includes(response.content.toLowerCase());
+        }).catch(reason => {
+            msg.channel.send("Timed out, not removing map");
+            return true;
+        });
+        if (aborted)
+            return;
+    }
+        
 
     // Get the mod pool and mods
     let mods;
