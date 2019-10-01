@@ -1,3 +1,8 @@
+# Custom ignores
+# Google login info
+gsheet-credentials.json
+
+# Generated ignores
 # Logs
 logs
 *.log
