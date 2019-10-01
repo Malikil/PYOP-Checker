@@ -260,9 +260,9 @@ async function lockSubmissions(msg)
 
     locked = true;
     return msg.channel.send(
-        `${process.env.ROLE_PLAYER} pool submissions are now closed. If ` +
-        'you have a map that gets rejected you will still have a chance to ' +
-        'replace it. Pools and schedules should be released sometime tomorrow.'
+        'Pool submissions are now closed. If you have a map that gets ' +
+        'rejected you will still have a chance to replace it.\n' +
+        'Pools and schedules should be released sometime tomorrow.'
     );
 }
 //#endregion
@@ -404,20 +404,25 @@ async function removeMap(msg)
 
     if (locked)
     {
+        console.log("Submissions locked, asking confirmation");
         await msg.channel.send("Map submissions are locked. Any changes made now won't be " +
             "seen until the following pool. Do you still want to remove this map? (y/yes/n/no)");
+        let err = "";
         let aborted = await msg.channel.awaitMessages(
             message => ['y', 'yes', 'n', 'no'].includes(message.content.toLowerCase()),
-            { maxMatches: 1, time: 30000, errors: ['time'] }
+            { maxMatches: 1, time: 20000, errors: ['time'] }
         ).then(results => {
+            console.log(results);
             let response = results.first();
-            return ['y', 'yes'].includes(response.content.toLowerCase());
+            return ['n', 'no'].includes(response.content.toLowerCase());
         }).catch(reason => {
-            msg.channel.send("Timed out, not removing map");
+            console.log("Response timer expired");
+            err = "Timed out. ";
             return true;
         });
+        console.log(`Aborted? ${aborted}`);
         if (aborted)
-            return;
+            return msg.channel.send(err + "Map not removed");
     }
         
 
