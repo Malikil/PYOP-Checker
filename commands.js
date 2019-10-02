@@ -342,9 +342,11 @@ async function addMap(msg)
         status: status,
         drain: beatmap.hit_length,
         stars: beatmap.difficultyrating,
+        bpm: beatmap.bpm,
         artist: beatmap.artist,
         title: beatmap.title,
-        version: beatmap.version
+        version: beatmap.version,
+        creator: beatmap.creator
     };
     if (modpool == 'cm') mapitem.mod = mod;
     if (await db.addMap(team.name, modpool, mapitem))

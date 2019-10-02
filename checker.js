@@ -217,14 +217,17 @@ function getBeatmap(mapid, mod)
             // Parse ints/floats
             beatmap.hit_length = parseInt(beatmap.hit_length);
             beatmap.total_length = parseInt(beatmap.total_length);
-            // Update length if DT/HT
+            beatmap.bpm = parseFloat(beatmap.bpm);
+            // Update length/bpm if DT/HT
             if (mod & MODS.DT)
             {
+                beatmap.bpm = beatmap.bpm * (3.0 / 2.0);
                 beatmap.hit_length = (beatmap.hit_length * (2.0 / 3.0)) | 0;
                 beatmap.total_length = (beatmap.total_length * (2.0 / 3.0)) | 0;
             }
             else if (mod & MODS.HT)
             {
+                beatmap.bpm = beatmap.bpm * (3.0 / 4.0);
                 beatmap.hit_length = (beatmap.hit_length * (4.0 / 3.0)) | 0;
                 beatmap.total_length = (beatmap.total_length * (4.0 / 3.0)) | 0;
             }
