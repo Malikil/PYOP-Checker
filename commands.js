@@ -10,6 +10,7 @@ const Discord = require('discord.js');
 const checker = require('./checker');
 const db = require('./db-manager');
 const util = require('util');
+const google = require('./gsheets');
 
 const APPROVER = process.env.ROLE_MAP_APPROVER;
 
@@ -17,6 +18,7 @@ const APPROVER = process.env.ROLE_MAP_APPROVER;
 // global variable to store whether submissions are open or closed
 var locked = false;
 
+//#region Helper Functions
 // ============================================================================
 // ========================= Helper Functions =================================
 // ============================================================================
@@ -66,6 +68,7 @@ function getModpool(bitwise)
         default:              return "cm";
     }
 }
+//#endregion
 //#region Public Commands
 // ============================================================================
 // ========================= Public Functions =================================
@@ -248,6 +251,11 @@ async function lockSubmissions(msg)
         'rejected you will still have a chance to replace it.\n' +
         'Pools and schedules should be released sometime tomorrow.'
     );
+}
+
+async function exportMaps(msg)
+{
+    google.simpleGet();
 }
 //#endregion
 //#region Player Commands
@@ -686,6 +694,7 @@ module.exports = {
     removePlayer,
     movePlayer,
     lockSubmissions,
+    exportMaps,
     addMap,     // Maps
     removeMap,
     viewPool,

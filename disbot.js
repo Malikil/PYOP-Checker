@@ -91,6 +91,8 @@ client.on('message', msg => {
     // General admin
     else if (msg.content === "!lock")
         response = adminCommand(msg, commands.lockSubmissions);
+    else if (msg.content === "!export")
+        response = adminCommand(msg, commands.exportMaps);
     
     if (response)
         response.catch(reason => {

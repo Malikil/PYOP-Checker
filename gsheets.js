@@ -12,7 +12,7 @@ auth.authorize((err, cred) => {
     if (err)
         console.error(err);
     else
-        console.log(cred);
+        console.log("Connected to google api");
 });
 
 function simpleGet()
@@ -20,15 +20,15 @@ function simpleGet()
     sheets.spreadsheets.get({
         auth,
         spreadsheetId: process.env.SPREADSHEET_ID,
-        ranges: ['15k Submissions!A2:Q'],
         includeGridData: true
     }, (err, range) => {
-        console.log(err);
-        let page = range.data.sheets[0];
-        console.log(page.data[0].rowData[0].values);
+        if (err)
+            console.log(err);
+        else
+            console.log(range.data.sheets);
     });
 }
 
 module.exports = {
-
+    simpleGet
 }
