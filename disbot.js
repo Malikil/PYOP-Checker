@@ -98,7 +98,7 @@ client.on('message', msg => {
         response.catch(reason => {
             msg.channel.send("Malikil did a stupid, and so the bot broke. " +
             "Please tell him what you were trying to do and send him this:\n" +
-            "```" + util.inspect(reason) + "```");
+            "```" + util.inspect(reason).slice(0, 1000) + "```");
     });
 });
 

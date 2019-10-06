@@ -261,6 +261,7 @@ async function exportMaps(msg)
 {
     let teams = await db.getDb();
     let response = await google.pushMaps(teams);
+    console.log(response);
     if (response.status === 200)
         msg.channel.send('Maps exported');
     else
@@ -696,9 +697,6 @@ async function commands(msg)
 }
 
 module.exports = {
-    mapLink,    // Helper
-    mapString,
-    modString,
     checkMap,   // Public
     commands,
     addTeam,    // Admins

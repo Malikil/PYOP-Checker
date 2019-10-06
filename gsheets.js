@@ -3,7 +3,22 @@ const util = require('util');
 const sheets = google.sheets('v4');
 const spreadsheetId = process.env.SPREADSHEET_ID;
 const {convertSeconds} = require('./checker');
-const {mapString, mapLink, modString} = require('./commands'); // TODO possible circular dependency
+const {MODS} = require('./checker');
+
+// Copied from commands.js (import didn't seem to work)
+const mapString = map => `${map.artist} - ${map.title} [${map.version}]`;
+const mapLink = map => `https://osu.ppy.sh/b/${map.id}`;
+function modString(mod)
+{
+    let str = '';
+    if (mod & MODS.HD)      str += 'HD';
+    if (mod & MODS.HR)      str += 'HR';
+    else if (mod & MODS.EZ) str += 'EZ';
+    if (mod & MODS.DT)      str += 'DT';
+    else if (mod & MODS.HT) str += 'HT';
+    if (str == '')                  str = 'NM';
+    return str;
+}
 
 const authFactory = new google.auth.GoogleAuth({
     scopes: ['https://www.googleapis.com/auth/spreadsheets']
@@ -31,6 +46,7 @@ async function pushMaps(maplist)
     let sheetid;
     if (!sheet)
     {
+        console.log("Sheet not found, creating sheet");
         let response = await sheets.spreadsheets.batchUpdate({
             auth, spreadsheetId,
             requestBody: {
@@ -51,10 +67,13 @@ async function pushMaps(maplist)
     }
     else
         sheetid = sheet.properties.sheetId;
+    console.log(`Sheet id: ${sheetid}`);
     let rowdata = [];
     maplist.forEach(team => {
-        rowdata.push([{ userEnteredValue: { stringValue: team.name } }]);
-        rowdata.push([
+        rowdata.push({
+            values: [{ userEnteredValue: { stringValue: team.name } }]
+        });
+        rowdata.push({ values: [
             { userEnteredValue: { stringValue: "Mod" } },
             { userEnteredValue: { stringValue: "Mapper" } },
             { userEnteredValue: { stringValue: "Map" } },
@@ -62,11 +81,11 @@ async function pushMaps(maplist)
             { userEnteredValue: { stringValue: "Drain" } },
             { userEnteredValue: { stringValue: "BPM" } },
             { userEnteredValue: { stringValue: "ID" } }
-        ]);
+        ]});
         let mods = [ "nm", "hd", "hr", "dt" ];
         mods.forEach((pool, i) => {
             team.maps[pool].forEach(map =>
-                rowdata.push([
+                rowdata.push({ values: [
                     { userEnteredValue: { stringValue: mods[i].toUpperCase() } },
                     { userEnteredValue: { stringValue: map.creator } },
                     { userEnteredValue: { formulaValue: `=HYPERLINK("${mapLink(map)}","${mapString(map).replace(
@@ -76,11 +95,11 @@ async function pushMaps(maplist)
                     { userEnteredValue: { stringValue: convertSeconds(map.drain) } },
                     { userEnteredValue: { numberValue: map.bpm } },
                     { userEnteredValue: { numberValue: map.id } }
-                ])
+                ]})
             );
         });
         team.maps.cm.forEach(map =>
-            rowdata.push([
+            rowdata.push({ values: [
                 { userEnteredValue: { stringValue: modString(map) } },
                 { userEnteredValue: { stringValue: map.creator } },
                 { userEnteredValue: { formulaValue: `=HYPERLINK("${mapLink(map)}","${mapString(map).replace(
@@ -90,12 +109,12 @@ async function pushMaps(maplist)
                 { userEnteredValue: { stringValue: convertSeconds(map.drain) } },
                 { userEnteredValue: { numberValue: map.bpm } },
                 { userEnteredValue: { numberValue: map.id } }
-            ])
+            ]})
         );
         rowdata.push();
     });
     return sheets.spreadsheets.batchUpdate({
-        auth, spreadsheetid,
+        auth, spreadsheetId,
         requestBody: {
             requests: [
                 {
