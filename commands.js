@@ -253,9 +253,18 @@ async function lockSubmissions(msg)
     );
 }
 
+/**
+ * Pushes all maps for all teams to google sheets
+ * @param {Discord.Message} msg 
+ */
 async function exportMaps(msg)
 {
-    google.simpleGet();
+    let teams = await db.getDb();
+    let response = await google.pushMaps(teams);
+    if (response.status === 200)
+        msg.channel.send('Maps exported');
+    else
+        msg.channel.send(util.inspect(response, { depth: 4 }));
 }
 //#endregion
 //#region Player Commands
@@ -687,7 +696,10 @@ async function commands(msg)
 }
 
 module.exports = {
-    checkMap,
+    mapLink,    // Helper
+    mapString,
+    modString,
+    checkMap,   // Public
     commands,
     addTeam,    // Admins
     addPlayer,

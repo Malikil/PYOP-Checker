@@ -27,6 +27,11 @@ client.connect(err => {
 });
 
 /**
+ * Gets everything from the database
+ */
+const getDb = () => db.collection('teams').find().toArray();
+
+/**
  * Will get an osu id from a discord id if that user is currently registered
  * on a team in the database
  * @param {string} discordid The discord userid to search for
@@ -340,5 +345,6 @@ module.exports = {
     removeMap,
     findPendingTeams,
     approveMap,
-    rejectMap
+    rejectMap,
+    getDb
 };
