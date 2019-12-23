@@ -34,10 +34,62 @@ auth.authorize((err, cred) => {
 });
 
 /**
+ * Puts the maps from a single team into an array
+ * which can be pushed to google sheets
+ * @param {*} team A team to get the maps from
+ */
+async function getSheetData(team)
+{
+    let rowdata = [];
+    rowdata.push({
+        values: [{ userEnteredValue: { stringValue: team.name } }]
+    });
+    rowdata.push({ values: [
+        { userEnteredValue: { stringValue: "Mod" } },
+        { userEnteredValue: { stringValue: "Mapper" } },
+        { userEnteredValue: { stringValue: "Map" } },
+        { userEnteredValue: { stringValue: "Stars" } },
+        { userEnteredValue: { stringValue: "Drain" } },
+        { userEnteredValue: { stringValue: "BPM" } },
+        { userEnteredValue: { stringValue: "ID" } }
+    ]});
+    let mods = [ "nm", "hd", "hr", "dt" ];
+    mods.forEach((pool, i) => {
+        team.maps[pool].forEach(map =>
+            rowdata.push({ values: [
+                { userEnteredValue: { stringValue: mods[i].toUpperCase() } },
+                { userEnteredValue: { stringValue: map.creator } },
+                { userEnteredValue: { formulaValue: `=HYPERLINK("${mapLink(map)}","${mapString(map).replace(
+                    '"', '"&CHAR(34)&"'
+                )}")` } },
+                { userEnteredValue: { numberValue: map.stars } },
+                { userEnteredValue: { stringValue: convertSeconds(map.drain) } },
+                { userEnteredValue: { numberValue: map.bpm } },
+                { userEnteredValue: { numberValue: map.id } }
+            ]})
+        );
+    });
+    team.maps.cm.forEach(map =>
+        rowdata.push({ values: [
+            { userEnteredValue: { stringValue: modString(map) } },
+            { userEnteredValue: { stringValue: map.creator } },
+            { userEnteredValue: { formulaValue: `=HYPERLINK("${mapLink(map)}","${mapString(map).replace(
+                '"', '"&CHAR(34)&"'
+            )}")` } },
+            { userEnteredValue: { numberValue: map.stars } },
+            { userEnteredValue: { stringValue: convertSeconds(map.drain) } },
+            { userEnteredValue: { numberValue: map.bpm } },
+            { userEnteredValue: { numberValue: map.id } }
+        ]})
+    );
+    return rowdata;
+}
+
+/**
  * Pushes an array of maps to a new tab in the sheet
  * @param {*[]} maplist Array of teams in format from database
  */
-async function pushMaps(maplist)
+async function pushMaps(rowdata)
 {
     let doc = await sheets.spreadsheets.get({
         auth, spreadsheetId
@@ -68,51 +120,6 @@ async function pushMaps(maplist)
     else
         sheetid = sheet.properties.sheetId;
     console.log(`Sheet id: ${sheetid}`);
-    let rowdata = [];
-    maplist.forEach(team => {
-        rowdata.push({
-            values: [{ userEnteredValue: { stringValue: team.name } }]
-        });
-        rowdata.push({ values: [
-            { userEnteredValue: { stringValue: "Mod" } },
-            { userEnteredValue: { stringValue: "Mapper" } },
-            { userEnteredValue: { stringValue: "Map" } },
-            { userEnteredValue: { stringValue: "Stars" } },
-            { userEnteredValue: { stringValue: "Drain" } },
-            { userEnteredValue: { stringValue: "BPM" } },
-            { userEnteredValue: { stringValue: "ID" } }
-        ]});
-        let mods = [ "nm", "hd", "hr", "dt" ];
-        mods.forEach((pool, i) => {
-            team.maps[pool].forEach(map =>
-                rowdata.push({ values: [
-                    { userEnteredValue: { stringValue: mods[i].toUpperCase() } },
-                    { userEnteredValue: { stringValue: map.creator } },
-                    { userEnteredValue: { formulaValue: `=HYPERLINK("${mapLink(map)}","${mapString(map).replace(
-                        '"', '"&CHAR(34)&"'
-                    )}")` } },
-                    { userEnteredValue: { numberValue: map.stars } },
-                    { userEnteredValue: { stringValue: convertSeconds(map.drain) } },
-                    { userEnteredValue: { numberValue: map.bpm } },
-                    { userEnteredValue: { numberValue: map.id } }
-                ]})
-            );
-        });
-        team.maps.cm.forEach(map =>
-            rowdata.push({ values: [
-                { userEnteredValue: { stringValue: modString(map) } },
-                { userEnteredValue: { stringValue: map.creator } },
-                { userEnteredValue: { formulaValue: `=HYPERLINK("${mapLink(map)}","${mapString(map).replace(
-                    '"', '"&CHAR(34)&"'
-                )}")` } },
-                { userEnteredValue: { numberValue: map.stars } },
-                { userEnteredValue: { stringValue: convertSeconds(map.drain) } },
-                { userEnteredValue: { numberValue: map.bpm } },
-                { userEnteredValue: { numberValue: map.id } }
-            ]})
-        );
-        rowdata.push();
-    });
     return sheets.spreadsheets.batchUpdate({
         auth, spreadsheetId,
         requestBody: {
@@ -134,5 +141,6 @@ async function pushMaps(maplist)
 }
 
 module.exports = {
+    getSheetData,
     pushMaps
 }

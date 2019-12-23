@@ -28,8 +28,24 @@ client.connect(err => {
 
 /**
  * Gets everything from the database
+ * @deprecated Avoid loading the entire database into memory.
+ * Try using performAction(action) instead
  */
 const getDb = () => db.collection('teams').find().toArray();
+
+/**
+ * Performs the given action for each item in the database
+ * @param {function(*) => Promise<*>} action 
+ * @returns {Promise<any[]>} An array containing return values from each function call
+ */
+async function performAction(action)
+{
+    let cursor = db.collection('teams').find();
+    let results = [];
+    await cursor.forEach(item => results.push(action(item)));
+    results = await Promise.all(results);
+    return results;
+}
 
 /**
  * Will get an osu id from a discord id if that user is currently registered
@@ -346,5 +362,6 @@ module.exports = {
     findPendingTeams,
     approveMap,
     rejectMap,
-    getDb
+    getDb,
+    performAction
 };

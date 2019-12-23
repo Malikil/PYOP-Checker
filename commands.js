@@ -259,8 +259,13 @@ async function lockSubmissions(msg)
  */
 async function exportMaps(msg)
 {
-    let teams = await db.getDb();
-    let response = await google.pushMaps(teams);
+    let mapdata = await db.performAction(google.getSheetData);
+    let rowdata = [];
+    // Unwind team-specific rows into a big set of rows
+    mapdata.forEach(item => 
+        item.forEach(row => rowdata.push(row))
+    );
+    let response = await google.pushMaps(rowdata);
     console.log(response);
     if (response.status === 200)
         msg.channel.send('Maps exported');
