@@ -120,6 +120,43 @@ async function checkMap(msg)
     else
         return msg.channel.send("This map would need to be manually approved");
 }
+
+/**
+ * Displays the current week's star/length requirements
+ * @param {Discord.Message} msg 
+ */
+async function viewRequirements(msg)
+{
+    let args = msg.content.split(' ');
+    if (args[1] === '?')
+        return msg.channel.send("Usage: !requirements\n" +
+            "Displays the star rating and length requirements for " +
+            "the current week\n" +
+            "Aliases: !req");
+    const minStar = process.env.MIN_STAR;   // Minimum star rating
+    const maxStar = process.env.MAX_STAR;   // Maximum star rating
+    const minLength = parseInt(process.env.MIN_LENGTH); // Minimum drain time
+    const maxLength = parseInt(process.env.MAX_LENGTH); // Maximum drain time
+    const absoluteMax = parseInt(process.env.ABSOLUTE_MAX); // Maximum length limit
+    const minTotal = parseInt(process.env.MIN_TOTAL);       // Pool drain limit, per map
+    const maxTotal = parseInt(process.env.MAX_TOTAL);       // Pool drain limit, per map
+    const poolCount = 10; // 10 maps per pool
+    let minPool = minTotal * poolCount;
+    let maxPool = maxTotal * poolCount;
+    const leaderboard = parseInt(process.env.LEADERBOARD);      // How many leaderboard scores are required for auto-approval
+
+    return msg.channel.send("Requirements for this week:\n" +
+        `Star rating: ${minStar} - ${maxStar}\n` +
+        `Drain length: ${checker.convertSeconds(minLength)}` +
+        ` - ${checker.convertSeconds(maxLength)}\n` +
+        `   Total length must be less than ${checker.convertSeconds(absoluteMax)}\n` +
+        `Total pool drain time must be ${checker.convertSeconds(minPool)}` +
+        ` - ${checker.convertSeconds(maxPool)}\n\n` +
+        `Maps with less than ${leaderboard} scores with the selected ` +
+        `mod on the leaderboard will need to be submitted with a ` +
+        `screenshot of one of the players on your team passing the map.\n` +
+        `Maps without a leaderboard will always need a screenshot.`);
+}
 //#endregion
 //#region Admin Commands
 // ============================================================================
@@ -694,7 +731,7 @@ async function rejectMap(msg)
  */
 async function commands(msg)
 {
-    var info = "Available **Public** commands:\n!check, !help";
+    var info = "Available **Public** commands:\n!check, !help, !requirements";
     if (msg.member && msg.member.roles.has(APPROVER))
         info += "\nAvailable **Map Approver** commands:\n!pending, !approve, !reject";
     if (await db.getTeam(msg.author.id))
@@ -706,6 +743,7 @@ async function commands(msg)
 module.exports = {
     checkMap,   // Public
     commands,
+    viewRequirements,
     addTeam,    // Admins
     addPlayer,
     removePlayer,

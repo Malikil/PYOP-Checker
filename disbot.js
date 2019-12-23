@@ -56,6 +56,9 @@ client.on('message', msg => {
     else if (msg.content.startsWith('!check ')
             || msg.content.startsWith('!map '))
         response = commands.checkMap(msg);
+    else if (msg.content.startsWith('!requirements')
+            || msg.content.startsWith('!req'))
+        response = commands.viewRequirements(msg);
     // Team/player management
     else if (msg.content.startsWith('!addteam '))
         response = adminCommand(msg, commands.addTeam);
