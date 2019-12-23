@@ -36,7 +36,7 @@ const getDb = () => db.collection('teams').find().toArray();
 /**
  * Performs the given action for each item in the database
  * @param {function(*) => Promise<*>} action 
- * @returns {Promise<any[]>} An array containing return values from each function call
+ * @returns {Promise<*[]>} An array containing return values from each function call
  */
 async function performAction(action)
 {

@@ -206,37 +206,34 @@ async function leaderboardCheck(mapid, mod, userid)
  * @returns {Promise} A promise which will resolve to a beatmap object, or undefined if
  *     no beatmap was found
  */
-function getBeatmap(mapid, mod)
+async function getBeatmap(mapid, mod)
 {
-    return fetch(`${osuapi}/get_beatmaps?k=${key}&b=${mapid}&mods=${mod & MODS.DIFFMODS}`)
-        .then(response => response.json())
-        .then(data => data[0])
-        .then(beatmap => {
-            if (!beatmap)
-                return undefined;
-            // Parse ints/floats
-            beatmap.hit_length = parseInt(beatmap.hit_length);
-            beatmap.total_length = parseInt(beatmap.total_length);
-            beatmap.bpm = parseFloat(beatmap.bpm);
-            // Update length/bpm if DT/HT
-            if (mod & MODS.DT)
-            {
-                beatmap.bpm = beatmap.bpm * (3.0 / 2.0);
-                beatmap.hit_length = (beatmap.hit_length * (2.0 / 3.0)) | 0;
-                beatmap.total_length = (beatmap.total_length * (2.0 / 3.0)) | 0;
-            }
-            else if (mod & MODS.HT)
-            {
-                beatmap.bpm = beatmap.bpm * (3.0 / 4.0);
-                beatmap.hit_length = (beatmap.hit_length * (4.0 / 3.0)) | 0;
-                beatmap.total_length = (beatmap.total_length * (4.0 / 3.0)) | 0;
-            }
-            beatmap.difficultyrating = parseFloat(parseFloat(beatmap.difficultyrating).toFixed(2));
-            beatmap.mode = parseInt(beatmap.mode);
-            beatmap.approved = parseInt(beatmap.approved);
-            beatmap.last_update = new Date(beatmap.last_update);
-            return beatmap;
-        });
+    let response = await fetch(`${osuapi}/get_beatmaps?k=${key}&b=${mapid}&mods=${mod & MODS.DIFFMODS}`);
+    let beatmap = response.json()[0];
+    if (!beatmap)
+        return undefined;
+    // Parse ints/floats
+    beatmap.hit_length = parseInt(beatmap.hit_length);
+    beatmap.total_length = parseInt(beatmap.total_length);
+    beatmap.bpm = parseFloat(beatmap.bpm);
+    // Update length/bpm if DT/HT
+    if (mod & MODS.DT)
+    {
+        beatmap.bpm = beatmap.bpm * (3.0 / 2.0);
+        beatmap.hit_length = (beatmap.hit_length * (2.0 / 3.0)) | 0;
+        beatmap.total_length = (beatmap.total_length * (2.0 / 3.0)) | 0;
+    }
+    else if (mod & MODS.HT)
+    {
+        beatmap.bpm = beatmap.bpm * (3.0 / 4.0);
+        beatmap.hit_length = (beatmap.hit_length * (4.0 / 3.0)) | 0;
+        beatmap.total_length = (beatmap.total_length * (4.0 / 3.0)) | 0;
+    }
+    beatmap.difficultyrating = parseFloat(parseFloat(beatmap.difficultyrating).toFixed(2));
+    beatmap.mode = parseInt(beatmap.mode);
+    beatmap.approved = parseInt(beatmap.approved);
+    beatmap.last_update = new Date(beatmap.last_update);
+    return beatmap;
 }
 
 module.exports = {

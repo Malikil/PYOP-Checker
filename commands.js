@@ -378,18 +378,19 @@ async function addMap(msg)
             && await checker.leaderboardCheck(mapid, mod, osuid))
         status = "Accepted";
     else
-        status = "Pending";
+        status = "Screenshot Required";
     
     // Get the mod pool this map is being added to
     let modpool;
-    switch (mod)
-    {
-        case 0:               modpool = "nm"; break;
-        case checker.MODS.HD: modpool = "hd"; break;
-        case checker.MODS.HR: modpool = "hr"; break;
-        case checker.MODS.DT: modpool = "dt"; break;
-        default:              modpool = "cm"; break;
-    } if (custom)             modpool = "cm";
+    if (custom)                   modpool = "cm";
+    else switch (mod)
+        {
+            case 0:               modpool = "nm"; break;
+            case checker.MODS.HD: modpool = "hd"; break;
+            case checker.MODS.HR: modpool = "hr"; break;
+            case checker.MODS.DT: modpool = "dt"; break;
+            default:              modpool = "cm"; break;
+        }
 
     // Check if a map should be removed to make room for this one
     // If there's a rejected map, remove that one
