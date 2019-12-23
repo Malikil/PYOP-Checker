@@ -13,6 +13,7 @@ const util = require('util');
 const google = require('./gsheets');
 
 const APPROVER = process.env.ROLE_MAP_APPROVER;
+const SCREENSHOTS = process.env.CHANNEL_SCREENSHOTS;
 
 // There's probably a better way to do this, but for now I'm just using a
 // global variable to store whether submissions are open or closed
@@ -419,6 +420,49 @@ async function addMap(msg)
 }
 
 /**
+ * Adds a pass to a map in the player's team's pool
+ * @param {Discord.Message} msg 
+ * @param {Discord.TextChannel} channel Where to send the screenshot reply
+ */
+async function addPass(msg, channel)
+{
+    let args = msg.content.split(' ');
+    if (args.length < 2 || args.length > 3)
+        return;
+    else if (args[1] == '?')
+        return msg.channel.send("Usage: !addpass <map> [screenshot]\n" +
+        "map: A map link or beatmap id\n" +
+        "screenshot: A link to a screenshot of your pass on the map\n" +
+        "Aliases: !pass");
+
+    // Make sure there's something to update with
+    if (args.length == 2)
+        return msg.channel.send("Image attachments are not currently " +
+            "supported. Please send as a link instead");
+
+    // Get which team the player is on
+    let team = await db.getTeam(msg.author.id);
+    if (!team)
+        return msg.channel.send("Couldn't find which team you're on");
+    
+    // Get the beatmap id
+    let mapid = checker.parseMapId(args[1]);
+    if (!mapid)
+        return msg.channel.send(`Couldn't recognise beatmap id`);
+
+    // Copy the link/image to the screenshots channel
+    channel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${team.name}\n` +
+        args[2]);
+
+    // Update the status
+    let result = await db.pendingMap(team.name, mapid, true);
+    if (result)
+        return msg.channel.send("Screenshot submitted");
+    else
+        return msg.channel.send("Couldn't update the map status");
+}
+
+/**
  * Removes a map from a player's team's pool
  * @param {Discord.Message} msg 
  */
@@ -752,6 +796,7 @@ module.exports = {
     lockSubmissions,
     exportMaps,
     addMap,     // Maps
+    addPass,
     removeMap,
     viewPool,
     viewPending,    // Map approvers

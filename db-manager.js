@@ -248,6 +248,41 @@ async function findPendingTeams()
 }
 
 /**
+ * Changes a map between "Screenshot Required" to "Pending" statuses
+ * @param {String} team The team to update
+ * @param {Number} mapid The map id to update
+ * @param {boolean} to_pending True if changing to "Pending" status,
+ * false if changing back to "Screenshot Required" status
+ */
+async function pendingMap(team, mapid, to_pending = true)
+{
+    let status = to_pending ? "Pending" : "Screenshot Required";
+    console.log(`Updating status on ${mapid} for ${team} to ${status}`);
+    // Match teams with the player who submitted
+    let findobj = {
+        name: team,
+        $or: []
+    };
+    let updateobj = { $set: {} }
+    // We don't care what mod they're submitting for. That's a manual process
+    let mods = ['nm', 'hd', 'hr', 'dt', 'cm'];
+    mods.forEach(mod => {
+        let temp = {}; temp[`maps.${mod}.id`] = mapid;
+        findobj.$or.push(temp);
+
+        updateobj.$set[`maps.${mod}.$[map].status`] = status;
+    });
+    
+    let result = await db.collection('teams').updateOne(
+        findobj,
+        updateobj,
+        { arrayFilters: [{ 'map.id': mapid }] }
+    );
+    console.log(`Matched ${result.matchedCount}, modified ${result.modifiedCount}`);
+    return result.result.nModified;
+}
+
+/**
  * Approves a map in a given modpool/with mods
  * @param {Number} mapid The map id to update
  * @param {"nm"|"hd"|"hr"|"dt"} modpool The modpool the map is in
@@ -360,6 +395,7 @@ module.exports = {
     addMap,     // Maps
     removeMap,
     findPendingTeams,
+    pendingMap,
     approveMap,
     rejectMap,
     getDb,

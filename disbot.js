@@ -10,6 +10,8 @@ const client = new Discord.Client();
 
 const ADMIN = process.env.ROLE_ADMIN;
 const APPROVER = process.env.ROLE_MAP_APPROVER;
+/** @type {Discord.TextChannel} */
+var passChannel;
 
 /**
  * Makes sure the sender is a map approver before executing the command
@@ -42,6 +44,8 @@ async function adminCommand(msg, command)
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
+    let guild = client.guilds.get(process.env.DISCORD_GUILD);
+    passChannel = guild.channels.get(process.env.CHANNEL_SCREENSHOTS);
 });
 
 client.on('message', msg => {
@@ -83,6 +87,9 @@ client.on('message', msg => {
             || msg.content.startsWith('!view')
             || msg.content.startsWith('!list'))
         response = commands.viewPool(msg);
+    else if (msg.content.startsWith('!addpass')
+            || msg.content.startsWith('!pass'))
+        response = commands.addPass(msg, passChannel);
     // Map approvers
     else if (msg.content === "!pending")
         response = approverCommand(msg, commands.viewPending);
