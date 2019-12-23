@@ -209,7 +209,8 @@ async function leaderboardCheck(mapid, mod, userid)
 async function getBeatmap(mapid, mod)
 {
     let response = await fetch(`${osuapi}/get_beatmaps?k=${key}&b=${mapid}&mods=${mod & MODS.DIFFMODS}`);
-    let beatmap = response.json()[0];
+    let data = await response.json();
+    let beatmap = data[0];
     if (!beatmap)
         return undefined;
     // Parse ints/floats

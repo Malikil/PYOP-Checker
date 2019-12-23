@@ -368,7 +368,7 @@ async function addMap(msg)
     if (!mapid)
         return msg.channel.send(`Couldn't recognise beatmap id`);
     // Check beatmap approval
-    console.log(`Looking for map with id ${mapid}`);
+    console.log(`Looking for map with id ${mapid} and mod ${mod}`);
     let beatmap = await checker.getBeatmap(mapid, mod);
     let quick = checker.quickCheck(beatmap, osuid);
     let status;
