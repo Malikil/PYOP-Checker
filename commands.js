@@ -652,15 +652,17 @@ async function rejectMap(msg)
     // Split the arguments
     let args = msg.content.split(' ');
     
-    if (args.length < 2)
+    if (args.length < 3)
         return;
 
     if (args[1] == '?')
-        return msg.channel.send("Usage: !reject <map> [mod] <message>\n" +
-            "Map: Map link or id to approve\n" +
-            "(optional) mod: What mods are used. Should be some combination of " +
-            "CM|HD|HR|DT|HT|EZ. Default is nomod, items do need to be correct.\n" +
-            "Message: A rejection message so the player knows why the map was rejected");
+        return msg.channel.send("Usage: !reject <map> <mod> <message>\n" +
+            "Map: Map link or id to reject\n" +
+            "mod: What mods are used. Should be some combination of NM|CM|HD|HR|DT|HT|EZ." +
+            " It is required even for nomod and items do need to be correct.\n" +
+            "Message: A rejection message so the player knows why the map was rejected. " +
+            "Including quotes around the message isn't required, everything after the " +
+            "mod string will be captured.");
 
     // Get the map, mod, and message
     let mapid = checker.parseMapId(args[1]);
@@ -668,13 +670,10 @@ async function rejectMap(msg)
         return msg.channel.send("Map not recognised");
     // Combine all the last arguments into the description
     let desc = "";
-    let mod = 0;
     while (args.length > 3)
         desc = args.pop() + " " + desc;
-    if (args[2].search(/^(nm|hd|hr|dt|cm)+$/i) < 0)
-        desc = args.pop() + " " + desc;
-    else
-        mod = parseMod(args[2]);
+    
+    let mod = parseMod(args[2]);
 
     console.log(`Mod: ${mod}, Message: ${desc}`);
     
