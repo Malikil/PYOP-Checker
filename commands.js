@@ -649,6 +649,8 @@ async function rejectMap(msg)
         desc = args.pop() + " " + desc;
     
     let mod = parseMod(args[2]);
+    if (mod === 0 && !args[2].toUpperCase().includes("NM"))
+        return msg.channel.send(("Mod not recognised"));
 
     console.log(`Mod: ${mod}, Message: ${desc}`);
     
