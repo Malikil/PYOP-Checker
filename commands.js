@@ -605,8 +605,6 @@ async function approveMap(msg)
 {
     // Split the arguments
     let args = msg.content.split(' ');
-    if (args.length < 2 || args.length > 3)
-        return;
 
     if (args[1] == '?')
         return msg.channel.send("Usage: !approve <map> [mod]\n" +
@@ -614,6 +612,9 @@ async function approveMap(msg)
             "(optional) mod: What mods are used. Should be some combination of " +
             "CM|HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored.\n" +
             "Aliases: !accept");
+
+    if (args.length < 2 || args.length > 3)
+        return;
     
     let mapid = checker.parseMapId(args[1]);
     if (!mapid)
@@ -652,9 +653,6 @@ async function rejectMap(msg)
     // Split the arguments
     let args = msg.content.split(' ');
     
-    if (args.length < 3)
-        return;
-
     if (args[1] == '?')
         return msg.channel.send("Usage: !reject <map> <mod> <message>\n" +
             "Map: Map link or id to reject\n" +
@@ -663,6 +661,9 @@ async function rejectMap(msg)
             "Message: A rejection message so the player knows why the map was rejected. " +
             "Including quotes around the message isn't required, everything after the " +
             "mod string will be captured.");
+
+    if (args.length < 3)
+        return;
 
     // Get the map, mod, and message
     let mapid = checker.parseMapId(args[1]);
