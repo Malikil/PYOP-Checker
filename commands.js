@@ -632,12 +632,12 @@ async function rejectMap(msg)
 
     if (args[1] == '?')
         return msg.channel.send("Usage: !reject <map> <mod> <message>\n" +
-            "Map: Map link or id to approve\n" +
+            "Map: Map link or id to reject\n" +
             "mod: What mods are used. Should be some combination of NM|CM|HD|HR|DT|HT|EZ." +
             " It is required even for nomod and items do need to be correct.\n" +
             "Message: A rejection message so the player knows why the map was rejected. " +
-            "Quoting the message isn't required, everything after the mod " +
-            "string will be captured.");
+            "Including quotes around the message isn't required, everything after the " +
+            "mod string will be captured.");
 
     // Get the map, mod, and message
     let mapid = checker.parseMapId(args[1]);
