@@ -266,7 +266,7 @@ async function exportMaps(msg)
         item.forEach(row => rowdata.push(row))
     );
     let response = await google.pushMaps(rowdata);
-    console.log(response);
+    // console.log(response);
     if (response.status === 200)
         msg.channel.send('Maps exported');
     else
