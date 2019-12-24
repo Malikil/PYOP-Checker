@@ -450,16 +450,18 @@ async function addPass(msg, channel)
     if (!mapid)
         return msg.channel.send(`Couldn't recognise beatmap id`);
 
-    // Copy the link/image to the screenshots channel
-    channel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${team.name}\n` +
-        args[2]);
-
     // Update the status
     let result = await db.pendingMap(team.name, mapid, true);
-    if (result)
-        return msg.channel.send("Screenshot submitted");
-    else
+    if (result == 1)
+        msg.channel.send("Submitted new pass screenshot");
+    else if (result == -1)
         return msg.channel.send("Couldn't update the map status");
+    else
+        msg.channel.send("Updated screenshot");
+
+    // Copy the link/image to the screenshots channel
+    return channel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${team.name}\n` +
+        args[2]);
 }
 
 /**

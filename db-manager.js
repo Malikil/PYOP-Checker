@@ -276,10 +276,18 @@ async function pendingMap(team, mapid, to_pending = true)
     let result = await db.collection('teams').updateOne(
         findobj,
         updateobj,
-        { arrayFilters: [{ 'map.id': mapid }] }
+        { arrayFilters: [
+            {
+                'map.id': mapid,
+                'map.status': (to_pending ? "Screenshot Required" : "Pending")
+            }
+        ] }
     );
     console.log(`Matched ${result.matchedCount}, modified ${result.modifiedCount}`);
-    return result.result.nModified;
+    if (result.modifiedCount > 0)
+        return 1;
+    else
+        return result.matchedCount - 1;
 }
 
 /**
