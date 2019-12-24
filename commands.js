@@ -436,9 +436,8 @@ async function addPass(msg, channel)
         "Aliases: !pass");
 
     // Make sure there's something to update with
-    if (args.length == 2)
-        return msg.channel.send("Image attachments are not currently " +
-            "supported. Please send as a link instead");
+    if (args.length == 2 && msg.attachments.size == 0)
+        return msg.channel.send("Please include a link or image attachment");
 
     // Get which team the player is on
     let team = await db.getTeam(msg.author.id);
@@ -459,9 +458,18 @@ async function addPass(msg, channel)
     else
         msg.channel.send("Updated screenshot");
 
-    // Copy the link/image to the screenshots channel
-    return channel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${team.name}\n` +
-        args[2]);
+    // Forward the screenshot to the proper channel
+    if (args.length == 2)
+    {
+        let attachment = msg.attachments.first();
+        let nAttach = new Discord.Attachment(attachment.url, attachment.filename);
+        return channel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${team.name}\n`,
+            nAttach);
+    }
+    else
+        // Copy the link/image to the screenshots channel
+        return channel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${team.name}\n` +
+            args[2]);
 }
 
 /**
