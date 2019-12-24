@@ -779,6 +779,27 @@ async function rejectMap(msg)
     let result = await db.rejectMap(mapid, mod, desc);
     return msg.channel.send(`Rejected ${mapid} +${modString(mod)} from ${result} pools`);
 }
+
+/**
+ * Sets a map back to screenshot required status
+ * @param {Discord.Message} msg 
+ */
+async function rejectScreenshot(msg)
+{
+    // Split the arguments
+    let args = msg.content.split(' ');
+
+    if (args[1] == '?')
+        return msg.channel.send("Usage: !clearss <map> <team>\n" +
+            "Map: Map link or id to reject\n" +
+            "Team: The team name\n" +
+            "Aliases: !remss, !unpass");
+
+    if (args.length < 3)
+        return;
+    
+    return msg.channel.send("Not implemented yet.");
+}
 //#endregion
 /**
  * Sends a list of available commands
@@ -788,9 +809,9 @@ async function commands(msg)
 {
     var info = "Available **Public** commands:\n!check, !help, !requirements";
     if (msg.member && msg.member.roles.has(APPROVER))
-        info += "\nAvailable **Map Approver** commands:\n!pending, !approve, !reject";
+        info += "\nAvailable **Map Approver** commands:\n!pending, !approve, !reject, !clearss";
     if (await db.getTeam(msg.author.id))
-        info += "\nAvailable **Player** commands:\n!addmap, !removemap, !viewpool";
+        info += "\nAvailable **Player** commands:\n!addmap, !removemap, !viewpool, !addpass";
     info += "\n\nGet more info about a command by typing a ? after the name";
     return msg.channel.send(info);
 }
@@ -811,5 +832,6 @@ module.exports = {
     viewPool,
     viewPending,    // Map approvers
     approveMap,
-    rejectMap
+    rejectMap,
+    rejectScreenshot
 };

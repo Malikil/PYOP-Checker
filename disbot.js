@@ -98,6 +98,10 @@ client.on('message', msg => {
         response = approverCommand(msg, commands.approveMap);
     else if (msg.content.startsWith('!reject '))
         response = approverCommand(msg, commands.rejectMap);
+    else if (msg.content.startsWith('!clearss ')
+            || msg.content.startsWith('!remss ')
+            || msg.content.startsWith('!unpass '))
+        response = approverCommand(msg, commands.rejectScreenshot);
     // General admin
     else if (msg.content === "!lock")
         response = adminCommand(msg, commands.lockSubmissions);
