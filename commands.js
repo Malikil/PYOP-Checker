@@ -433,6 +433,9 @@ async function addPass(msg, channel)
         return msg.channel.send("Usage: !addpass <map> [screenshot]\n" +
         "map: A map link or beatmap id\n" +
         "screenshot: A link to a screenshot of your pass on the map\n" +
+        "You can upload your screenshot as a message attachment in discord " +
+        "instead of using a link if you prefer. You still need to include " +
+        "the map link/id regardless." +
         "Aliases: !pass");
 
     // Make sure there's something to update with
@@ -788,17 +791,29 @@ async function rejectScreenshot(msg)
 {
     // Split the arguments
     let args = msg.content.split(' ');
-
     if (args[1] == '?')
         return msg.channel.send("Usage: !clearss <map> <team>\n" +
             "Map: Map link or id to reject\n" +
             "Team: The team name\n" +
-            "Aliases: !remss, !unpass");
-
+            "Aliases: !unpass");
     if (args.length < 3)
         return;
     
-    return msg.channel.send("Not implemented yet.");
+    let mapid = checker.parseMapId(args[1]);
+    if (!mapid)
+        return msg.channel.send("Unrecognised map id");
+
+    // Get the team name from the last of the args
+    let team = "";
+    while (args.length > 2)
+        team = args.pop() + " " + team;
+    team = team.trim();
+
+    let result = await db.pendingMap(team, mapid, false);
+    if (result)
+        return msg.channel.send("Set status to \"Screenshot Required\"");
+    else
+        return msg.channel.send("Couldn't update map status");
 }
 //#endregion
 /**

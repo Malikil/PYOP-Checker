@@ -99,7 +99,6 @@ client.on('message', msg => {
     else if (msg.content.startsWith('!reject '))
         response = approverCommand(msg, commands.rejectMap);
     else if (msg.content.startsWith('!clearss ')
-            || msg.content.startsWith('!remss ')
             || msg.content.startsWith('!unpass '))
         response = approverCommand(msg, commands.rejectScreenshot);
     // General admin
