@@ -158,6 +158,45 @@ async function viewRequirements(msg)
         `screenshot of one of the players on your team passing the map.\n` +
         `Maps without a leaderboard will always need a screenshot.`);
 }
+
+/**
+ * Displays all teams currently registered
+ * @param {Discord.Message} msg 
+ */
+async function viewTeams(msg)
+{
+    let result = await db.performAction(async function(team) { return team.name; });
+    let str = "Currently registered teams:\n";
+    result.forEach(team => {
+        str += team + ", ";
+    });
+    return msg.channel.send(str.substring(0, str.length - 2));
+}
+
+/**
+ * Displays all teams currently registered, and the players on them
+ * @param {Discord.Message} msg 
+ */
+async function viewTeamPlayers(msg)
+{
+    let result = await db.performAction(async function(team) {
+        let teaminfo = [];
+        teaminfo.push(team.name);
+        team.players.forEach(player => teaminfo.push(player.osuname));
+        return teaminfo;
+    });
+    let str = "Currently registered teams:";
+    result.forEach(team => {
+        let tempstr = `__${team.shift()}:__ `;
+        if (team.length > 0)
+        {
+            team.forEach(player => tempstr += `${player}, `);
+            tempstr = tempstr.substring(0, tempstr.length - 2);
+        }
+        str += "\n" + tempstr;
+    });
+    return msg.channel.send(str);
+}
 //#endregion
 //#region Admin Commands
 // ============================================================================
@@ -822,11 +861,14 @@ async function rejectScreenshot(msg)
  */
 async function commands(msg)
 {
-    var info = "Available **Public** commands:\n!check, !help, !requirements";
+    var info = "Available **Public** commands:\n" +
+        "!check, !help, !requirements, !teams, !players";
     if (msg.member && msg.member.roles.has(APPROVER))
-        info += "\nAvailable **Map Approver** commands:\n!pending, !approve, !reject, !clearss";
+        info += "\nAvailable **Map Approver** commands:\n" +
+            "!pending, !approve, !reject, !clearss";
     if (await db.getTeam(msg.author.id))
-        info += "\nAvailable **Player** commands:\n!addmap, !removemap, !viewpool, !addpass";
+        info += "\nAvailable **Player** commands:\n" +
+            "!addmap, !removemap, !viewpool, !addpass";
     info += "\n\nGet more info about a command by typing a ? after the name";
     return msg.channel.send(info);
 }
@@ -835,6 +877,8 @@ module.exports = {
     checkMap,   // Public
     commands,
     viewRequirements,
+    viewTeams,
+    viewTeamPlayers,
     addTeam,    // Admins
     addPlayer,
     removePlayer,

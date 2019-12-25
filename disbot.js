@@ -63,6 +63,10 @@ client.on('message', msg => {
     else if (msg.content.startsWith('!requirements')
             || msg.content.startsWith('!req'))
         response = commands.viewRequirements(msg);
+    else if (msg.content ==='!teams')
+        response = commands.viewTeams(msg);
+    else if (msg.content === '!players')
+        response = commands.viewTeamPlayers(msg);
     // Team/player management
     else if (msg.content.startsWith('!addteam '))
         response = adminCommand(msg, commands.addTeam);

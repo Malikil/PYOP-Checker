@@ -48,6 +48,24 @@ async function performAction(action)
 }
 
 /**
+ * Gets all the teams in the database.
+ * Including their players but excluding their maps.
+ */
+async function getTeamList()
+{
+    let cursor = db.collection('teams').find(
+        {},
+        {
+            projection: {
+                name: 1,
+                players: 1
+            }
+        }
+    );
+    return cursor.toArray();
+}
+
+/**
  * Will get an osu id from a discord id if that user is currently registered
  * on a team in the database
  * @param {string} discordid The discord userid to search for
