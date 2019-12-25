@@ -235,8 +235,8 @@ async function addPlayer(msg)
     let args = msg.content.split(' ');
     if (args.length > 1 && args[1] == '?')
         return msg.channel.send("Adds a player to an existing team.\n" +
-            "!addPlayer \"Team Name\" <osuname> <osuid> <discordid>");
-    if (args.length < 5)
+            "!addPlayer \"Team Name\" <osu name/id> <discordid/@>");
+    if (args.length < 4)
         return;
 
     // Remove the command argument, combining team name will require team to
@@ -257,14 +257,27 @@ async function addPlayer(msg)
 
     console.log(args);
 
-    if (args.length != 4)
+    if (args.length != 3)
         return msg.channel.send("Incorrect number of arguments");
 
+    // Get the player's discord id
+    let discordid = args[2].match(/[0-9]+/).pop();
     // Make sure the player isn't already on a team
-    await db.removePlayer(args[1]);
+    // If the player is already on a team, move them to the new one
+    let result;
+    if (await db.getTeam(discordid))
+        result = await db.movePlayer(args[0], args[1]);
+    else
+    {
+        // Get the player info from the server
+        let player = await checker.getPlayer(args[1]);
+        if (!player)
+            return msg.channel.send("Couldn't get player info from osu server");
+        result = await db.addPlayer(args[0], player.user_id, player.username, discordid);
+    }
 
     // Add the player to the team
-    if (await db.addPlayer(args[0], args[2], args[1].toLowerCase(), args[3]))
+    if (result)
         return msg.channel.send("Player added");
     else
         return msg.channel.send("Couldn't add player");
