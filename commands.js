@@ -13,7 +13,6 @@ const util = require('util');
 const google = require('./gsheets');
 
 const APPROVER = process.env.ROLE_MAP_APPROVER;
-const SCREENSHOTS = process.env.CHANNEL_SCREENSHOTS;
 
 // There's probably a better way to do this, but for now I'm just using a
 // global variable to store whether submissions are open or closed
@@ -129,6 +128,10 @@ async function checkMap(msg)
 async function viewRequirements(msg)
 {
     let args = msg.content.split(' ');
+    // Make sure the first argument is actually the command.
+    if (!['!req', '!requirements'].includes(args[0]))
+        return;
+
     if (args[1] === '?')
         return msg.channel.send("Usage: !requirements\n" +
             "Displays the star rating and length requirements for " +
@@ -602,7 +605,7 @@ async function removeMap(msg)
 async function viewPool(msg)
 {
     let args = msg.content.split(' ');
-    if (args.length > 3
+    if (args.length > 2
             || !['!view', '!viewpool', '!list'].includes(args[0]))
         return;
     else if (args[1] === '?')
@@ -617,14 +620,14 @@ async function viewPool(msg)
         return msg.channel.send("Couldn't find which team you're on");
 
     // Add all mods if not otherwise requested
-    if (args.length == 3)
-        args[2] = args[2].toUpperCase();
+    if (args.length == 2)
+        args[1] = args[1].toUpperCase();
     else
-        args[2] = "NMHDHRDTCM";
+        args[1] = "NMHDHRDTCM";
 
     let str = "";
     let pool = [];
-    if (args[2].includes('NM'))
+    if (args[1].includes('NM'))
     {
         str += "**__No Mod:__**\n";
         team.maps.nm.forEach(item => {
@@ -633,7 +636,7 @@ async function viewPool(msg)
             pool.push(item);
         }); 
     }
-    if (args[2].includes('HD'))
+    if (args[1].includes('HD'))
     {
         str += "**__Hidden:__**\n";
         team.maps.hd.forEach(item => {
@@ -642,7 +645,7 @@ async function viewPool(msg)
             pool.push(item);
         });
     }
-    if (args[2].includes('HR'))
+    if (args[1].includes('HR'))
     {
         str += "**__Hard Rock:__**\n";
         team.maps.hr.forEach(item => {
@@ -651,7 +654,7 @@ async function viewPool(msg)
             pool.push(item);
         });
     }
-    if (args[2].includes('DT'))
+    if (args[1].includes('DT'))
     {
         str += "**__Double Time:__**\n";
         team.maps.dt.forEach(item => {
@@ -660,7 +663,7 @@ async function viewPool(msg)
             pool.push(item);
         });
     }
-    if (args[2].includes('CM'))
+    if (args[1].includes('CM'))
     {
         str += "**__Custom Mod:__**\n";
         team.maps.cm.forEach(item => {
@@ -672,15 +675,18 @@ async function viewPool(msg)
 
     // Check the pool as a whole
     let result = await checker.checkPool(pool);
-
     str += `\nTotal drain: ${checker.convertSeconds(result.totalDrain)}`;
     str += `\n${result.overUnder} maps are within 15 seconds of drain time limit\n`;
-    if (result.message.length > 0)
-        result.message.forEach(item => str += `\n${item}`);
-    if (result.duplicates.length > 0)
+    // Don't display pool error messages if limited by a certain mod
+    if (args[1] === "NMHDHRDTCM")
     {
-        str += "\nThe following maps were found more than once:";
-        result.duplicates.forEach(dupe => str += `\n\t${mapString(dupe)}`);
+        if (result.message.length > 0)
+            result.message.forEach(item => str += `\n${item}`);
+        if (result.duplicates.length > 0)
+        {
+            str += "\nThe following maps were found more than once:";
+            result.duplicates.forEach(dupe => str += `\n\t${mapString(dupe)}`);
+        }
     }
 
     return msg.channel.send(str);

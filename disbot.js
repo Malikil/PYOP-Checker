@@ -91,8 +91,8 @@ client.on('message', msg => {
             || msg.content.startsWith('!view')
             || msg.content.startsWith('!list'))
         response = commands.viewPool(msg);
-    else if (msg.content.startsWith('!addpass')
-            || msg.content.startsWith('!pass'))
+    else if (msg.content.startsWith('!addpass ')
+            || msg.content.startsWith('!pass '))
         response = commands.addPass(msg, passChannel);
     // Map approvers
     else if (msg.content === "!pending")

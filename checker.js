@@ -131,7 +131,7 @@ async function checkPool(maps)
             `vs ${maps.length} maps -> ${convertSeconds(minTotal * maps.length)})`);
     else if (results.totalDrain > maxTotal * maps.length)
         results.message.push(`Average song length across all maps is too long (${convertSeconds(results.totalDrain)} ` +
-            `vs ${maps.length} maps -> ${convertSeconds(minTotal * maps.length)})`);
+            `vs ${maps.length} maps -> ${convertSeconds(maxTotal * maps.length)})`);
     if (results.duplicates.length > 0)
         results.message.push(`You can't have the same map more than once in your pool. (${results.duplicates.length} duplicates found)`);
 
