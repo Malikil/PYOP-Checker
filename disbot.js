@@ -110,6 +110,8 @@ client.on('message', msg => {
         response = adminCommand(msg, commands.lockSubmissions);
     else if (msg.content === "!export")
         response = adminCommand(msg, commands.exportMaps);
+    else if (msg.content === "!updateMaps")
+        response = adminCommand(msg, commands.recheckMaps);
     
     if (response)
         response.catch(reason => {

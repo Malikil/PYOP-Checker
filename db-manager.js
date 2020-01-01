@@ -411,6 +411,68 @@ async function rejectMap(mapid, mods, message)
     return result.modifiedCount;
 }
 
+/**
+ * Rejects a list of maps in bulk using the same message for each
+ * @param {[
+ *  {
+ *      id: Number,
+ *      mod: Number
+ *  }
+ * ]} maps An array of maps to reject
+ * @param {String} message The reject message to use
+ */
+async function bulkReject(maps, message)
+{
+    message = 'Rejected - ' + message;
+    // Filter maps into their proper mods
+    let nm = [];
+    let hd = [];
+    let hr = [];
+    let dt = [];
+    let cm = [];
+    maps.forEach(map => {
+        switch (map.mod)
+        {
+            case 0: nm.push(map.id); break;
+            case MODS.HD: hd.push(map.id); break;
+            case MODS.HR: hr.push(map.id); break;
+            case MODS.DT: dt.push(map.id); break;
+            default: cm.push(map); break;
+        }
+    });
+
+    let result = await db.collection('teams').updateMany(
+        { },
+        {
+            $set: {
+                'maps.nm.$[nmmap].status': message,
+                'maps.hd.$[hdmap].status': message,
+                'maps.hr.$[hrmap].status': message,
+                'maps.dt.$[dtmap].status': message,
+                'maps.cm.$[cmmap].status': message
+            }
+        },
+        {
+            arrayFilters: [
+                { 'nmmap.id': { $in: nm } },
+                { 'hdmap.id': { $in: hd } },
+                { 'hrmap.id': { $in: hr } },
+                { 'dtmap.id': { $in: dt } },
+                { 'cmmap': { $or: [
+                    { id: { $in: nm }, mod: 0 },
+                    { id: { $in: hd }, mod: MODS.HD },
+                    { id: { $in: hr }, mod: MODS.HR },
+                    { id: { $in: dt }, mod: MODS.DT },
+                    { $elemMatch: { $in: cm } },
+                ] } }
+            ]
+        }
+    );
+
+    console.log(`Modified ${result.modifiedCount} documents in bulk update`);
+    return result.modifiedCount;
+}
+
 module.exports = {
     getOsuId,
     addTeam,    // Teams/players
@@ -424,6 +486,7 @@ module.exports = {
     pendingMap,
     approveMap,
     rejectMap,
+    bulkReject,  // General management
     getDb,
     performAction
 };

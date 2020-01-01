@@ -190,7 +190,7 @@ async function viewTeamPlayers(msg)
     });
     let str = "Currently registered teams:";
     result.forEach(team => {
-        let tempstr = `__${team.shift()}:__ `;
+        let tempstr = `__${team.shift()}__ `;
         if (team.length > 0)
         {
             team.forEach(player => tempstr += `${player}, `);
@@ -364,6 +364,54 @@ async function exportMaps(msg)
         msg.channel.send('Maps exported');
     else
         msg.channel.send(util.inspect(response, { depth: 4 }));
+}
+
+/**
+ * Runs through all pools and updates statuses for maps.  
+ * Ie this is used at the beginning of a new week, it will make sure the old maps
+ * still meet star requirements.
+ * @param {Discord.Message} msg 
+ */
+async function recheckMaps(msg)
+{
+    const mods = [
+        { name: 'nm', mid: 0 },
+        { name: 'hd', mid: checker.MODS.HD },
+        { name: 'hr', mid: checker.MODS.HR },
+        { name: 'dt', mid: checker.MODS.DT },
+        { name: 'cm' }
+    ];
+    let update = async function (team) {
+        // Check each map with the quick check.
+        // It shouldn't require hitting the osu api, and all the required info
+        // should already exist in the beatmap object.
+        let rejects = [];
+        mods.forEach(m =>
+            team.maps[m.name].forEach(map => {
+                let result = checker.quickCheck(map);
+                if (result)
+                    rejects.push({
+                        id: map.id,
+                        mod: (map.mod ? map.mod : m.mid) || 0
+                    });
+            }));
+        return rejects;
+    };
+    // Use the quick check from above on each database team
+    let results = await db.performAction(update);
+    // Results should be an array of arrays. Each inner array having rejects 
+    // from one team.
+    // Unwind the results arrays into a single array
+    let maprejects = [];
+    results.forEach(arr =>
+        arr.forEach(reject => maprejects.push(reject))
+    );
+    // Update each map from the results with a reject message
+    let updateCount = db.bulkReject(maprejects, "Bulk update from new star range");
+    if (updateCount)
+        return msg.channel.send(`Updated ${updateCount} teams`);
+    else
+        return msg.channel.send("No teams updated");
 }
 //#endregion
 //#region Player Commands
@@ -904,6 +952,7 @@ module.exports = {
     movePlayer,
     lockSubmissions,
     exportMaps,
+    recheckMaps,
     addMap,     // Maps
     addPass,
     removeMap,

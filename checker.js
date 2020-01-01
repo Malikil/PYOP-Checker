@@ -149,7 +149,7 @@ function quickCheck(beatmap, userid)
     if (!beatmap)
         return "That map doesn't exist";
     // Check the game mode
-    if (beatmap.mode != 0)
+    if (!!beatmap.mode)
         return "This map is for the wrong gamemode";
     // Check drain time
     if (beatmap.hit_length - drainBuffer > maxLength)
@@ -165,10 +165,13 @@ function quickCheck(beatmap, userid)
     else if (beatmap.difficultyrating < minStar)
         return `Star rating is below the ${minStar.toFixed(2)} minimum. (${beatmap.difficultyrating})`;
     // Make sure the user didn't make this map themself
-    console.log(`Did ${userid} map this?`);
-    console.log(`Unranked: ${beatmap.approved != 1} | Creator matches: ${beatmap.creator_id == userid}`);
-    if (beatmap.approved != 1 && beatmap.creator_id == userid)
-        return `You can't submit your own maps unless they're ranked`;
+    if (userid)
+    {
+        console.log(`Did ${userid} map this?`);
+        console.log(`Unranked: ${beatmap.approved != 1} | Creator matches: ${beatmap.creator_id == userid}`);
+        if (beatmap.approved != 1 && beatmap.creator_id == userid)
+            return `You can't submit your own maps unless they're ranked`;
+    }
 }
 
 /**
