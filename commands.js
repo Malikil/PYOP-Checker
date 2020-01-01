@@ -406,6 +406,7 @@ async function recheckMaps(msg)
     results.forEach(arr =>
         arr.forEach(reject => maprejects.push(reject))
     );
+    console.log(maprejects);
     // Update each map from the results with a reject message
     let updateCount = await db.bulkReject(maprejects, "Bulk update from new star range");
     if (updateCount)
@@ -505,8 +506,8 @@ async function addMap(msg)
     let mapitem = {
         id: mapid,
         status: status,
-        drain: beatmap.hit_length,
-        stars: beatmap.difficultyrating,
+        drain: beatmap.drain,
+        stars: beatmap.stars,
         bpm: beatmap.bpm,
         artist: beatmap.artist,
         title: beatmap.title,

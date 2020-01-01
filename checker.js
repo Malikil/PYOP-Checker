@@ -152,18 +152,19 @@ function quickCheck(beatmap, userid)
     if (!!beatmap.mode)
         return "This map is for the wrong gamemode";
     // Check drain time
-    if (beatmap.hit_length - drainBuffer > maxLength)
-        return `Drain time is more than ${drainBuffer} seconds above the ${convertSeconds(maxLength)} limit. (${convertSeconds(beatmap.hit_length)})`;
-    else if (beatmap.hit_length + drainBuffer < minLength)
-        return `Drain time is more than ${drainBuffer} seconds below the ${convertSeconds(minLength)} limit. (${convertSeconds(beatmap.hit_length)})`;
+    if (beatmap.drain - drainBuffer > maxLength)
+        return `Drain time is more than ${drainBuffer} seconds above the ${convertSeconds(maxLength)} limit. (${convertSeconds(beatmap.drain)})`;
+    else if (beatmap.drain + drainBuffer < minLength)
+        return `Drain time is more than ${drainBuffer} seconds below the ${convertSeconds(minLength)} limit. (${convertSeconds(beatmap.drain)})`;
     // Check total time
     if (beatmap.total_length > absoluteMax)
         return `Total map time is above the ${convertSeconds(absoluteMax)} limit. (${convertSeconds(beatmap.total_length)})`;
     // Check difficulty
-    if (beatmap.difficultyrating > maxStar)
-        return `Star rating is above the ${maxStar.toFixed(2)} maximum. (${beatmap.difficultyrating})`;
-    else if (beatmap.difficultyrating < minStar)
-        return `Star rating is below the ${minStar.toFixed(2)} minimum. (${beatmap.difficultyrating})`;
+    if (beatmap.stars > maxStar)
+        return `Star rating is above the ${maxStar.toFixed(2)} maximum. (${beatmap.stars})`;
+    else if (beatmap.stars < minStar)
+        return `Star rating is below the ${minStar.toFixed(2)} minimum. (${beatmap.stars})`;
+    console.log("Seems okay");
     // Make sure the user didn't make this map themself
     if (userid)
     {
@@ -217,7 +218,7 @@ async function getBeatmap(mapid, mod)
     if (!beatmap)
         return undefined;
     // Parse ints/floats
-    beatmap.hit_length = parseInt(beatmap.hit_length);
+    beatmap.drain = parseInt(beatmap.hit_length);
     beatmap.total_length = parseInt(beatmap.total_length);
     beatmap.bpm = parseFloat(beatmap.bpm);
     // Update length/bpm if DT/HT
@@ -233,7 +234,7 @@ async function getBeatmap(mapid, mod)
         beatmap.hit_length = (beatmap.hit_length * (4.0 / 3.0)) | 0;
         beatmap.total_length = (beatmap.total_length * (4.0 / 3.0)) | 0;
     }
-    beatmap.difficultyrating = parseFloat(parseFloat(beatmap.difficultyrating).toFixed(2));
+    beatmap.stars = parseFloat(parseFloat(beatmap.difficultyrating).toFixed(2));
     beatmap.mode = parseInt(beatmap.mode);
     beatmap.approved = parseInt(beatmap.approved);
     beatmap.last_update = new Date(beatmap.last_update);
