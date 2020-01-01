@@ -458,13 +458,13 @@ async function bulkReject(maps, message)
                 { 'hdmap.id': { $in: hd } },
                 { 'hrmap.id': { $in: hr } },
                 { 'dtmap.id': { $in: dt } },
-                { 'cmmap': { $or: [
-                    { id: { $in: nm }, mod: 0 },
-                    { id: { $in: hd }, mod: MODS.HD },
-                    { id: { $in: hr }, mod: MODS.HR },
-                    { id: { $in: dt }, mod: MODS.DT },
-                    { $elemMatch: { $in: cm } },
-                ] } }
+                { $or: [
+                    { 'cmmap.id': { $in: nm }, 'cmmap.mod': 0 },
+                    { 'cmmap.id': { $in: hd }, 'cmmap.mod': MODS.HD },
+                    { 'cmmap.id': { $in: hr }, 'cmmap.mod': MODS.HR },
+                    { 'cmmap.id': { $in: dt }, 'cmmap.mod': MODS.DT },
+                    { 'cmmap': { $elemMatch: { $in: cm } } }
+                ] }
             ]
         }
     );

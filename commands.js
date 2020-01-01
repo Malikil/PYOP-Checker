@@ -407,7 +407,7 @@ async function recheckMaps(msg)
         arr.forEach(reject => maprejects.push(reject))
     );
     // Update each map from the results with a reject message
-    let updateCount = db.bulkReject(maprejects, "Bulk update from new star range");
+    let updateCount = await db.bulkReject(maprejects, "Bulk update from new star range");
     if (updateCount)
         return msg.channel.send(`Updated ${updateCount} teams`);
     else
