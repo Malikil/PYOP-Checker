@@ -65,7 +65,8 @@ async function getSheetData(team)
                 { userEnteredValue: { numberValue: map.stars } },
                 { userEnteredValue: { stringValue: convertSeconds(map.drain) } },
                 { userEnteredValue: { numberValue: map.bpm } },
-                { userEnteredValue: { numberValue: map.id } }
+                { userEnteredValue: { numberValue: map.id } },
+                { userEnteredValue: { stringValue: map.status } }
             ]})
         );
     });
@@ -79,7 +80,8 @@ async function getSheetData(team)
             { userEnteredValue: { numberValue: map.stars } },
             { userEnteredValue: { stringValue: convertSeconds(map.drain) } },
             { userEnteredValue: { numberValue: map.bpm } },
-            { userEnteredValue: { numberValue: map.id } }
+            { userEnteredValue: { numberValue: map.id } },
+            { userEnteredValue: { stringValue: map.status } }
         ]})
     );
     return rowdata;
