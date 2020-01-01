@@ -72,7 +72,7 @@ async function getSheetData(team)
     });
     team.maps.cm.forEach(map =>
         rowdata.push({ values: [
-            { userEnteredValue: { stringValue: modString(map) } },
+            { userEnteredValue: { stringValue: modString(map.mod) } },
             { userEnteredValue: { stringValue: map.creator } },
             { userEnteredValue: { formulaValue: `=HYPERLINK("${mapLink(map)}","${mapString(map).replace(
                 '"', '"&CHAR(34)&"'
