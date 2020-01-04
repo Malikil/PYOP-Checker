@@ -298,7 +298,7 @@ async function removePlayer(msg)
             "!removePlayer osuname");
     
     console.log(`Removing ${args[1]}`);
-    let result = await db.removePlayer(args[1].toLowerCase());
+    let result = await db.removePlayer(args[1]);
     if (result)
         return msg.channel.send(`Removed ${args[1]} from all teams`);
     else
@@ -323,7 +323,7 @@ async function movePlayer(msg)
     for (let i = 3; i < args.length; i++)
         team += " " + args[i];
     
-    if (await db.movePlayer(team, args[1].toLowerCase()))
+    if (await db.movePlayer(team, args[1]))
         return msg.channel.send(`Moved ${args[1]} to ${team}`);
     else
         return msg.channel.send("Couldn't move player");

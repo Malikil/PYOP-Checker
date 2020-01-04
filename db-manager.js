@@ -154,9 +154,10 @@ async function addPlayer(teamName, osuid, osuname, discordid)
 async function removePlayer(osuname)
 {
     console.log(`Removing ${osuname} from all their teams`);
+    let reg = new RegExp(`^${osuname}$`, 'i');
     let result = await db.collection('teams').updateMany(
-        { 'players.osuname': osuname },
-        { $pull: { players: { osuname: osuname } } }
+        { 'players.osuname': reg },
+        { $pull: { players: { osuname: reg } } }
     );
     console.log(`Removed from ${result.modifiedCount} teams`);
     return result.modifiedCount > 0;
@@ -171,11 +172,12 @@ async function removePlayer(osuname)
 async function movePlayer(teamName, osuname)
 {
     console.log(`Moving ${osuname} to ${teamName}`);
+    let reg = new RegExp(`^${osuname}$`, 'i');
     let team = await db.collection('teams').findOneAndUpdate(
-        { 'players.osuname': osuname },
-        { $pull: { players: { osuname: osuname } } }
+        { 'players.osuname': reg },
+        { $pull: { players: { osuname: reg } } }
     );
-    let player = team.value.players.find(item => item.osuname == osuname);
+    let player = team.value.players.find(item => item.osuname.match(reg));
     if (!player)
         return false;
     let result = await db.collection('teams').updateOne(
