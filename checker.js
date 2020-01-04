@@ -190,6 +190,8 @@ async function leaderboardCheck(mapid, mod, userid)
     let response = await fetch(`${osuapi}/get_scores?k=${key}&b=${mapid}&mods=${mod}`);
     let scores = await response.json();
     // If there aren't any passes with the mod, the map needs manual approval
+    // I believe the api returns an empty array for unranked maps. If it doesn't
+    // then this will need to be changed.
     if (scores.length < 1)
         return false;
     // The leaderboard passes if there are more than n scores, if the

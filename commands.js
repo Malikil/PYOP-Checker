@@ -479,9 +479,11 @@ async function addMap(msg)
     let status;
     if (quick)
         return msg.channel.send(quick);
-    else if (beatmap.approved == 1
-            && await checker.leaderboardCheck(mapid, mod, osuid))
-        status = "Accepted";
+    else if (await checker.leaderboardCheck(mapid, mod, osuid))
+        if (beatmap.approved == 1)
+            status = "Accepted";
+        else
+            status = "Pending"
     else
         status = "Screenshot Required";
     
