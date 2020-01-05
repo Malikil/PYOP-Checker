@@ -112,6 +112,8 @@ client.on('message', msg => {
         response = adminCommand(msg, commands.exportMaps);
     else if (msg.content === "!updateMaps")
         response = adminCommand(msg, commands.recheckMaps);
+    else if (msg.content.startsWith("!playerName "))
+        response = adminCommand(msg, commands.updatePlayerName);
     
     if (response)
         response.catch(reason => {

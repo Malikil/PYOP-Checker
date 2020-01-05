@@ -330,6 +330,33 @@ async function movePlayer(msg)
 }
 
 /**
+ * Updates the osu name of a given player
+ * @param {Discord.Message} msg 
+ */
+async function updatePlayerName(msg)
+{
+    let args = msg.content.split(' ');
+    // Should be two args, one for command and one for discord tag
+    if (args.length !== 2)
+        return;
+    // Get the discord id from the second arg
+    let discordid = args[1].match(/[0-9]+/).pop();
+    // Get the player's current info
+    let team = await db.getTeam(discordid);
+    if (!team)
+        return msg.channel.send("This player isn't currently on a team");
+    let player = team.players.find(p => p.discordid == discordid);
+    // Get the player's new info from the server
+    let newp = await checker.getPlayer(player.osuid);
+    // Update in the database
+    let result = await db.updatePlayer(discordid, newp.username);
+    if (result)
+        return msg.channel.send(`Updated name from ${player.osuname} to ${newp.username}`);
+    else
+        return msg.channel.send(`No updates made, found username: ${newp.username}`);
+}
+
+/**
  * Locks submissions for the week, makes an announcement to players as well
  * @param {Discord.Message} msg 
  */
@@ -896,6 +923,7 @@ module.exports = {
     addPlayer,
     removePlayer,
     movePlayer,
+    updatePlayerName,
     lockSubmissions,
     exportMaps,
     recheckMaps,

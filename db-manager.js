@@ -131,14 +131,27 @@ async function addPlayer(teamName, osuid, osuname, discordid)
 }
 
 /**
+ * Prepares a string to be used as the match in a regex match
+ * @param {String} str 
+ * @param {String} options
+ */
+function regexify(str, options)
+{
+    str = str.replace('_', "(?: |_)")
+        .replace('[', '\\[')
+        .replace(']', "\\]");
+    return new RegExp(`^${str}$`, options);
+}
+
+/**
  * Removes a player from all teams they might be on
  * @param {string} osuname The player to remove
- * @returns {Promise<boolean>} Whether any records were modified
+ * @returns How many records were modified
  */
 async function removePlayer(osuname)
 {
     console.log(`Removing ${osuname} from all their teams`);
-    let reg = new RegExp(`^${osuname}$`, 'i');
+    let reg = regexify(osuname, 'i');
     let result = await db.collection('teams').updateMany(
         { 'players.osuname': reg },
         { $pull: { players: { osuname: reg } } }
@@ -156,7 +169,7 @@ async function removePlayer(osuname)
 async function movePlayer(teamName, osuname)
 {
     console.log(`Moving ${osuname} to ${teamName}`);
-    let reg = new RegExp(`^${osuname}$`, 'i');
+    let reg = regexify(osuname, 'i');
     // Pull the player from their old team
     let team = await db.collection('teams').findOneAndUpdate(
         { 'players.osuname': reg },
@@ -167,6 +180,21 @@ async function movePlayer(teamName, osuname)
         return 0;
     let player = team.value.players.find(item => item.osuname.match(reg));
     return addPlayer(teamName, player.osuid, player.osuname, player.discordid);
+}
+
+/**
+ * Updates the osuname of a given discordid
+ * @param {String} discordid 
+ * @param {String} osuname What to update the player's name to
+ * @returns How many documents were modified
+ */
+async function updatePlayer(discordid, osuname)
+{
+    let result = await db.collection('teams').updateOne(
+        { 'players.discordid': discordid },
+        { $set: { 'players.$.osuname': osuname } }
+    );
+    return result.modifiedCount;
 }
 
 /**
@@ -496,6 +524,7 @@ module.exports = {
     addPlayer,
     removePlayer,
     movePlayer,
+    updatePlayer,
     getTeam,
     addMap,     // Maps
     removeMap,
