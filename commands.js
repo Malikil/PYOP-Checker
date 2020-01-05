@@ -458,12 +458,13 @@ async function addMap(msg)
     if (args.length == 3)
     {
         let modstr = args[2].toUpperCase();
+        mod = parseMod(modstr);
         // Parse mods
-        if (modstr.includes('HD')) mod = mod | checker.MODS.HD;
+        /*if (modstr.includes('HD')) mod = mod | checker.MODS.HD;
         if (modstr.includes('HR')) mod = mod | checker.MODS.HR;
         else if (modstr.includes('EZ')) mod = mod | checker.MODS.EZ;
         if (modstr.includes('DT')) mod = mod | checker.MODS.DT;
-        else if (modstr.includes('HT')) mod = mod | checker.MODS.HT;
+        else if (modstr.includes('HT')) mod = mod | checker.MODS.HT;*/
         // Custom mod status
         if (modstr.includes('CM')
                 || ((mod - 1) & mod) != 0)
@@ -500,10 +501,19 @@ async function addMap(msg)
         }
 
     // Check if a map should be removed to make room for this one
-    // If there's a rejected map, remove that one
-    let rejectmap = team.maps[modpool].find(map => map.status.startsWith("Rejected"));
-    if (rejectmap && team.maps[modpool].length > 1)
-        await db.removeMap(team.name, rejectmap.id, modpool, rejectmap.mod);
+    // We need the first rejected map, and a count of maps in the modpool
+    let rejected;
+    let count = team.maps.reduce((n, m) => {
+        if (m.pool === modpool)
+        {
+            if (!rejected && m.status.startsWith("Rejected"))
+                rejected = m;
+            return n + 1;
+        }
+        else return n;
+    }, 0);
+    if (rejected && count > 1)
+        await db.removeMap(team.name, rejected.id, rejected.pool, rejected.mod);
 
     let mapitem = {
         id: mapid,
@@ -514,10 +524,11 @@ async function addMap(msg)
         artist: beatmap.artist,
         title: beatmap.title,
         version: beatmap.version,
-        creator: beatmap.creator
+        creator: beatmap.creator,
+        mod: mod,
+        pool: modpool
     };
-    if (modpool == 'cm') mapitem.mod = mod;
-    if (await db.addMap(team.name, modpool, mapitem))
+    if (await db.addMap(team.name, mapitem))
         return msg.channel.send(`Added map ${mapString(mapitem)} ` +
             `to ${modpool.toUpperCase()} mod pool.\n` +
             `Map approval satus: ${status}`);
@@ -596,11 +607,7 @@ async function removeMap(msg)
             "map: Beatmap link or id\n" +
             "(optional) mod: Which mod pool to remove the map from. Should be " +
             "some combination of NM|HD|HR|DT|CM. If left blank NM is assumed.\n" +
-            "Aliases: !rem, !remove\n\n" +
-            "If two identical maps are in the same mod bracket, both of them " +
-            "will be removed. Ie in the same modpool or in custom mod using " +
-            "the same mod combination. To replace just one of them you can use " +
-            "the add map command instead. That will replace one map with the new one.");
+            "Aliases: !rem, !remove\n\n");
 
     // Get which team the player is on
     let team = await db.getTeam(msg.author.id);
@@ -655,7 +662,7 @@ async function removeMap(msg)
     if (result)
     {
         // Find the map info for this id, for user friendliness' sake
-        let map = team.maps[modpool].find(item => item.id == mapid);
+        let map = team.maps.find(item => item.id == mapid);
         return msg.channel.send(`Removed ${mapString(map)} from ${modpool} pool`);
     }
     else

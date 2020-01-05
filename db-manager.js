@@ -48,24 +48,6 @@ async function performAction(action)
 }
 
 /**
- * Gets all the teams in the database.
- * Including their players but excluding their maps.
- */
-async function getTeamList()
-{
-    let cursor = db.collection('teams').find(
-        {},
-        {
-            projection: {
-                name: 1,
-                players: 1
-            }
-        }
-    );
-    return cursor.toArray();
-}
-
-/**
  * Will get an osu id from a discord id if that user is currently registered
  * on a team in the database
  * @param {string} discordid The discord userid to search for
@@ -112,13 +94,7 @@ async function addTeam(teamName)
     let result = await db.collection('teams').insertOne({
         name: teamName,
         players: [],
-        maps: {
-            nm: [],
-            hd: [],
-            hr: [],
-            dt: [],
-            cm: []
-        }
+        maps: []
     });
 
     return result.insertedCount > 0;
@@ -203,53 +179,96 @@ async function getTeam(discordid)
  * Adds a map to the given mod bracket. Removes the first map on the list if
  * two maps are already present.
  * @param {string} team The team name
- * @param {"nm"|"hd"|"hr"|"dt"|"cm"} mod The mod to add the map to.
- * @param {*} map Map object containing id, status, drain, stars, and mod if customMod
+ * @param {{
+ *  id: Number,
+ *  status: String,
+ *  drain: Number,
+ *  stars: Number,
+ *  bpm: Number,
+ *  artist: String,
+ *  title: String,
+ *  version: String,
+ *  creator: String,
+ *  mod: Number,
+ *  pool: String
+ * }} map The map object to add
  */
-async function addMap(team, mod, map)
+async function addMap(team, map)
 {
-    console.log(`Adding map ${map.id} to ${team}'s ${mod} pool`);
-    let updateobj = { $push: {}};
-    updateobj.$push[`maps.${mod}`] = map;
+    console.log(`Adding map ${map.id} to ${team}'s ${map.pool} pool`);
+    // let updateobj = { $push: {}};
+    // updateobj.$push[`maps.${mod}`] = map;
     let teamobj = await db.collection('teams').findOneAndUpdate(
         { name: team },
-        updateobj,
+        { $push: { maps: map } },
         { returnOriginal: false }
     );
     console.log(`Team ok: ${teamobj.ok}`);
-    if (teamobj.value.maps[mod].length > 2)
+    // Count how many maps are of the given mod
+    let count = teamobj.value.maps.reduce((n, m) => n + (m.pool === map.pool), 0);
+    if (count > 2)
     {
-        updateobj = { $pop: {}};
-        updateobj.$pop[`maps.${mod}`] = -1;
-        db.collection('teams').updateOne(
-            { name: team },
-            updateobj
-        );
+        // The first item should be removed.
+        // First set a matching element to null, then remove nulls
+        let result = await db.collection('teams').bulkWrite([
+            {
+                updateOne: {
+                    filter: {
+                        name: team,
+                        'maps.pool': map.pool
+                    },
+                    update: { $unset: { 'maps.$': "" } }
+                }
+            },
+            {
+                updateOne: {
+                    filter: { name: team },
+                    update: { $pull: { maps: null } }
+                }
+            }
+        ]);
+        console.log(result);
     }
     return teamobj.ok;
 }
 
 /**
- * Removes a map from a team's pool. Removes all matching maps from the given modpool
+ * Removes a map from a team's pool. If two maps in the pool are the same, only one
+ * will be removed.
  * @param {string} team The team name to remove the map from
  * @param {Number} mapid The beatmap id to remove
  * @param {"nm"|"hd"|"hr"|"dt"|"cm"} modpool The modpool for the map
- * @param {number} mods (Optional) Which mods to use for cm maps. If not given 0 assumed
+ * @param {number} mods Which mods the map uses
  * @returns The number of modified documents
  */
 async function removeMap(team, mapid, modpool, mods)
 {
-    // Needs to be structured like $pull: { 'maps.${m}': { id: mapid } }
-    let updateobj = { $pull: {}};
-    updateobj.$pull[`maps.${modpool}`] = { id: mapid };
-    if (modpool == 'cm')
-        if (mods)
-            updateobj.$pull['maps.cm'].mod = mods;
-        else
-            updateobj.$pull['maps.cm'].mod = 0;
-
-    let result = await db.collection('teams').updateOne({ name: team }, updateobj);
-    return result.result.nModified;
+    // I can't guarantee there will only be one matching map
+    // Set one matching map to null, then pull nulls
+    let result = await db.collection('teams').bulkWrite([
+        {
+            updateOne: {
+                filter: {
+                    name: team,
+                    maps: { $elemMatch: {
+                        id: mapid,
+                        pool: modpool,
+                        mod: mods
+                    } }
+                },
+                update: {
+                    $unset: { 'maps.$': "" }
+                }
+            }
+        },
+        {
+            updateOne: {
+                filter: { name: team },
+                update: { $pull: { maps: null } }
+            }
+        }
+    ]);
+    return result.modifiedCount;
 }
 
 /**
