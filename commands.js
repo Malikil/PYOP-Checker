@@ -755,36 +755,16 @@ async function viewPool(msg)
 async function viewPending(msg)
 {
     console.log("Finding pending maps");
-    let teamlist = await db.findPendingTeams();
-    console.log(teamlist);
-    let hd = [], hr = [], dt = [], cm = [];
-    let str = "**No Mod:**";
-    teamlist.forEach(team => {
-        team.maps.nm.forEach(map => {
-            if (map.status == "Pending") str += `\n<${mapLink(map)}> ${mapString(map)}`;
-        });
-        team.maps.hd.forEach(map => {
-            if (map.status == "Pending") hd.push(map);
-        });
-        team.maps.hr.forEach(map => {
-            if (map.status == "Pending") hr.push(map);
-        });
-        team.maps.dt.forEach(map => {
-            if (map.status == "Pending") dt.push(map);
-        });
-        team.maps.cm.forEach(map => {
-            if (map.status == "Pending") cm.push(map);
-        });
+    let maplist = await db.findPendingMaps();
+    console.log(maplist);
+    
+    let str = "";
+    maplist.forEach(mod => {
+        str += `**__${modString(mod._id)}:__**\n`;
+        mod.maps.forEach(map =>
+            str += `<${mapLink(map)}> ${mapString(map)}\n`
+        );
     });
-
-    str += "\n**Hidden:**";
-    hd.forEach(map => str += `\n<${mapLink(map)}> ${mapString(map)}`);
-    str += "\n**Hard Rock:**";
-    hr.forEach(map => str += `\n<${mapLink(map)}> ${mapString(map)}`);
-    str += "\n**Double Time:**";
-    dt.forEach(map => str += `\n<${mapLink(map)}> ${mapString(map)}`);
-    str += "\n**Custom Mod:**";
-    cm.forEach(map => str += `\n<${mapLink(map)}> ${mapString(map)} +${modString(map.mod)}`);
 
     return msg.channel.send(str);
 }

@@ -272,17 +272,25 @@ async function removeMap(team, mapid, modpool, mods)
 }
 
 /**
- * Finds all teams with pending maps
+ * Finds all maps with a pending status
  */
-async function findPendingTeams()
+async function findPendingMaps()
 {
-    let cursor = db.collection('teams').find({ $or: [
-        { 'maps.nm.status': 'Pending' },
-        { 'maps.hd.status': 'Pending' },
-        { 'maps.hr.status': 'Pending' },
-        { 'maps.dt.status': 'Pending' },
-        { 'maps.cm.status': 'Pending' }
-    ]});
+    let cursor = db.collection('teams').aggregate([
+        { $match: { 'maps.status': "Pending" } },
+        { $unwind: "$maps" },
+        { $match: { 'maps.status': "Pending" } },
+        { $group: {
+            _id: "$maps.mod",
+            maps: { $addToSet: {
+                id: "$maps.id",
+                artist: "$maps.artist",
+                title: "$maps.title",
+                version: "$maps.version"
+            } }
+        } },
+        { $sort: { "_id": 1 } }
+    ]);
     return cursor.toArray();
 }
 
@@ -503,7 +511,7 @@ module.exports = {
     getTeam,
     addMap,     // Maps
     removeMap,
-    findPendingTeams,
+    findPendingMaps,
     pendingMap,
     approveMap,
     rejectMap,
