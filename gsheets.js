@@ -53,24 +53,8 @@ async function getSheetData(team)
         { userEnteredValue: { stringValue: "BPM" } },
         { userEnteredValue: { stringValue: "ID" } }
     ]});
-    let mods = [ "nm", "hd", "hr", "dt" ];
-    mods.forEach((pool, i) => {
-        team.maps[pool].forEach(map =>
-            rowdata.push({ values: [
-                { userEnteredValue: { stringValue: mods[i].toUpperCase() } },
-                { userEnteredValue: { stringValue: map.creator } },
-                { userEnteredValue: { formulaValue: `=HYPERLINK("${mapLink(map)}","${mapString(map).replace(
-                    '"', '"&CHAR(34)&"'
-                )}")` } },
-                { userEnteredValue: { numberValue: map.stars } },
-                { userEnteredValue: { stringValue: convertSeconds(map.drain) } },
-                { userEnteredValue: { numberValue: map.bpm } },
-                { userEnteredValue: { numberValue: map.id } },
-                { userEnteredValue: { stringValue: map.status } }
-            ]})
-        );
-    });
-    team.maps.cm.forEach(map =>
+    
+    team.maps.sort((a, b) => a.mod - b.mod).forEach(map =>
         rowdata.push({ values: [
             { userEnteredValue: { stringValue: modString(map.mod) } },
             { userEnteredValue: { stringValue: map.creator } },
