@@ -754,7 +754,8 @@ async function viewPending(msg)
             str += `<${mapLink(map)}> ${mapString(map)}\n`
         );
     });
-
+    if (str === "")
+        str = "No pending maps";
     return msg.channel.send(str);
 }
 
