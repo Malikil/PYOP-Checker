@@ -171,7 +171,7 @@ async function getTeam(discordid)
 {
     console.log(`Finding team for player ${discordid}`);
     let team = await db.collection('teams').findOne({ 'players.discordid': discordid });
-    console.log(team);
+    console.log(util.inspect(team, { depth: 1 }));
     return team;
 }
 
@@ -295,41 +295,49 @@ async function findPendingMaps()
 }
 
 /**
- * Changes a map between "Screenshot Required" to "Pending" statuses
+ * Changes a map between "Screenshot Required" and "Pending" statuses
  * @param {String} team The team to update
  * @param {Number} mapid The map id to update
  * @param {boolean} to_pending True if changing to "Pending" status,
  * false if changing back to "Screenshot Required" status
+ * @returns A status indicating the result of the update:  
+ *      * &nbsp;1 | Update was successful
+ *      * &nbsp;0 | Map found but no update required
+ *      * -1 | No teams matched the query
  */
 async function pendingMap(team, mapid, to_pending = true)
 {
-    let status = to_pending ? "Pending" : "Screenshot Required";
-    console.log(`Updating status on ${mapid} for ${team} to ${status}`);
-    // Match teams with the player who submitted
-    let findobj = {
-        name: team,
-        $or: []
-    };
-    let updateobj = { $set: {} }
-    // We don't care what mod they're submitting for. That's a manual process
-    let mods = ['nm', 'hd', 'hr', 'dt', 'cm'];
-    mods.forEach(mod => {
-        let temp = {}; temp[`maps.${mod}.id`] = mapid;
-        findobj.$or.push(temp);
-
-        updateobj.$set[`maps.${mod}.$[map].status`] = status;
-    });
-    
+    let fromstatus;
+    let tostatus;
+    if (to_pending)
+    {
+        fromstatus = "Screenshot Required";
+        tostatus = "Pending";
+    }
+    else
+    {
+        fromstatus = "Pending";
+        tostatus = "Screenshot Required"
+    }
+    console.log(`Updating status on ${mapid} for ${team} to ${tostatus}`);
+    // We don't care about mod at this point, they're not supposed to have
+    // the same map more than once anyways.
+    // There is a check for current status though, no point in resetting an
+    // approved status back to pending just by submitting a screenshot
     let result = await db.collection('teams').updateOne(
-        findobj,
-        updateobj,
+        {
+            name: team,
+            'maps.id': mapid
+        },
+        { $set: { 'maps.$[pendmap].status': tostatus } },
         { arrayFilters: [
             {
-                'map.id': mapid,
-                'map.status': (to_pending ? "Screenshot Required" : "Pending")
+                'pendmap.status': fromstatus,
+                'pendmap.id': mapid
             }
         ] }
     );
+
     console.log(`Matched ${result.matchedCount}, modified ${result.modifiedCount}`);
     if (result.modifiedCount > 0)
         return 1;

@@ -457,16 +457,9 @@ async function addMap(msg)
     let custom = false;
     if (args.length == 3)
     {
-        let modstr = args[2].toUpperCase();
-        mod = parseMod(modstr);
-        // Parse mods
-        /*if (modstr.includes('HD')) mod = mod | checker.MODS.HD;
-        if (modstr.includes('HR')) mod = mod | checker.MODS.HR;
-        else if (modstr.includes('EZ')) mod = mod | checker.MODS.EZ;
-        if (modstr.includes('DT')) mod = mod | checker.MODS.DT;
-        else if (modstr.includes('HT')) mod = mod | checker.MODS.HT;*/
+        mod = parseMod(args[2]);
         // Custom mod status
-        if (modstr.includes('CM')
+        if (args[2].toUpperCase().includes('CM')
                 || ((mod - 1) & mod) != 0)
             custom = true;
     }
@@ -663,7 +656,7 @@ async function removeMap(msg)
     {
         // Find the map info for this id, for user friendliness' sake
         let map = team.maps.find(item => item.id == mapid);
-        return msg.channel.send(`Removed ${mapString(map)} from ${modpool} pool`);
+        return msg.channel.send(`Removed ${mapString(map)} from ${modpool.toUpperCase()} pool`);
     }
     else
         return msg.channel.send("Map not found");
