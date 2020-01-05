@@ -168,6 +168,16 @@ async function viewRequirements(msg)
  */
 async function viewTeams(msg)
 {
+    let args = msg.content.split(' ');
+    if (args.length > 2 || args[0] !== "!teams")
+        return;
+    if (args.length === 2)
+        if (args[1] === '?')
+            return msg.channel.send("Usage: !teams\n" +
+                "Shows the currently registered teams");
+        else
+            return;
+    // Continue if args.length == 1
     let result = await db.performAction(async function(team) { return team.name; });
     let str = "Currently registered teams:\n";
     result.forEach(team => {
@@ -182,6 +192,16 @@ async function viewTeams(msg)
  */
 async function viewTeamPlayers(msg)
 {
+    let args = msg.content.split(' ');
+    if (args.length > 2 || args[0] !== "!players")
+        return;
+    if (args.length === 2)
+        if (args[1] === '?')
+            return msg.channel.send("Usage: !players\n" +
+                "Shows the currently registered teams and players on those teams");
+        else
+            return;
+    // Continue if args.length == 1
     let result = await db.performAction(async function(team) {
         let teaminfo = [];
         teaminfo.push(team.name);
@@ -786,6 +806,17 @@ async function viewPool(msg)
  */
 async function viewPending(msg)
 {
+    let args = msg.content.split(' ');
+    if (args.length > 2 || args[0] !== "!pending")
+        return;
+    if (args.length === 2)
+        if (args[1] === '?')
+            return msg.channel.send("Usage: !pending\n" +
+                "Shows all maps with a pending status, " +
+                "waiting to be approved.");
+        else
+            return;
+    // Continue if args.length == 1
     console.log("Finding pending maps");
     let maplist = await db.findPendingMaps();
     console.log(maplist);

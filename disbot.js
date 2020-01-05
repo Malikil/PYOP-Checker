@@ -63,9 +63,9 @@ client.on('message', msg => {
     else if (msg.content.startsWith('!requirements')
             || msg.content.startsWith('!req'))
         response = commands.viewRequirements(msg);
-    else if (msg.content ==='!teams')
+    else if (msg.content.startsWith('!teams'))
         response = commands.viewTeams(msg);
-    else if (msg.content === '!players')
+    else if (msg.content.startsWith('!players'))
         response = commands.viewTeamPlayers(msg);
     else if (msg.content.startsWith("!osuname"))
         response = commands.updatePlayerName(msg);
@@ -97,7 +97,7 @@ client.on('message', msg => {
             || msg.content.startsWith('!pass '))
         response = commands.addPass(msg, passChannel);
     // Map approvers
-    else if (msg.content === "!pending")
+    else if (msg.content.startsWith("!pending"))
         response = approverCommand(msg, commands.viewPending);
     else if (msg.content.startsWith('!approve ')
             || msg.content.startsWith('!accept '))
