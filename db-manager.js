@@ -106,20 +106,28 @@ async function addTeam(teamName)
  * @param {string} osuid The player's osu id
  * @param {string} osuname The player's osu username
  * @param {string} discordid The player's discord id
- * @returns {Promise<boolean>} Whether any records were modified
+ * @returns How many records were modified
  */
 async function addPlayer(teamName, osuid, osuname, discordid)
 {
     console.log(`Adding ${osuname} to ${teamName}`);
+    // If the team doesn't exist, add it first
+    
     let result = await db.collection('teams').updateOne(
         { name: teamName },
-        { $push: { players: {
-            osuid: osuid,
-            osuname: osuname,
-            discordid: discordid
-        } } }
+        {
+            $push: { players: {
+                osuid: osuid,
+                osuname: osuname,
+                discordid: discordid
+            } },
+            $setOnInsert: {
+                maps: []
+            }
+        },
+        { upsert: true }
     );
-    return result.modifiedCount == 1;
+    return result.modifiedCount + result.upsertedCount;
 }
 
 /**
@@ -136,31 +144,29 @@ async function removePlayer(osuname)
         { $pull: { players: { osuname: reg } } }
     );
     console.log(`Removed from ${result.modifiedCount} teams`);
-    return result.modifiedCount > 0;
+    return result.modifiedCount;
 }
 
 /**
  * Move a player from one team to another
  * @param {string} teamName The team name to move to
  * @param {string} osuname The player's osu username
- * @returns {Promise<boolean>} Whether the player was moved
+ * @returns How many records were modified, or -1 if the player wasn't found
  */
 async function movePlayer(teamName, osuname)
 {
     console.log(`Moving ${osuname} to ${teamName}`);
     let reg = new RegExp(`^${osuname}$`, 'i');
+    // Pull the player from their old team
     let team = await db.collection('teams').findOneAndUpdate(
         { 'players.osuname': reg },
         { $pull: { players: { osuname: reg } } }
     );
+    // If the player wasn't found, quit early
+    if (!team.value)
+        return 0;
     let player = team.value.players.find(item => item.osuname.match(reg));
-    if (!player)
-        return false;
-    let result = await db.collection('teams').updateOne(
-        { name: teamName },
-        { $push: { players: player } }
-    );
-    return result.modifiedCount > 0;
+    return addPlayer(teamName, player.osuid, player.osuname, player.discordid);
 }
 
 /**
