@@ -330,33 +330,6 @@ async function movePlayer(msg)
 }
 
 /**
- * Updates the osu name of a given player
- * @param {Discord.Message} msg 
- */
-async function updatePlayerName(msg)
-{
-    let args = msg.content.split(' ');
-    // Should be two args, one for command and one for discord tag
-    if (args.length !== 2)
-        return;
-    // Get the discord id from the second arg
-    let discordid = args[1].match(/[0-9]+/).pop();
-    // Get the player's current info
-    let team = await db.getTeam(discordid);
-    if (!team)
-        return msg.channel.send("This player isn't currently on a team");
-    let player = team.players.find(p => p.discordid == discordid);
-    // Get the player's new info from the server
-    let newp = await checker.getPlayer(player.osuid);
-    // Update in the database
-    let result = await db.updatePlayer(discordid, newp.username);
-    if (result)
-        return msg.channel.send(`Updated name from ${player.osuname} to ${newp.username}`);
-    else
-        return msg.channel.send(`No updates made, found username: ${newp.username}`);
-}
-
-/**
  * Locks submissions for the week, makes an announcement to players as well
  * @param {Discord.Message} msg 
  */
@@ -442,6 +415,49 @@ async function recheckMaps(msg)
 // ============================================================================
 // ========================== Player Commands =================================
 // ============================================================================
+/**
+ * Updates the osu name of a given player
+ * @param {Discord.Message} msg 
+ */
+async function updatePlayerName(msg)
+{
+    let args = msg.content.split(' ');
+    // One arg updates themself, two updates the tagged user
+    if (args[0] !== "!osuname" || args.length > 2)
+        return;
+    // Help message
+    if (args[1] === "?")
+        return msg.channel.send("Usage: !osuname\n" +
+            "Updates your osu username if you've changed it");
+    // Get the discord id to look for
+    let discordid;
+    if (args.length === 2)
+    {
+        let matches = args[1].match(/[0-9]+/);
+        if (!matches)
+        {
+            console.log("Discord id not recognised. Exiting silently");
+            return;
+        }
+        discordid = matches.pop();
+    }
+    else
+        discordid = msg.author.id;
+    // Get the player's current info
+    let team = await db.getTeam(discordid);
+    if (!team)
+        return msg.channel.send("Couldn't find which team you're on");
+    let player = team.players.find(p => p.discordid == discordid);
+    // Get the player's new info from the server
+    let newp = await checker.getPlayer(player.osuid);
+    // Update in the database
+    let result = await db.updatePlayer(discordid, newp.username);
+    if (result)
+        return msg.channel.send(`Updated name from ${player.osuname} to ${newp.username}`);
+    else
+        return msg.channel.send(`No updates made, found username: ${newp.username}`);
+}
+
 /**
  * Adds a map to the players's team
  * @param {Discord.Message} msg 
@@ -908,7 +924,7 @@ async function commands(msg)
             "!pending, !approve, !reject, !clearss";
     if (await db.getTeam(msg.author.id))
         info += "\nAvailable **Player** commands:\n" +
-            "!addmap, !removemap, !viewpool, !addpass";
+            "!addmap, !removemap, !viewpool, !addpass, !osuname";
     info += "\n\nGet more info about a command by typing a ? after the name";
     return msg.channel.send(info);
 }

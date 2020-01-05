@@ -67,6 +67,8 @@ client.on('message', msg => {
         response = commands.viewTeams(msg);
     else if (msg.content === '!players')
         response = commands.viewTeamPlayers(msg);
+    else if (msg.content.startsWith("!osuname"))
+        response = commands.updatePlayerName(msg);
     // Team/player management
     else if (msg.content.startsWith('!addteam '))
         response = adminCommand(msg, commands.addTeam);
@@ -112,8 +114,6 @@ client.on('message', msg => {
         response = adminCommand(msg, commands.exportMaps);
     else if (msg.content === "!updateMaps")
         response = adminCommand(msg, commands.recheckMaps);
-    else if (msg.content.startsWith("!playerName "))
-        response = adminCommand(msg, commands.updatePlayerName);
     
     if (response)
         response.catch(reason => {
