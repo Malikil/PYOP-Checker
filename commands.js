@@ -692,72 +692,53 @@ async function viewPool(msg)
 
     // Add all mods if not otherwise requested
     if (args.length == 2)
-        args[1] = args[1].toUpperCase();
+        args[1] = args[1].toLowerCase();
     else
-        args[1] = "NMHDHRDTCM";
+        args[1] = "nmhdhrdtcm";
 
-    let str = "";
+    let strs = {};
     let pool = [];
-    if (args[1].includes('NM'))
-    {
-        str += "**__No Mod:__**\n";
-        team.maps.nm.forEach(item => {
-            str += `${mapString(item)} <${mapLink(item)}>\n` +
-                `\tDrain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
-            pool.push(item);
-        }); 
-    }
-    if (args[1].includes('HD'))
-    {
-        str += "**__Hidden:__**\n";
-        team.maps.hd.forEach(item => {
-            str += `${mapString(item)} <${mapLink(item)}>\n` +
-                `\tDrain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
-            pool.push(item);
-        });
-    }
-    if (args[1].includes('HR'))
-    {
-        str += "**__Hard Rock:__**\n";
-        team.maps.hr.forEach(item => {
-            str += `${mapString(item)} <${mapLink(item)}>\n` +
-                `\tDrain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
-            pool.push(item);
-        });
-    }
-    if (args[1].includes('DT'))
-    {
-        str += "**__Double Time:__**\n";
-        team.maps.dt.forEach(item => {
-            str += `${mapString(item)} <${mapLink(item)}>\n` +
-                `\tDrain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
-            pool.push(item);
-        });
-    }
-    if (args[1].includes('CM'))
-    {
-        str += "**__Custom Mod:__**\n";
-        team.maps.cm.forEach(item => {
-            str += `${mapString(item)} +${modString(item.mod)} <${mapLink(item)}>\n` +
-                `\tDrain: ${checker.convertSeconds(item.drain)}, Stars: ${item.stars}, Status: ${item.status}\n`;
-            pool.push(item);
-        });
-    }
+    const modNames = {
+        nm: "**__No Mod:__**\n",
+        hd: "**__Hidden:__**\n",
+        hr: "**__Hard Rock:__**\n",
+        dt: "**__Double Time:__**\n",
+        cm: "**__Custom Mod:__**\n"
+    };
+    // Loop over all the maps, add them to the proper output string,
+    // and add them to the pool for checking.
+    team.maps.forEach(map => {
+        if (args[1].includes(map.pool))
+        {
+            // If the mod hasn't been seen yet, add it to the output
+            if (!strs[map.pool])
+                strs[map.pool] = modNames[map.pool];
+            // Add the map's info to the proper string
+            strs[map.pool] += `${mapString(map)} ${map.pool === 'cm' ? `+${modString(map.mod)} ` : ""}<${mapLink(map)}>\n`;
+            strs[map.pool] += `\tDrain: ${checker.convertSeconds(map.drain)}, Stars: ${map.stars}, Status: ${map.status}\n`;
+            
+            pool.push(map);
+        }
+    });
+    // Put all the output strings together in order
+    let str = "";
+    ['nm', 'hd', 'hr', 'dt', 'cm'].forEach(m => {
+        if (!!strs[m])
+            str += strs[m];
+    });
 
     // Check the pool as a whole
     let result = await checker.checkPool(pool);
     str += `\nTotal drain: ${checker.convertSeconds(result.totalDrain)}`;
     str += `\n${result.overUnder} maps are within 15 seconds of drain time limit\n`;
     // Don't display pool error messages if limited by a certain mod
-    if (args[1] === "NMHDHRDTCM")
+    if (args[1] === "nmhdhrdtcm" && result.message.length > 0)
+        result.message.forEach(item => str += `\n${item}`);
+    // Do display duplicate maps though
+    if (result.duplicates.length > 0)
     {
-        if (result.message.length > 0)
-            result.message.forEach(item => str += `\n${item}`);
-        if (result.duplicates.length > 0)
-        {
-            str += "\nThe following maps were found more than once:";
-            result.duplicates.forEach(dupe => str += `\n\t${mapString(dupe)}`);
-        }
+        str += "\nThe following maps were found more than once:";
+        result.duplicates.forEach(dupe => str += `\n\t${mapString(dupe)}`);
     }
 
     return msg.channel.send(str);
