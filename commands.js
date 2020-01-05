@@ -785,27 +785,12 @@ async function approveMap(msg)
     if (!mapid)
         return msg.channel.send("Map not recognised");
     
+    // Get the mods
     let mod = 0;
     if (args.length == 3)
-    {
-        let modstr = args[2].toUpperCase();
-        // Parse mods
-        if (modstr.includes('HD')) mod = mod | checker.MODS.HD;
-        if (modstr.includes('HR')) mod = mod | checker.MODS.HR;
-        else if (modstr.includes('EZ')) mod = mod | checker.MODS.EZ;
-        if (modstr.includes('DT')) mod = mod | checker.MODS.DT;
-        else if (modstr.includes('HT')) mod = mod | checker.MODS.HT;
-    }
-    let modpool;
-    switch (mod)
-    {
-        case 0:               modpool = "nm"; break;
-        case checker.MODS.HD: modpool = "hd"; break;
-        case checker.MODS.HR: modpool = "hr"; break;
-        case checker.MODS.DT: modpool = "dt"; break;
-    }
+        mod = parseMod(args[2].toUpperCase());
     
-    let count = await db.approveMap(mapid, modpool, mod);
+    let count = await db.approveMap(mapid, mod);
     return msg.channel.send(`Approved maps for ${count} teams`);
 }
 

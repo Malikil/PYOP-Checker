@@ -348,43 +348,23 @@ async function pendingMap(team, mapid, to_pending = true)
 /**
  * Approves a map in a given modpool/with mods
  * @param {Number} mapid The map id to update
- * @param {"nm"|"hd"|"hr"|"dt"} modpool The modpool the map is in
- * @param {Number} mods The mods the map uses, if custom mod
+ * @param {Number} mods The mods the map uses
  */
-async function approveMap(mapid, modpool, mods)
+async function approveMap(mapid, mods)
 {
-    console.log(`Approving ${mapid} +${mods} in ${modpool}`);
-    // Search for maps in the given modpool OR custom mod with the given mod
-    let findobj = { $or: [{
-        'maps.cm': {
-            $elemMatch: {
-                id: mapid,
-                mod: mods
-            }
-        }
-    }] };
-
-    if (modpool)
-    {
-        let temp = {}; temp[`maps.${modpool}.id`] = mapid;
-        findobj.$or.push(temp);
-    }
-    console.log(`Searching for: ${util.inspect(findobj, { depth: 4 })}`);
-
-    let updateobj = { $set: {} };
-    updateobj.$set[`maps.cm.$[cmap].status`] = 'Accepted';
-    if (modpool)
-        updateobj.$set[`maps.${modpool}.$[map].status`] = 'Accepted';
-    console.log(`Updating with: ${util.inspect(updateobj)}`);
-
+    console.log(`Approving ${mapid} +${mods}`);
+    // Search for maps with the given mod
     let result = await db.collection('teams').updateMany(
-        findobj,
-        updateobj,
+        { maps: { $elemMatch: {
+            id: mapid,
+            mod: mods
+        } } },
+        { $set: { 'maps.$[pendmap].status': "Accepted" } },
         { arrayFilters: [
-            { 'map.id': mapid },
             {
-                'cmap.id': mapid,
-                'cmap.mod': mods
+                'pendmap.id': mapid,
+                'pendmap.mod': mods,
+                'pendmap.status': "Pending"
             }
         ] }
     );
@@ -402,45 +382,20 @@ async function approveMap(mapid, modpool, mods)
 async function rejectMap(mapid, mods, message)
 {
     console.log(`Rejecting mapid ${mapid} +${mods}`);
-    let findobj = { $or: [{
-        'maps.cm': {
-            $elemMatch: {
-                id: mapid,
-                mod: mods
-            }
-        }
-    }] };
-
-    let specialPool;
-    switch (mods)
-    {
-        case 0:       specialPool = 'nm'; break;
-        case MODS.HD: specialPool = 'hd'; break;
-        case MODS.HR: specialPool = 'hr'; break;
-        case MODS.DT: specialPool = 'dt'; break;
-    }
-
-    if (specialPool)
-    {
-        let temp = {}; temp[`maps.${specialPool}.id`] = mapid;
-        findobj.$or.push(temp);
-    }
-    console.log(`Searching for: ${util.inspect(findobj, { depth: 4 })}`);
-
-    let updateobj = { $set: {} };
-    updateobj.$set[`maps.cm.$[cmap].status`] = 'Rejected - ' + message;
-    if (specialPool)
-        updateobj.$set[`maps.${specialPool}.$[map].status`] = 'Rejected - ' + message;
-    console.log(`Updating with: ${util.inspect(updateobj)}`);
-
+    // Update the status
+    // Not limiting to pending maps here because it's conceivable that a
+    // screenshot required map can be rejected, and maps that are rejected
+    // for one team should be rejected for all teams
     let result = await db.collection('teams').updateMany(
-        findobj,
-        updateobj,
+        { maps: { $elemMatch: {
+            id: mapid,
+            mod: mods
+        } } },
+        { $set: { 'maps.$[map].status': "Rejected - " + message } },
         { arrayFilters: [
-            { 'map.id': mapid },
             {
-                'cmap.id': mapid,
-                'cmap.mod': mods
+                'map.id': mapid,
+                'map.mod': mods
             }
         ] }
     );
