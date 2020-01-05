@@ -415,8 +415,27 @@ async function rejectMap(mapid, mods, message)
  */
 async function bulkReject(maps, message)
 {
+    console.log(maps);
     message = 'Rejected - ' + message;
-    // Filter maps into their proper mods
+    // If possible, I'd like to do away with this manually constructing
+    // arrayFilters
+    let filters = maps.map(item => {
+        return {
+            'badmap.id': item.id,
+            'badmap.mod': item.mod
+        };
+    });
+
+    // Reject all maps matching the criteria
+    let result = await db.collection('teams').updateMany(
+        { },
+        { $set: { 'maps.$[badmap].status': message } },
+        { arrayFilters: [
+            { $or: filters }
+        ] }
+    );
+
+    /*/ Filter maps into their proper mods
     let nm = [];
     let hd = [];
     let hr = [];
@@ -433,7 +452,7 @@ async function bulkReject(maps, message)
         }
     });
 
-    let result = await db.collection('teams').updateMany(
+    let result2 = await db.collection('teams').updateMany(
         { },
         {
             $set: {
@@ -459,7 +478,7 @@ async function bulkReject(maps, message)
                 ] }
             ]
         }
-    );
+    );*/
 
     console.log(`Modified ${result.modifiedCount} documents in bulk update`);
     return result.modifiedCount;

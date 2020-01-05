@@ -374,27 +374,20 @@ async function exportMaps(msg)
  */
 async function recheckMaps(msg)
 {
-    const mods = [
-        { name: 'nm', mid: 0 },
-        { name: 'hd', mid: checker.MODS.HD },
-        { name: 'hr', mid: checker.MODS.HR },
-        { name: 'dt', mid: checker.MODS.DT },
-        { name: 'cm' }
-    ];
     let update = async function (team) {
         // Check each map with the quick check.
         // It shouldn't require hitting the osu api, and all the required info
         // should already exist in the beatmap object.
         let rejects = [];
-        mods.forEach(m =>
-            team.maps[m.name].forEach(map => {
-                let result = checker.quickCheck(map);
-                if (result)
-                    rejects.push({
-                        id: map.id,
-                        mod: (map.mod ? map.mod : m.mid) || 0
-                    });
-            }));
+        if (team.name === "New Format")
+        team.maps.forEach(map => {
+            let result = checker.quickCheck(map);
+            if (result)
+                rejects.push({
+                    id: map.id,
+                    mod: map.mod
+                });
+            });
         return rejects;
     };
     // Use the quick check from above on each database team
@@ -404,7 +397,10 @@ async function recheckMaps(msg)
     // Unwind the results arrays into a single array
     let maprejects = [];
     results.forEach(arr =>
-        arr.forEach(reject => maprejects.push(reject))
+        arr.forEach(reject => {
+            if (!maprejects.includes(reject))
+                maprejects.push(reject);
+        })
     );
     console.log(maprejects);
     // Update each map from the results with a reject message
