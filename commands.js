@@ -37,8 +37,8 @@ function modString(mod)
 }
 /**
  * Converts a mod string into its number equivalent
- * @param {"NM"|"HD"|"HR"|"DT"|"EZ"|"HT"} modstr Mods in string form
- * @returns {number} The bitwise number representation of the selected mods
+ * @param {"NM"|"HD"|"HR"|"DT"|"EZ"|"HT"} modstr Mods in string form. Case insensitive
+ * @returns The bitwise number representation of the selected mods
  */
 function parseMod(modstr)
 {
@@ -89,16 +89,8 @@ async function checkMap(msg)
             "(Optional) mod should be some combination of HD|HR|DT|HT|EZ. Default is NoMod\n" +
             "Aliases: !map");
     let mod = 0;
-    if (args.length == 3)
-    {
-        let modstr = args[2].toUpperCase();
-        // Parse mods
-        if (modstr.includes('HD')) mod = mod | checker.MODS.HD;
-        if (modstr.includes('HR')) mod = mod | checker.MODS.HR;
-        else if (modstr.includes('EZ')) mod = mod | checker.MODS.EZ;
-        if (modstr.includes('DT')) mod = mod | checker.MODS.DT;
-        else if (modstr.includes('HT')) mod = mod | checker.MODS.HT;
-    }
+    if (args.length === 3)
+        mod = parseMod(args[2]);
     let mapid = checker.parseMapId(args[1]);
     if (!mapid)
         return msg.channel.send(`Couldn't recognise beatmap id`);

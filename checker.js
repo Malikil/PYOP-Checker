@@ -227,13 +227,13 @@ async function getBeatmap(mapid, mod)
     if (mod & MODS.DT)
     {
         beatmap.bpm = beatmap.bpm * (3.0 / 2.0);
-        beatmap.hit_length = (beatmap.hit_length * (2.0 / 3.0)) | 0;
+        beatmap.drain = (beatmap.drain * (2.0 / 3.0)) | 0;
         beatmap.total_length = (beatmap.total_length * (2.0 / 3.0)) | 0;
     }
     else if (mod & MODS.HT)
     {
         beatmap.bpm = beatmap.bpm * (3.0 / 4.0);
-        beatmap.hit_length = (beatmap.hit_length * (4.0 / 3.0)) | 0;
+        beatmap.drain = (beatmap.drain * (4.0 / 3.0)) | 0;
         beatmap.total_length = (beatmap.total_length * (4.0 / 3.0)) | 0;
     }
     beatmap.stars = parseFloat(parseFloat(beatmap.difficultyrating).toFixed(2));
