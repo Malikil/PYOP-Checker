@@ -391,7 +391,6 @@ async function recheckMaps(msg)
         // It shouldn't require hitting the osu api, and all the required info
         // should already exist in the beatmap object.
         let rejects = [];
-        if (team.name === "New Format")
         team.maps.forEach(map => {
             let result = checker.quickCheck(map);
             if (result)
@@ -416,6 +415,9 @@ async function recheckMaps(msg)
     );
     console.log(maprejects);
     // Update each map from the results with a reject message
+    // Don't bother updating if there are no maps needed to update
+    if (maprejects.length === 0)
+        return msg.channel.send("No maps outside range");
     let updateCount = await db.bulkReject(maprejects, "Bulk update from new star range");
     if (updateCount)
         return msg.channel.send(`Updated ${updateCount} teams`);
