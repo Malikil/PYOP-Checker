@@ -418,7 +418,7 @@ async function recheckMaps(msg)
     // Don't bother updating if there are no maps needed to update
     if (maprejects.length === 0)
         return msg.channel.send("No maps outside range");
-    let updateCount = await db.bulkReject(maprejects, "Bulk update from new star range");
+    let updateCount = await db.bulkReject(maprejects, "Map is below the new star range");
     if (updateCount)
         return msg.channel.send(`Updated ${updateCount} teams`);
     else
@@ -862,8 +862,10 @@ async function approveMap(msg)
 /**
  * Rejects a map and provides a reason for rejection
  * @param {Discord.Message} msg 
+ * @param {Discord.Collection<string, Discord.GuildMember>} userlist If given,
+ * will DM users from this list saying their map was rejected
  */
-async function rejectMap(msg)
+async function rejectMap(msg, userlist)
 {
     // Split the arguments
     let args = msg.content.split(' ');
@@ -900,7 +902,16 @@ async function rejectMap(msg)
         return msg.channel.send('Please add a reject message');
 
     let result = await db.rejectMap(mapid, mod, desc);
-    return msg.channel.send(`Rejected ${mapid} +${modString(mod)} from ${result} pools`);
+    // Get the list of players, and send them a message if they're in the server
+    let dms = result.playerNotif.map(player => {
+        let member = userlist.get(player.discordid);
+        if (member)
+            return member.send("A map in your pool was rejected:\n" +
+                `**__Map:__** https://osu.ppy.sh/b/${mapid} +${modString(mod)}\n` +
+                `**__Message:__** ${desc}`);
+    });
+    dms.push(msg.channel.send(`Rejected ${mapid} +${modString(mod)} from ${result.modified} pools`));
+    return Promise.all(dms);
 }
 
 /**

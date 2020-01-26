@@ -416,6 +416,26 @@ async function approveMap(mapid, mods)
 async function rejectMap(mapid, mods, message)
 {
     console.log(`Rejecting mapid ${mapid} +${mods}`);
+    // Get a list of players on teams with maps to be rejected
+    let playerlist = db.collection('teams').aggregate([
+        { $match: {
+            maps: { $elemMatch: {
+                id: mapid,
+                mod: mods
+            } }
+        } },
+        { $project: {
+            _id: 0,
+            players: 1
+        } },
+        { $unwind: "$players" },
+        { $group: {
+            _id: null,
+            players: { $addToSet: "$players" }
+        } }
+    ]);
+    let players = (await playerlist.toArray())[0].players;
+    console.log(players);
     // Update the status
     // Not limiting to pending maps here because it's conceivable that a
     // screenshot required map can be rejected, and maps that are rejected
@@ -434,7 +454,10 @@ async function rejectMap(mapid, mods, message)
         ] }
     );
     console.log(`Matched ${result.matchedCount}, modified ${result.modifiedCount}`);
-    return result.modifiedCount;
+    return {
+        playerNotif: players,
+        modified: result.modifiedCount
+    };
 }
 
 /**

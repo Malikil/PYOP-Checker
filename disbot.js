@@ -12,6 +12,8 @@ const ADMIN = process.env.ROLE_ADMIN;
 const APPROVER = process.env.ROLE_MAP_APPROVER;
 /** @type {Discord.TextChannel} */
 var passChannel;
+/** @type {Discord.Collection<string, Discord.GuildMember>} */
+var userlist;
 
 /**
  * Makes sure the sender is a map approver before executing the command
@@ -19,11 +21,13 @@ var passChannel;
  * @param {function(Discord.Message) =>
  * Promise<Discord.Message|Discord.Message[]>} command 
  */
-async function approverCommand(msg, command)
+async function approverCommand(msg, command, args)
 {
     let member = msg.member;
     if (!member || !member.roles.has(APPROVER))
         return msg.channel.send("This command is only available in the server to Map Approvers");
+    else if (args)
+        return command(msg, args);
     else
         return command(msg);
 }
@@ -33,19 +37,22 @@ async function approverCommand(msg, command)
  * @param {function(Discord.Message) =>
  * Promise<Discord.Message|Discord.Message[]>} command 
  */
-async function adminCommand(msg, command)
+async function adminCommand(msg, command, args)
 {
     let member = msg.member;
     if (!member || !member.roles.has(ADMIN))
         return msg.channel.send("This command is only available to admins");
+    else if (args)
+        return command(msg, args);
     else
         return command(msg);
-}
+    }
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
     let guild = client.guilds.get(process.env.DISCORD_GUILD);
     passChannel = guild.channels.get(process.env.CHANNEL_SCREENSHOTS);
+    userlist = guild.members;
 });
 
 client.on('message', msg => {
@@ -103,10 +110,10 @@ client.on('message', msg => {
             || msg.content.startsWith('!accept '))
         response = approverCommand(msg, commands.approveMap);
     else if (msg.content.startsWith('!reject '))
-        response = approverCommand(msg, commands.rejectMap);
+        response = approverCommand(msg, commands.rejectMap, userlist);
     else if (msg.content.startsWith('!clearss ')
             || msg.content.startsWith('!unpass '))
-        response = approverCommand(msg, commands.rejectScreenshot);
+        response = approverCommand(msg, commands.rejectScreenshot, userlist);
     // General admin
     else if (msg.content === "!lock")
         response = adminCommand(msg, commands.lockSubmissions);
@@ -114,7 +121,7 @@ client.on('message', msg => {
         response = adminCommand(msg, commands.exportMaps);
     else if (msg.content === "!updateMaps" ||
                 msg.content === "!update")
-        response = adminCommand(msg, commands.recheckMaps);
+        response = adminCommand(msg, commands.recheckMaps, userlist);
     
     if (response)
         response.catch(reason => {
