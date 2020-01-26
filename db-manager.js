@@ -80,9 +80,10 @@ async function getOsuId(discordid)
 /**
  * Adds a team to the database
  * @param {string} teamName The team's name
+ * @param {string} division What division the team is in
  * @returns {Promise<boolean>} Whether the team was added
  */
-async function addTeam(teamName)
+async function addTeam(teamName, division)
 {
     console.log(`Looking for team: ${teamName}`);
     let find = await db.collection('teams').findOne({ name: teamName });
@@ -93,6 +94,7 @@ async function addTeam(teamName)
 
     let result = await db.collection('teams').insertOne({
         name: teamName,
+        division: division,
         players: [],
         maps: []
     });
