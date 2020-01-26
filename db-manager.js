@@ -334,10 +334,7 @@ async function findPendingMaps()
  * @param {Number} mapid The map id to update
  * @param {boolean} to_pending True if changing to "Pending" status,
  * false if changing back to "Screenshot Required" status
- * @returns A status indicating the result of the update:  
- *      * &nbsp;1 | Update was successful
- *      * &nbsp;0 | Map found but no update required
- *      * -1 | No teams matched the query
+ * @returns The team that got updated, or null if no team/map matched
  */
 async function pendingMap(team, mapid, to_pending = true)
 {
@@ -358,10 +355,13 @@ async function pendingMap(team, mapid, to_pending = true)
     // the same map more than once anyways.
     // There is a check for current status though, no point in resetting an
     // approved status back to pending just by submitting a screenshot
-    let result = await db.collection('teams').updateOne(
+    let result = await db.collection('teams').findOneAndUpdate(
         {
-            name: team,
-            'maps.id': mapid
+            name: regexify(team, 'i'),
+            maps: { $elemMatch: {
+                id: mapid,
+                status: fromstatus
+            } }
         },
         { $set: { 'maps.$[pendmap].status': tostatus } },
         { arrayFilters: [
@@ -371,12 +371,8 @@ async function pendingMap(team, mapid, to_pending = true)
             }
         ] }
     );
-
-    console.log(`Matched ${result.matchedCount}, modified ${result.modifiedCount}`);
-    if (result.modifiedCount > 0)
-        return 1;
-    else
-        return result.matchedCount - 1;
+    console.log(result);
+    return result.value;
 }
 
 /**

@@ -598,7 +598,7 @@ async function addPass(msg, channel)
         "screenshot: A link to a screenshot of your pass on the map\n" +
         "You can upload your screenshot as a message attachment in discord " +
         "instead of using a link if you prefer. You still need to include " +
-        "the map link/id regardless." +
+        "the map link/id regardless.\n" +
         "Aliases: !pass");
 
     // Make sure there's something to update with
@@ -862,8 +862,8 @@ async function approveMap(msg)
 /**
  * Rejects a map and provides a reason for rejection
  * @param {Discord.Message} msg 
- * @param {Discord.Collection<string, Discord.GuildMember>} userlist If given,
- * will DM users from this list saying their map was rejected
+ * @param {Discord.Collection<string, Discord.GuildMember>} userlist Will DM
+ * matching users from this list saying their map was rejected
  */
 async function rejectMap(msg, userlist)
 {
@@ -917,8 +917,10 @@ async function rejectMap(msg, userlist)
 /**
  * Sets a map back to screenshot required status
  * @param {Discord.Message} msg 
+ * @param {Discord.Collection<string, Discord.GuildMember>} userlist Will DM
+ * matching users from this list saying their map needs another screenshot
  */
-async function rejectScreenshot(msg)
+async function rejectScreenshot(msg, userlist)
 {
     // Split the arguments
     let args = msg.content.split(' ');
@@ -942,9 +944,19 @@ async function rejectScreenshot(msg)
 
     let result = await db.pendingMap(team, mapid, false);
     if (result)
-        return msg.channel.send("Set status to \"Screenshot Required\"");
+    {
+        // Tell players on the team that they need a new screenshot
+        let dms = result.players.map(player => {
+            let member = userlist.get(player.discordid);
+            if (member)
+                return member.send("A screenshot for one of your maps was declined:\n" +
+                    `https://osu.ppy.sh/b/${mapid}`);
+        });
+        dms.push(msg.channel.send("Set status to \"Screenshot Required\""));
+        return Promise.all(dms);
+    }
     else
-        return msg.channel.send("Couldn't update map status");
+        return msg.channel.send("Team not found or no matching map");
 }
 //#endregion
 /**
