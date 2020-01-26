@@ -37,13 +37,11 @@ async function approverCommand(msg, command, args)
  * @param {function(Discord.Message) =>
  * Promise<Discord.Message|Discord.Message[]>} command 
  */
-async function adminCommand(msg, command, args)
+async function adminCommand(msg, command)
 {
     let member = msg.member;
     if (!member || !member.roles.has(ADMIN))
         return msg.channel.send("This command is only available to admins");
-    else if (args)
-        return command(msg, args);
     else
         return command(msg);
     }
@@ -121,7 +119,7 @@ client.on('message', msg => {
         response = adminCommand(msg, commands.exportMaps);
     else if (msg.content === "!updateMaps" ||
                 msg.content === "!update")
-        response = adminCommand(msg, commands.recheckMaps, userlist);
+        response = adminCommand(msg, commands.recheckMaps);
     
     if (response)
         response.catch(reason => {

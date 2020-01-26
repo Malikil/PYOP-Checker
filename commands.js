@@ -418,7 +418,7 @@ async function recheckMaps(msg)
     // Don't bother updating if there are no maps needed to update
     if (maprejects.length === 0)
         return msg.channel.send("No maps outside range");
-    let updateCount = await db.bulkReject(maprejects, "Map is below the new star range");
+    let updateCount = await db.bulkReject(maprejects, "Map is below the new week's star range");
     if (updateCount)
         return msg.channel.send(`Updated ${updateCount} teams`);
     else
