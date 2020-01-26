@@ -36,14 +36,45 @@ auth.authorize((err, cred) => {
 /**
  * Puts the maps from a single team into an array
  * which can be pushed to google sheets
- * @param {*} team A team to get the maps from
+ * @param {{
+ *  name: string,
+ *  players: {
+ *      osuid: number,
+ *      osuname: string,
+ *      discordid: string
+ *  }[],
+ *  maps: {
+ *      id: number,
+ *      status: string,
+ *      drain: number,
+ *      stars: number,
+ *      bpm: number,
+ *      artist: string,
+ *      title: string,
+ *      version: string,
+ *      creator: string,
+ *      mod: number,
+ *      pool: "nm"|"hd"|"hr"|"dt"|"cm"
+ *  }
+ * }} team A team to get the maps from
  */
 async function getSheetData(team)
 {
+    
     let rowdata = [];
     rowdata.push({
-        values: [{ userEnteredValue: { stringValue: team.name } }]
+        values: [
+            { userEnteredValue: { stringValue: team.name } },
+            { userEnteredValue: { stringValue: '' } }
+        ]
     });
+    // Get players from the team, and push them to the first row
+    team.players.forEach(player => {
+        rowdata[0].values.push(
+            { userEnteredValue: { stringValue: player.osuname } }
+        );
+    });
+    // Map header row
     rowdata.push({ values: [
         { userEnteredValue: { stringValue: "Mod" } },
         { userEnteredValue: { stringValue: "Mapper" } },
@@ -53,7 +84,7 @@ async function getSheetData(team)
         { userEnteredValue: { stringValue: "BPM" } },
         { userEnteredValue: { stringValue: "ID" } }
     ]});
-    
+    // Map info
     team.maps.sort((a, b) => a.mod - b.mod).forEach(map =>
         rowdata.push({ values: [
             { userEnteredValue: { stringValue: modString(map.mod) } },
