@@ -396,34 +396,53 @@ async function recheckMaps(msg)
         // It shouldn't require hitting the osu api, and all the required info
         // should already exist in the beatmap object.
         let rejects = [];
+        console.log(`${team.name} is in ${team.division} bracket`);
         team.maps.forEach(map => {
-            let result = checker.quickCheck(map);
+            let result = checker.quickCheck(map, null, team.division === "15k");
             if (result)
                 rejects.push({
                     id: map.id,
                     mod: map.mod
                 });
             });
-        return rejects;
+        return {
+            division: team.division,
+            rejects: rejects
+        };
     };
     // Use the quick check from above on each database team
     let results = await db.performAction(update);
     // Results should be an array of arrays. Each inner array having rejects 
     // from one team.
     // Unwind the results arrays into a single array
-    let maprejects = [];
-    results.forEach(arr =>
-        arr.forEach(reject => {
-            if (!maprejects.includes(reject))
-                maprejects.push(reject);
-        })
-    );
-    console.log(maprejects);
+    let openrejects = [];
+    let fiftrejects = [];
+    results.forEach(team => {
+        if (team.division === "15k")
+            team.rejects.forEach(reject => {
+                if (!fiftrejects.includes(reject))
+                    fiftrejects.push(reject);
+            });
+        else
+            team.rejects.forEach(reject => {
+                if (!openrejects.includes(reject))
+                    openrejects.push(reject);
+            });
+    });
+    console.log("Open rejects:");
+    console.log(openrejects);
+    console.log("15k rejects:");
+    console.log(fiftrejects);
     // Update each map from the results with a reject message
     // Don't bother updating if there are no maps needed to update
-    if (maprejects.length === 0)
+    let updateCount = 0;
+    if (openrejects.length === 0 && fiftrejects.length === 0)
         return msg.channel.send("No maps outside range");
-    let updateCount = await db.bulkReject(maprejects, "Map is below the new week's star range");
+    if (openrejects.length > 0)
+        updateCount += await db.bulkReject(openrejects, "Map is below the new week's star range", "Open");
+    if (fiftrejects.length > 0)
+        updateCount += await db.bulkReject(fiftrejects, "Map is below the new week's star range", "15k");
+    
     if (updateCount)
         return msg.channel.send(`Updated ${updateCount} teams`);
     else

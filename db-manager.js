@@ -114,7 +114,7 @@ async function addPlayer(teamName, osuid, osuname, discordid)
 {
     console.log(`Adding ${osuname} to ${teamName}`);
     // If the team doesn't exist, add it first
-    
+
     let result = await db.collection('teams').updateOne(
         { name: teamName },
         {
@@ -468,10 +468,10 @@ async function rejectMap(mapid, mods, message)
  *  }
  * ]} maps An array of maps to reject
  * @param {String} message The reject message to use
+ * @param {"Open"|"15k"} division Which division to update
  */
-async function bulkReject(maps, message)
+async function bulkReject(maps, message, division)
 {
-    console.log(maps);
     message = 'Rejected - ' + message;
     // If possible, I'd like to do away with this manually constructing
     // arrayFilters
@@ -484,57 +484,12 @@ async function bulkReject(maps, message)
 
     // Reject all maps matching the criteria
     let result = await db.collection('teams').updateMany(
-        { },
+        { division: division },
         { $set: { 'maps.$[badmap].status': message } },
         { arrayFilters: [
             { $or: filters }
         ] }
     );
-
-    /*/ Filter maps into their proper mods
-    let nm = [];
-    let hd = [];
-    let hr = [];
-    let dt = [];
-    let cm = [];
-    maps.forEach(map => {
-        switch (map.mod)
-        {
-            case 0: nm.push(map.id); break;
-            case MODS.HD: hd.push(map.id); break;
-            case MODS.HR: hr.push(map.id); break;
-            case MODS.DT: dt.push(map.id); break;
-            default: cm.push(map); break;
-        }
-    });
-
-    let result2 = await db.collection('teams').updateMany(
-        { },
-        {
-            $set: {
-                'maps.nm.$[nmmap].status': message,
-                'maps.hd.$[hdmap].status': message,
-                'maps.hr.$[hrmap].status': message,
-                'maps.dt.$[dtmap].status': message,
-                'maps.cm.$[cmmap].status': message
-            }
-        },
-        {
-            arrayFilters: [
-                { 'nmmap.id': { $in: nm } },
-                { 'hdmap.id': { $in: hd } },
-                { 'hrmap.id': { $in: hr } },
-                { 'dtmap.id': { $in: dt } },
-                { $or: [
-                    { 'cmmap.id': { $in: nm }, 'cmmap.mod': 0 },
-                    { 'cmmap.id': { $in: hd }, 'cmmap.mod': MODS.HD },
-                    { 'cmmap.id': { $in: hr }, 'cmmap.mod': MODS.HR },
-                    { 'cmmap.id': { $in: dt }, 'cmmap.mod': MODS.DT },
-                    { 'cmmap': { $elemMatch: { $in: cm } } }
-                ] }
-            ]
-        }
-    );*/
 
     console.log(`Modified ${result.modifiedCount} documents in bulk update`);
     return result.modifiedCount;

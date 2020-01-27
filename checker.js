@@ -149,6 +149,7 @@ async function checkPool(maps)
 function quickCheck(beatmap, userid, lowDiv)
 {
     console.log(beatmap);
+    console.log(`For 15k? ${lowDiv}`);
     if (!beatmap)
         return "That map doesn't exist";
     // Check the game mode
