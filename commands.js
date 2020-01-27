@@ -1003,10 +1003,13 @@ async function rejectScreenshot(msg, userlist)
     {
         // Tell players on the team that they need a new screenshot
         let dms = result.players.map(player => {
-            let member = userlist.get(player.discordid);
-            if (member)
-                return member.send("A screenshot for one of your maps was declined:\n" +
-                    `https://osu.ppy.sh/b/${mapid}`);
+            if (player.notif === undefined)
+            {
+                let member = userlist.get(player.discordid);
+                if (member)
+                    return member.send("A screenshot for one of your maps was declined:\n" +
+                        `https://osu.ppy.sh/b/${mapid}`);
+            }
         });
         dms.push(msg.channel.send("Set status to \"Screenshot Required\""));
         return Promise.all(dms);

@@ -468,7 +468,10 @@ async function rejectMap(mapid, mods, message)
             players: { $addToSet: "$players" }
         } }
     ]);
-    let players = (await playerlist.toArray()).find(i => i._id === null).players;
+    let parr = (await playerlist.toArray()).find(i => i._id === null);
+    let players = [];
+    if (parr)
+        players = parr.players;
     console.log(players);
     // Update the status
     // Not limiting to pending maps here because it's conceivable that a
