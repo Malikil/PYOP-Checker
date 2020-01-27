@@ -813,6 +813,38 @@ async function viewPool(msg)
 
     return msg.channel.send(str);
 }
+
+/**
+ * Toggles whether the player wants to receive notifications when their maps are rejected
+ * @param {Discord.Message} msg 
+ */
+async function toggleNotif(msg)
+{
+    let args = msg.content.split(' ');
+    if (args[0] !== "!notif")
+        return;
+
+    if (args.length === 1)
+    {
+        let status = await db.toggleNotification(msg.author.id);
+        if (status === undefined)
+            return msg.channel.send("Couldn't update your notification status");
+        else
+            return msg.channel.send(`Toggled notifications ${status ? "on" : "off"}`);
+    }
+    else if (args[1] === '?')
+    {
+        let team = await db.getTeam(msg.author.id);
+        if (!team)
+            return msg.channel.send("Couldn't find which team you're on");
+
+        let status = team.players.find(p => p.discordid === msg.author.id).notif;
+        // Show help and the current setting
+        return msg.channel.send("Usage: !notif\n" +
+            "Toggles whether the bot will DM you if one of your maps is rejected\n" +
+            `Currently set to: ${status === false ? "Ignore" : "Notify"}`);
+    }
+}
 //#endregion
 //#region Approver Commands
 // ============================================================================
@@ -996,7 +1028,7 @@ async function commands(msg)
             "!pending, !approve, !reject, !clearss";
     if (await db.getTeam(msg.author.id))
         info += "\nAvailable **Player** commands:\n" +
-            "!addmap, !removemap, !viewpool, !addpass, !osuname";
+            "!addmap, !removemap, !viewpool, !addpass, !osuname, !notif";
     info += "\n\nGet more info about a command by typing a ? after the name";
     return msg.channel.send(info);
 }
@@ -1011,11 +1043,12 @@ module.exports = {
     addPlayer,
     removePlayer,
     movePlayer,
-    updatePlayerName,
     lockSubmissions,
     exportMaps,
     recheckMaps,
-    addMap,     // Maps
+    toggleNotif,    // Players
+    updatePlayerName,
+    addMap,         // Maps
     addPass,
     removeMap,
     viewPool,

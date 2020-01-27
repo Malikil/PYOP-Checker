@@ -201,6 +201,40 @@ async function updatePlayer(discordid, osuname)
 }
 
 /**
+ * Toggles whether the player wants to receive notifications of map updates
+ * @param {string} discordid The Discord id of the player to update
+ * @returns True/False indicating the new status, or undefined if the player
+ * wasn't found
+ */
+async function toggleNotification(discordid)
+{
+    let team = await db.collection('teams').findOne({
+        'players.discordid': discordid
+    });
+    if (!team)
+        return;
+    
+    if (team.players.find(p => p.discordid === discordid).notif === false)
+    {
+        let result = await db.collection('teams').updateOne(
+            { 'players.discordid': discordid },
+            { $unset: { 'players.$.notif': "" } }
+        );
+        if (result.modifiedCount)
+            return true;
+    }
+    else
+    {
+        let result = await db.collection('teams').updateOne(
+            { 'players.discordid': discordid },
+            { $set: { 'players.$.notif': false } }
+        );
+        if (result.modifiedCount)
+            return false;
+    }
+}
+
+/**
  * Gets which team a player is on based on their discord id
  * @param {string} discordid The player's discord id
  */
@@ -410,7 +444,8 @@ async function approveMap(mapid, mods)
  * @param {Number} mapid The map id to update
  * @param {Number} mods The mods the map uses
  * @param {string} message The reject message to add to the end
- * @returns The number of documents (teams) that were modified
+ * @returns A list of players to notify of the change, plus the number of
+ * updated teams
  */
 async function rejectMap(mapid, mods, message)
 {
@@ -429,11 +464,11 @@ async function rejectMap(mapid, mods, message)
         } },
         { $unwind: "$players" },
         { $group: {
-            _id: null,
+            _id: "$players.notif",
             players: { $addToSet: "$players" }
         } }
     ]);
-    let players = (await playerlist.toArray())[0].players;
+    let players = (await playerlist.toArray()).find(i => i._id === null).players;
     console.log(players);
     // Update the status
     // Not limiting to pending maps here because it's conceivable that a
@@ -502,6 +537,7 @@ module.exports = {
     removePlayer,
     movePlayer,
     updatePlayer,
+    toggleNotification,
     getTeam,
     addMap,     // Maps
     removeMap,

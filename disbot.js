@@ -86,6 +86,8 @@ client.on('message', msg => {
     else if (msg.content.startsWith('!moveplayer ')
             || msg.content.startsWith('!mp '))
         response = adminCommand(msg, commands.movePlayer);
+    else if (msg.content.startsWith('!notif'))
+        response = commands.toggleNotif(msg);
     // Map management
     else if (msg.content.startsWith('!addmap ')
             || msg.content.startsWith('!add '))
