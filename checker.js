@@ -25,6 +25,8 @@ MODS.DIFFMODS = MODS.HR | MODS.DT | MODS.HT;
 // ==============================================================
 const minStar = parseFloat(process.env.MIN_STAR);   // Minimum star rating
 const maxStar = parseFloat(process.env.MAX_STAR);   // Maximum star rating
+const lowMin = parseFloat(process.env.FIFT_MIN);
+const lowMax = parseFloat(process.env.FIFT_MAX);
 const minLength = parseInt(process.env.MIN_LENGTH); // Minimum drain time
 const maxLength = parseInt(process.env.MAX_LENGTH); // Maximum drain time
 const absoluteMax = parseInt(process.env.ABSOLUTE_MAX); // Maximum length limit
@@ -141,9 +143,10 @@ async function checkPool(maps)
 /**
  * Checks a single beatmap for simple itmes like drain time, star rating, and mode
  * @param beatmap The beatmap to check
+ * @param {boolean} lowDiv True if the low division should be used, otherwise open
  * @returns If the map fails, a message will be returned. Otherwise undefined.
  */
-function quickCheck(beatmap, userid)
+function quickCheck(beatmap, userid, lowDiv)
 {
     console.log(beatmap);
     if (!beatmap)
@@ -160,10 +163,17 @@ function quickCheck(beatmap, userid)
     if (beatmap.total_length > absoluteMax)
         return `Total map time is above the ${convertSeconds(absoluteMax)} limit. (${convertSeconds(beatmap.total_length)})`;
     // Check difficulty
-    if (beatmap.stars > maxStar)
-        return `Star rating is above the ${maxStar.toFixed(2)} maximum. (${beatmap.stars})`;
-    else if (beatmap.stars < minStar)
-        return `Star rating is below the ${minStar.toFixed(2)} minimum. (${beatmap.stars})`;
+    let min = minStar;
+    let max = maxStar;
+    if (lowDiv)
+    {
+        min = lowMin;
+        max = lowMax;
+    }
+    if (beatmap.stars > max)
+        return `Star rating is above the ${max.toFixed(2)} maximum. (${beatmap.stars})`;
+    else if (beatmap.stars < min)
+        return `Star rating is below the ${min.toFixed(2)} minimum. (${beatmap.stars})`;
     console.log("Seems okay");
     // Make sure the user didn't make this map themself
     if (userid)

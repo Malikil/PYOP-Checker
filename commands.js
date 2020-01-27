@@ -87,6 +87,7 @@ async function checkMap(msg)
         return msg.channel.send("Usage: !check <map> [mod]\n" +
             "Map should be a link or map id\n" +
             "(Optional) mod should be some combination of HD|HR|DT|HT|EZ. Default is NoMod\n" +
+            "This command only checks against the open bracket's star range.\n" +
             "Aliases: !map");
     let mod = 0;
     if (args.length === 3)
@@ -131,6 +132,8 @@ async function viewRequirements(msg)
             "Aliases: !req");
     const minStar = process.env.MIN_STAR;   // Minimum star rating
     const maxStar = process.env.MAX_STAR;   // Maximum star rating
+    const lowMin = process.env.FIFT_MIN;
+    const lowMax = process.env.FIFT_MAX;
     const minLength = parseInt(process.env.MIN_LENGTH); // Minimum drain time
     const maxLength = parseInt(process.env.MAX_LENGTH); // Maximum drain time
     const absoluteMax = parseInt(process.env.ABSOLUTE_MAX); // Maximum length limit
@@ -142,7 +145,9 @@ async function viewRequirements(msg)
     const leaderboard = parseInt(process.env.LEADERBOARD);      // How many leaderboard scores are required for auto-approval
 
     return msg.channel.send("Requirements for this week:\n" +
-        `Star rating: ${minStar} - ${maxStar}\n` +
+        `Star rating:\n` +
+        `    Open: ${minStar} - ${maxStar}\n` +
+        `    15K: ${lowMin} - ${lowMax}\n` +
         `Drain length: ${checker.convertSeconds(minLength)}` +
         ` - ${checker.convertSeconds(maxLength)}\n` +
         `   Total length must be less than ${checker.convertSeconds(absoluteMax)}\n` +
@@ -229,7 +234,7 @@ async function addTeam(msg)
     else if (args == '?')
         return msg.channel.send(`Adds a new team to the database`);
     
-    let result = await db.addTeam(args);
+    let result = await db.addTeam(args, "Open");
     if (result === undefined)
         return msg.channel.send("A team with that name already exists");
     else if (result)
@@ -522,7 +527,7 @@ async function addMap(msg)
     // Check beatmap approval
     console.log(`Looking for map with id ${mapid} and mod ${mod}`);
     let beatmap = await checker.getBeatmap(mapid, mod);
-    let quick = checker.quickCheck(beatmap, osuid);
+    let quick = checker.quickCheck(beatmap, osuid, team.division === "15k");
     let status;
     if (quick)
         return msg.channel.send(quick);

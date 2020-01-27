@@ -124,6 +124,7 @@ async function addPlayer(teamName, osuid, osuname, discordid)
                 discordid: discordid
             } },
             $setOnInsert: {
+                division: "Open",
                 maps: []
             }
         },
