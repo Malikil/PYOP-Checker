@@ -11,6 +11,7 @@ const checker = require('./checker');
 const db = require('./db-manager');
 const util = require('util');
 const google = require('./gsheets');
+const AsciiTable = require('ascii-table');
 
 const APPROVER = process.env.ROLE_MAP_APPROVER;
 
@@ -190,31 +191,57 @@ async function viewTeams(msg)
 async function viewTeamPlayers(msg)
 {
     let args = msg.content.split(' ');
-    if (args.length > 2 || args[0] !== "!players")
+    if (args.length > 2 || (args[0] !== "!players" && args[0] !== "!teams"))
         return;
     if (args.length === 2)
         if (args[1] === '?')
-            return msg.channel.send("Usage: !players\n" +
-                "Shows the currently registered teams and players on those teams");
-        else
+            return msg.channel.send("Usage: !teams [open|15k]\n" +
+                "Optionally limit to a division by specifying 'open' or '15k'\n" +
+                "Shows the currently registered teams and players on those teams\n" +
+                "Aliases: !players");
+        else if (args[1] !== "open" && args[1] !== "Open"
+                && args[1] !== "15k" && args[1] !== "15K")
             return;
     // Continue if args.length == 1
+    // Create the tables
+    var opentable = new AsciiTable("Open");
+    var fifttable = new AsciiTable("15k");
+    
     let result = await db.performAction(async function(team) {
         let teaminfo = [];
         teaminfo.push(team.name);
         team.players.forEach(player => teaminfo.push(player.osuname));
-        return teaminfo;
+        return {
+            range: team.division,
+            info: teaminfo
+        };
     });
-    let str = "Currently registered teams:";
     result.forEach(team => {
-        let tempstr = `__${team.shift()}__ `;
+        if (team.range === "Open")
+            opentable.addRow(team.info);
+        else
+            fifttable.addRow(team.info);
+        /*let tempstr = `__${team.shift()}__ `;
         if (team.length > 0)
         {
             team.forEach(player => tempstr += `${player}, `);
             tempstr = tempstr.substring(0, tempstr.length - 2);
         }
-        str += "\n" + tempstr;
+        str += "\n" + tempstr;*/
     });
+    // Decide which table to include
+    let str = "```\n";
+    if (args[1] === "open" || args[1] === "Open")
+        str += opentable.toString();
+    else if (args[1] === "15k" || args[1] === "15K")
+        str += fifttable.toString();
+    else
+    {
+        str += opentable.toString();
+        str += "\n";
+        str += fifttable.toString();
+    }
+    str += "```";
     return msg.channel.send(str);
 }
 //#endregion
@@ -1025,7 +1052,7 @@ async function rejectScreenshot(msg, userlist)
 async function commands(msg)
 {
     var info = "Available **Public** commands:\n" +
-        "!check, !help, !requirements, !teams, !players";
+        "!check, !help, !requirements, !teams";
     if (msg.member && msg.member.roles.has(APPROVER))
         info += "\nAvailable **Map Approver** commands:\n" +
             "!pending, !approve, !reject, !clearss";

@@ -68,9 +68,8 @@ client.on('message', msg => {
     else if (msg.content.startsWith('!requirements')
             || msg.content.startsWith('!req'))
         response = commands.viewRequirements(msg);
-    else if (msg.content.startsWith('!teams'))
-        response = commands.viewTeams(msg);
-    else if (msg.content.startsWith('!players'))
+    else if (msg.content.startsWith('!teams')
+            || msg.content.startsWith('!players'))
         response = commands.viewTeamPlayers(msg);
     else if (msg.content.startsWith("!osuname"))
         response = commands.updatePlayerName(msg);
