@@ -161,30 +161,6 @@ async function viewRequirements(msg)
 }
 
 /**
- * Displays all teams currently registered
- * @param {Discord.Message} msg 
- */
-async function viewTeams(msg)
-{
-    let args = msg.content.split(' ');
-    if (args.length > 2 || args[0] !== "!teams")
-        return;
-    if (args.length === 2)
-        if (args[1] === '?')
-            return msg.channel.send("Usage: !teams\n" +
-                "Shows the currently registered teams");
-        else
-            return;
-    // Continue if args.length == 1
-    let result = await db.performAction(async function(team) { return team.name; });
-    let str = "Currently registered teams:\n";
-    result.forEach(team => {
-        str += team + ", ";
-    });
-    return msg.channel.send(str.substring(0, str.length - 2));
-}
-
-/**
  * Displays all teams currently registered, and the players on them
  * @param {Discord.Message} msg 
  */
@@ -204,42 +180,52 @@ async function viewTeamPlayers(msg)
             return;
     // Continue if args.length == 1
     // Create the tables
-    var opentable = new AsciiTable("Open");
-    var fifttable = new AsciiTable("15k");
-    
+    var openname = 0;
+    var fiftname = 0;
     let result = await db.performAction(async function(team) {
         let teaminfo = [];
         teaminfo.push(team.name);
+        if (team.division === "Open" && team.name.length > openname)
+            openname = team.name.length;
+        else if (team.division === "15k" && team.name.length > fiftname)
+            fiftname = team.name.length;
         team.players.forEach(player => teaminfo.push(player.osuname));
         return {
             range: team.division,
             info: teaminfo
         };
     });
+
+    var openstr = "```\n";
+    var fiftstr = "```\n";
     result.forEach(team => {
-        if (team.range === "Open")
-            opentable.addRow(team.info);
-        else
-            fifttable.addRow(team.info);
-        /*let tempstr = `__${team.shift()}__ `;
-        if (team.length > 0)
+        // Prepare the current string
+        let tempstr = `${team.info.shift().padEnd(
+            team.range === "Open"
+            ? openname
+            : fiftname, ' ')} | `;
+        if (team.info.length > 0)
         {
-            team.forEach(player => tempstr += `${player}, `);
+            team.info.forEach(player => tempstr += `${player}, `);
             tempstr = tempstr.substring(0, tempstr.length - 2);
         }
-        str += "\n" + tempstr;*/
+
+        if (team.range === "Open")
+            openstr += `\n${tempstr}`;
+        else
+            fiftstr += `\n${tempstr}`;
     });
     // Decide which table to include
-    let str = "```\n";
+    let str = "";
     if (args[1] === "open" || args[1] === "Open")
-        str += opentable.toString();
+        str += `**Open division:**${openstr}`;
     else if (args[1] === "15k" || args[1] === "15K")
-        str += fifttable.toString();
+        str += `**15k division:**${fiftstr}`;
     else
     {
-        str += opentable.toString();
-        str += "\n";
-        str += fifttable.toString();
+        str += `**Open division:**${openstr}`;
+        str += "\n```\n";
+        str += `**15k division:**${fiftstr}`;
     }
     str += "```";
     return msg.channel.send(str);
@@ -1067,7 +1053,6 @@ module.exports = {
     checkMap,   // Public
     commands,
     viewRequirements,
-    viewTeams,
     viewTeamPlayers,
     addTeam,    // Admins
     addPlayer,
