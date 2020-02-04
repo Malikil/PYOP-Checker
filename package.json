@@ -10,7 +10,6 @@
   "author": "Eric",
   "license": "ISC",
   "dependencies": {
-    "ascii-table": "0.0.9",
     "discord.js": "^11.5.1",
     "googleapis": "^43.0.0",
     "mongodb": "^3.3.2",

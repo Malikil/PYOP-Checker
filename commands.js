@@ -11,7 +11,6 @@ const checker = require('./checker');
 const db = require('./db-manager');
 const util = require('util');
 const google = require('./gsheets');
-const AsciiTable = require('ascii-table');
 
 const APPROVER = process.env.ROLE_MAP_APPROVER;
 
