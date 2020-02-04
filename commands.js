@@ -276,44 +276,54 @@ async function addPlayer(msg)
     // Making a note of possible regex
     // s.match(/(?:[^\s"]+|"[^"]*")+/g)
     // Recombine quoted team names
-    if (args[0].startsWith('"'))
+    var team = args.shift();
+    if (team.startsWith('"'))
     {
-        let team = args.shift();
         while (!args[0].endsWith('"'))
             team += " " + args.shift();
+            // Take the last word, the one actually ending with "
         team += " " + args.shift();
-        args.unshift(team.substring(1, team.length - 1));
+        team = team.substring(1, team.length - 1);
     }
 
     console.log(args);
 
-    if (args.length != 3)
+    if (args.length % 2 !== 0)
         return msg.channel.send("Incorrect number of arguments");
 
-    // Get the player's discord id
-    let matches = args[2].match(/[0-9]+/);
-    if (!matches)
-        return msg.channel.send("Improper discord id");
-    let discordid = matches[0];
-    // Make sure the player isn't already on a team
-    // If the player is already on a team, move them to the new one
-    let result;
-    if (await db.getTeam(discordid))
-        result = await db.movePlayer(args[0], args[1]);
-    else
+    // There can be more than one player per command
+    // args will come in pairs, osuid first then discordid
+    let results = [];
+    for (let i = 0; i < args.length; i += 2)
     {
-        // Get the player info from the server
-        let player = await checker.getPlayer(args[1]);
-        if (!player)
-            return msg.channel.send("Couldn't get player info from osu server");
-        result = await db.addPlayer(args[0], player.user_id, player.username, discordid);
+        // Get the player's discord id
+        let matches = args[i + 1].match(/[0-9]+/);
+        if (!matches)
+        {
+            results.push(0);
+            continue;
+        }
+        let discordid = matches[0];
+        // Make sure the player isn't already on a team
+        // If the player is already on a team, move them to the new one
+        if (await db.getTeam(discordid))
+        {
+            if (await db.movePlayer(team, args[i]) > 0)
+                results.push(1);
+        }
+        else
+        {
+            // Get the player info from the server
+            let player = await checker.getPlayer(args[i]);
+            if (!player)
+                results.push(0);
+            else
+                results.push(await db.addPlayer(team, player.user_id, player.username, discordid));
+        }
     }
-
-    // Add the player to the team
-    if (result)
-        return msg.channel.send("Player added");
-    else
-        return msg.channel.send("Couldn't add player");
+    // Figure out what the results mean
+    let modified = results.reduce((prev, item) => prev + item, 0);
+    return msg.channel.send(`Added ${modified} players`);
 }
 
 /**
