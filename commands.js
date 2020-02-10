@@ -299,7 +299,19 @@ async function addPlayer(msg)
         let matches = args[i + 1].match(/[0-9]+/);
         if (!matches)
         {
-            results.push(0);
+            if (args[i + 1] === '_')
+            {
+                // Special case for adding players without a discord id
+                console.log(`Adding player without discord`);
+                let player = await checker.getPlayer(args[i]);
+                if (!player)
+                    results.push(0);
+                else
+                    results.push(await db.addPlayer(team, player.user_id, player.username, undefined));
+                continue;
+            }
+            else
+                results.push(0);
             continue;
         }
         let discordid = matches[0];
