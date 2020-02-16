@@ -28,10 +28,10 @@ function modString(mod)
 {
     let str = '';
     if (mod & checker.MODS.HD)      str += 'HD';
+    if (mod & checker.MODS.HT)      str += 'HT';
     if (mod & checker.MODS.HR)      str += 'HR';
-    else if (mod & checker.MODS.EZ) str += 'EZ';
+    else if (mod & checker.MODS.EZ) str = 'EZ' + str;
     if (mod & checker.MODS.DT)      str += 'DT';
-    else if (mod & checker.MODS.HT) str += 'HT';
     if (str == '')                  str = 'NoMod';
     return str;
 }
