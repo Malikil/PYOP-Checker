@@ -26,12 +26,14 @@ const mapString = map => `${map.artist} - ${map.title} [${map.version}]`;
 const mapLink = map => `https://osu.ppy.sh/b/${map.id}`;
 function modString(mod)
 {
+    let _dt = false;
     let str = '';
     if (mod & checker.MODS.HD)      str += 'HD';
-    if (mod & checker.MODS.HT)      str += 'HT';
+    if (mod & checker.MODS.DT)      _dt = true;
+    else if (mod & checker.MODS.HT) str += 'HT';
     if (mod & checker.MODS.HR)      str += 'HR';
     else if (mod & checker.MODS.EZ) str = 'EZ' + str;
-    if (mod & checker.MODS.DT)      str += 'DT';
+    if (_dt)                        str += 'DT';
     if (str == '')                  str = 'NoMod';
     return str;
 }
