@@ -904,7 +904,7 @@ async function viewPending(msg)
             return;
     // Continue if args.length == 1
     console.log("Finding pending maps");
-    let maplist = await db.findPendingMaps();
+    let maplist = await db.findMapsWithStatus("Pending");
     console.log(maplist);
     
     let str = "";
@@ -916,6 +916,36 @@ async function viewPending(msg)
     });
     if (str === "")
         str = "No pending maps";
+    return msg.channel.send(str);
+}
+
+async function viewNoScreenshot(msg)
+{
+    let args = msg.content.split(' ');
+    if (args.length > 2 || args[0] !== "!ssrequired")
+        return;
+    if (args.length === 2)
+        if (args[1] === '?')
+            return msg.channel.send("Usage: !ssrequired\n" +
+                "Shows all maps with a \"Screenshot Required\" status, " +
+                "waiting for one to be submitted.\n" +
+                "These maps aren't ready to be approved yet.");
+        else
+            return;
+    // Continue if args.length == 1
+    console.log("Finding screenshot required maps");
+    let maplist = await db.findMapsWithStatus("Screenshot Required");
+    console.log(maplist);
+
+    let str = "";
+    maplist.forEach(mod => {
+        str += `**__${modString(mod._id)}:__**\n`;
+        mod.maps.forEach(map =>
+            str += `<${mapLink(map)}> ${mapString(map)}\n`
+        );
+    });
+    if (str === "")
+        str = "No maps";
     return msg.channel.send(str);
 }
 
@@ -1064,7 +1094,7 @@ async function commands(msg)
         "!check, !help, !requirements, !teams";
     if (msg.member && msg.member.roles.has(APPROVER))
         info += "\nAvailable **Map Approver** commands:\n" +
-            "!pending, !approve, !reject, !clearss";
+            "!pending, !approve, !reject, !clearss, !ssrequired";
     if (await db.getTeam(msg.author.id))
         info += "\nAvailable **Player** commands:\n" +
             "!addmap, !removemap, !viewpool, !addpass, !osuname, !notif";
@@ -1091,6 +1121,7 @@ module.exports = {
     removeMap,
     viewPool,
     viewPending,    // Map approvers
+    viewNoScreenshot,
     approveMap,
     rejectMap,
     rejectScreenshot

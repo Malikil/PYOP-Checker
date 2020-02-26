@@ -344,13 +344,14 @@ async function removeMap(team, mapid, modpool, mods)
 
 /**
  * Finds all maps with a pending status
+ * @param {string} status What status the map should have
  */
-async function findPendingMaps()
+async function findMapsWithStatus(status)
 {
     let cursor = db.collection('teams').aggregate([
-        { $match: { 'maps.status': "Pending" } },
+        { $match: { 'maps.status': status } },
         { $unwind: "$maps" },
-        { $match: { 'maps.status': "Pending" } },
+        { $match: { 'maps.status': status } },
         { $group: {
             _id: "$maps.mod",
             maps: { $addToSet: {
@@ -544,7 +545,7 @@ module.exports = {
     getTeam,
     addMap,     // Maps
     removeMap,
-    findPendingMaps,
+    findMapsWithStatus,
     pendingMap,
     approveMap,
     rejectMap,
