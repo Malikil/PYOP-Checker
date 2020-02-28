@@ -121,7 +121,8 @@ async function addPlayer(teamName, osuid, osuname, discordid)
             $push: { players: {
                 osuid: osuid,
                 osuname: osuname,
-                discordid: discordid
+                discordid: discordid,
+                notif: false
             } },
             $setOnInsert: {
                 division: "Open",
