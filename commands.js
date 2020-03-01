@@ -201,7 +201,8 @@ async function viewTeamPlayers(msg)
     var fiftstr = "```\n";
     result.forEach(team => {
         // Prepare the current string
-        let tempstr = `${team.info.shift().padEnd(
+        let tname = team.info.shift();
+        let tempstr = `${tname.padEnd(
             team.range === "Open"
             ? openname
             : fiftname, ' ')} | `;
@@ -219,17 +220,14 @@ async function viewTeamPlayers(msg)
     // Decide which table to include
     let str = "";
     if (args[1] === "open" || args[1] === "Open")
-        str += `**Open division:**${openstr}`;
+        return msg.channel.send(`**Open division:**${openstr}\`\`\``);
     else if (args[1] === "15k" || args[1] === "15K")
-        str += `**15k division:**${fiftstr}`;
+        return msg.channel.send(`**15k division:**${fiftstr}\`\`\``);
     else
     {
-        str += `**Open division:**${openstr}`;
-        str += "\n```\n";
-        str += `**15k division:**${fiftstr}`;
+        await msg.channel.send(`**Open division:**${openstr}\`\`\``);
+        return msg.channel.send(`**15k division:**${fiftstr}\`\`\``);
     }
-    str += "```";
-    return msg.channel.send(str);
 }
 //#endregion
 //#region Admin Commands
