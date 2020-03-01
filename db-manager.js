@@ -143,7 +143,8 @@ function regexify(str, options)
 {
     str = str.replace('_', "(?: |_)")
         .replace('[', '\\[')
-        .replace(']', "\\]");
+        .replace(']', "\\]")
+        .replace('+', "\\+");
     return new RegExp(`^${str}$`, options);
 }
 
@@ -389,7 +390,7 @@ async function pendingMap(team, mapid, to_pending = true)
         fromstatus = "Pending";
         tostatus = "Screenshot Required"
     }
-    console.log(`Updating status on ${mapid} for ${team} to ${tostatus}`);
+    console.log(`Updating from ${fromstatus} to ${tostatus}`);
     // We don't care about mod at this point, they're not supposed to have
     // the same map more than once anyways.
     // There is a check for current status though, no point in resetting an

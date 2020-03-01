@@ -1062,6 +1062,7 @@ async function rejectScreenshot(msg, userlist)
         team = args.pop() + " " + team;
     team = team.trim();
 
+    console.log(`Attempting to update team "${team}" map id ${mapid} to unpass status`);
     let result = await db.pendingMap(team, mapid, false);
     if (result)
     {
