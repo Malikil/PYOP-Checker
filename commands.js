@@ -13,6 +13,7 @@ const util = require('util');
 const google = require('./gsheets');
 
 const APPROVER = process.env.ROLE_MAP_APPROVER;
+const MAP_COUNT = 10;
 
 // There's probably a better way to do this, but for now I'm just using a
 // global variable to store whether submissions are open or closed
@@ -820,7 +821,7 @@ async function viewPool(msg)
             // Add the map's info to the proper string
             strs[map.pool] += `${mapString(map)} ${map.pool === 'cm' ? `+${modString(map.mod)} ` : ""}<${mapLink(map)}>\n`;
             strs[map.pool] += `\tDrain: ${checker.convertSeconds(map.drain)}, Stars: ${map.stars}, Status: ${map.status}\n`;
-            
+
             pool.push(map);
         }
     });
@@ -835,9 +836,14 @@ async function viewPool(msg)
     let result = await checker.checkPool(pool);
     str += `\nTotal drain: ${checker.convertSeconds(result.totalDrain)}`;
     str += `\n${result.overUnder} maps are within 15 seconds of drain time limit\n`;
+    
     // Don't display pool error messages if limited by a certain mod
-    if (args[1] === "nmhdhrdtcm" && result.message.length > 0)
-        result.message.forEach(item => str += `\n${item}`);
+    if (args[1] === "nmhdhrdtcm")
+    {
+        str += `\nThere are ${MAP_COUNT - team.maps.length} unfilled slots`;
+        if (result.message.length > 0)
+            result.message.forEach(item => str += `\n${item}`);
+    }
     // Do display duplicate maps though
     if (result.duplicates.length > 0)
     {
