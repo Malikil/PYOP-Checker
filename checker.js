@@ -207,7 +207,7 @@ async function leaderboardCheck(mapid, mod, userid)
         return false;
     // The leaderboard passes if there are more than n scores, if the
     // first score is perfect, or if the user themself has a score
-    console.log("Found leaderboard. Top score:");
+    console.log(`Found ${scores.length} leaderboard scores. Top score:`);
     console.log(scores[0]);
     if (scores.length >= leaderboard
             || scores[0].perfect == 1

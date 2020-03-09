@@ -90,7 +90,7 @@ client.on('message', msg => {
     // Map management
     else if (msg.content.startsWith('!addmap ')
             || msg.content.startsWith('!add '))
-        response = commands.addMap(msg);
+        response = commands.addMap(msg, passChannel);
     else if (msg.content.startsWith('!removemap ')
             || msg.content.startsWith('!remove ')
             || msg.content.startsWith('!rem '))

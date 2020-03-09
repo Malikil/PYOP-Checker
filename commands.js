@@ -534,8 +534,9 @@ async function updatePlayerName(msg)
 /**
  * Adds a map to the players's team
  * @param {Discord.Message} msg 
+ * @param {Discord.TextChannel} channel Where any attached screenshots should be sent
  */
-async function addMap(msg)
+async function addMap(msg, channel)
 {
     let args = msg.content.split(' ');
     if (args.length < 2 || args.length > 3)
@@ -546,6 +547,9 @@ async function addMap(msg)
         "(optional) mod: What mods to use. Should be some combination of " +
         "CM|HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored. " +
         "To add the map as a custom mod, include CM.\n" +
+        "You may optionally attach a screenshot to automatically use that as " +
+        "your pass. It must be as an attachment, to use a separate link use " +
+        "the !addpass command.\n" +
         "Aliases: !add\n\n" +
         "If there are already two maps in the selected mod pool, the first map " +
         "will be removed when adding a new one. To replace a specific map, " +
@@ -586,12 +590,25 @@ async function addMap(msg)
     if (quick)
         return msg.channel.send(quick);
     else if (await checker.leaderboardCheck(mapid, mod, osuid))
-        if (beatmap.approved == 1)
+        if (beatmap.approved == 1 && beatmap.version !== "Aspire")
             status = "Accepted";
         else
             status = "Pending"
     else
-        status = "Screenshot Required";
+    {
+        // Check here for if there's a screenshot attached.
+        if (msg.attachments.size === 0)
+            status = "Screenshot Required";
+        else
+        {
+            // Copy to the screenshots channel, and status is pending
+            let attach = msg.attachments.first();
+            let nAttach = new Discord.Attachment(attach.url, attach.filename);
+            channel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${team.name}\n`,
+                nAttach);
+            status = "Pending";
+        }
+    }
     
     // Get the mod pool this map is being added to
     let modpool;
