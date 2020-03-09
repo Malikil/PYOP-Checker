@@ -148,7 +148,18 @@ async function checkPool(maps)
  */
 function quickCheck(beatmap, userid, lowDiv)
 {
-    console.log(beatmap);
+    console.log({
+        bid: beatmap.beatmap_id,
+        artist: beatmap.artist,
+        title: beatmap.title,
+        version: beatmap.version,
+        creator: beatmap.creator,
+        approved: beatmap.approved,
+        mode: beatmap.mode,
+        drain: beatmap.drain,
+        length: beatmap.total_length,
+        stars: beatmap.stars
+    });
     console.log(`For 15k? ${lowDiv}`);
     if (!beatmap)
         return "That map doesn't exist";
@@ -208,7 +219,10 @@ async function leaderboardCheck(mapid, mod, userid)
     // The leaderboard passes if there are more than n scores, if the
     // first score is perfect, or if the user themself has a score
     console.log(`Found ${scores.length} leaderboard scores. Top score:`);
-    console.log(scores[0]);
+    let s = scores[0];
+    console.log(`${s.username} - ${
+        (s.count50 / 6 + s.count100 / 3 + s.count300) / (s.count50 + s.count100 + s.count300 + s.countmiss)
+    }% ${s.rank} | Perfect: ${s.perfect}`);
     if (scores.length >= leaderboard
             || scores[0].perfect == 1
             || scores.find(score => score.user_id == userid) !== undefined)
