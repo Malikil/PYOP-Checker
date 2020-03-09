@@ -221,7 +221,9 @@ async function leaderboardCheck(mapid, mod, userid)
     console.log(`Found ${scores.length} leaderboard scores. Top score:`);
     let s = scores[0];
     console.log(`${s.username} - ${
-        (s.count50 / 6 + s.count100 / 3 + s.count300) / (s.count50 + s.count100 + s.count300 + s.countmiss)
+        ((s.count50 / 6) + (s.count100 / 3) + parseInt(s.count300))
+        / (parseInt(s.count50) + parseInt(s.count100) + parseInt(s.count300) + parseInt(s.countmiss))
+        * 100
     }% ${s.rank} | Perfect: ${s.perfect}`);
     if (scores.length >= leaderboard
             || scores[0].perfect == 1
