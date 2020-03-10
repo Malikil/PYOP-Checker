@@ -369,6 +369,26 @@ async function findMapsWithStatus(status)
 }
 
 /**
+ * @returns A list of teams that have missing maps or rejected maps
+ */
+async function findMissingMaps()
+{
+    let result = db.collection('teams').find({
+        $or: [
+            {
+                maps: {
+                    $not: {
+                        $size: 10
+                    }
+                }
+            },
+            { 'maps.status': /^Rejected/ }
+        ]
+    });
+    return result.toArray();
+}
+
+/**
  * Changes a map between "Screenshot Required" and "Pending" statuses
  * @param {String} team The team to update
  * @param {Number} mapid The map id to update
@@ -551,6 +571,7 @@ module.exports = {
     pendingMap,
     approveMap,
     rejectMap,
+    findMissingMaps,
     bulkReject,  // General management
     getDb,
     performAction
