@@ -650,10 +650,25 @@ async function addMap(msg, channel)
         mod: mod,
         pool: modpool
     };
-    if (await db.addMap(team.name, mapitem))
-        return msg.channel.send(`Added map ${mapString(mapitem)} ` +
+    let replaced = await db.addMap(team.name, mapitem);
+    if (replaced)
+    {
+        // Check here whether to include a replaced map message
+        let rep = "";
+        if (rejected)
+            rep = `Replaced ${mapString(rejected)}\n`;
+        else if (isNaN(replaced))
+            rep = `Replaced ${mapString(replaced)}\n`;
+
+        await msg.channel.send(`${rep}Added map ${mapString(mapitem)} ` +
             `to ${modpool.toUpperCase()} mod pool.\n` +
             `Map approval satus: ${status}`);
+        // Show the current state of the pool
+        // Gonna cheat a little and just call the existing function with a
+        // new message content
+        msg.content = `!list ${modpool}`;
+        return viewPool(msg);
+    }
     else
         return msg.channel.send("Add map failed.");
 }
@@ -851,23 +866,26 @@ async function viewPool(msg)
 
     // Check the pool as a whole
     let result = await checker.checkPool(pool);
-    str += `\nTotal drain: ${checker.convertSeconds(result.totalDrain)}`;
-    str += `\n${result.overUnder} maps are within 15 seconds of drain time limit\n`;
-    
+
     // Don't display pool error messages if limited by a certain mod
     if (args[1] === "nmhdhrdtcm")
     {
-        str += `\nThere are ${MAP_COUNT - team.maps.length} unfilled slots`;
+        str += `\nTotal drain: ${checker.convertSeconds(result.totalDrain)}`;
+        str += `\n${result.overUnder} maps are within 15 seconds of drain time limit`;
+        // Show pool problems
+        str += `\nThere are ${MAP_COUNT - team.maps.length} unfilled slots\n`;
         if (result.message.length > 0)
             result.message.forEach(item => str += `\n${item}`);
     }
-    // Do display duplicate maps though
+    // Do display duplicate maps always though
     if (result.duplicates.length > 0)
     {
         str += "\nThe following maps were found more than once:";
         result.duplicates.forEach(dupe => str += `\n\t${mapString(dupe)}`);
     }
 
+    if (str === "")
+        return msg.channel.send("Nothing to display");
     return msg.channel.send(str);
 }
 

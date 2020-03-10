@@ -265,6 +265,8 @@ async function getTeam(discordid)
  *  mod: Number,
  *  pool: String
  * }} map The map object to add
+ * @returns True if the map was added without issue, false if the map wasn't added,
+ * and a map object if a map got replaced.
  */
 async function addMap(team, map)
 {
@@ -301,6 +303,8 @@ async function addMap(team, map)
             }
         ]);
         console.log(result);
+        // Return the removed item
+        return teamobj.value.maps.find(m => m.pool === map.pool);
     }
     return teamobj.ok;
 }
