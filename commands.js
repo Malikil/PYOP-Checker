@@ -660,14 +660,28 @@ async function addMap(msg, channel)
         else if (isNaN(replaced))
             rep = `Replaced ${mapString(replaced)}\n`;
 
+        // Prepare the current pool state
+        let cur = `Current __${modString(mod)}__ maps:\n`;
+        team.maps.forEach(m => {
+            if (m.mod === mod)
+            {
+                // Make sure it's not the removed map
+                if ((replaced
+                        ? m.id !== replaced.id
+                        : true)
+                    && (rejected
+                        ? m.id !== rejected.id
+                        : true))
+                    cur += `${mapString(m)}${m.pool === 'cm' ? " CM" : ""}\n`;
+            }
+        });
+        // Add the newly added map
+        cur += `${mapString(mapitem)}${modpool === 'cm' ? " CM" : ""}`;
+        
+        // Send status and current pool info
         await msg.channel.send(`${rep}Added map ${mapString(mapitem)} ` +
             `to ${modpool.toUpperCase()} mod pool.\n` +
-            `Map approval satus: ${status}`);
-        // Show the current state of the pool
-        // Gonna cheat a little and just call the existing function with a
-        // new message content
-        msg.content = `!list ${modpool}`;
-        return viewPool(msg);
+            `Map approval satus: ${status}\n${cur}`);
     }
     else
         return msg.channel.send("Add map failed.");
