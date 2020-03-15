@@ -828,7 +828,11 @@ async function removeMap(msg)
             }
             return false;
         });
-        return msg.channel.send(`Removed ${mapString(map)} from ${(modpool || map.pool).toUpperCase()} pool`);
+        return msg.channel.send(`Removed ${mapString(map)}${
+            map.pool === "cm"
+            ? ` +${modString(map.mod)}`
+            : ""
+        } from ${map.pool.toUpperCase()} pool`);
     }
     else
         return msg.channel.send("Map not found");
