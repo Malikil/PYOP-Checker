@@ -107,6 +107,8 @@ client.on('message', msg => {
         response = approverCommand(msg, commands.viewPending);
     else if (msg.content.startsWith("!ssrequired"))
         response = approverCommand(msg, commands.viewNoScreenshot);
+    else if (msg.content.startsWith("!missing"))
+        response = approverCommand(msg, commands.viewMissingMaps);
     else if (msg.content.startsWith('!approve ')
             || msg.content.startsWith('!accept '))
         response = approverCommand(msg, commands.approveMap);

@@ -990,6 +990,10 @@ async function viewPending(msg)
     return msg.channel.send(str);
 }
 
+/**
+ * Displays a list of all 'Screenshot Required' maps
+ * @param {Discord.Message} msg 
+ */
 async function viewNoScreenshot(msg)
 {
     let args = msg.content.split(' ');
@@ -1018,6 +1022,44 @@ async function viewNoScreenshot(msg)
     if (str === "")
         str = "No maps";
     return msg.channel.send(str);
+}
+
+/**
+ * Displays a count of how many maps are needed in each modpool
+ * @param {Discord.Message} msg 
+ */
+async function viewMissingMaps(msg)
+{
+    if (msg.content === "!missing ?")
+        return msg.channel.send("Usage: !missing\n" +
+            "Shows how many map slots need to be filled for each mod " +
+            "in either division.");
+    else if (msg.content !== "!missing")
+        return;
+    
+    let missing = await db.findMissingMaps();
+
+    var counts = {
+        "Open": { nm: 0, hd: 0, hr: 0, dt: 0, cm: 0 },
+        "15k": { nm: 0, hd: 0, hr: 0, dt: 0, cm: 0 }
+    };
+    missing.forEach(team => {
+        // Add two maps for each pool
+        counts[team.division].nm += 2;
+        counts[team.division].hd += 2;
+        counts[team.division].hr += 2;
+        counts[team.division].dt += 2;
+        counts[team.division].cm += 2;
+
+        // Remove maps the team already has
+        team.maps.forEach(map => {
+            if (!map.status.startsWith("Rejected"))
+                counts[team.division][map.pool]--;
+        });
+    });
+
+    // Write out the results
+    return msg.channel.send(`\`\`\`${util.inspect(counts)}\`\`\``);
 }
 
 /**
@@ -1156,32 +1198,6 @@ async function rejectScreenshot(msg, userlist)
         return msg.channel.send("Team not found or no matching map");
 }
 
-/**
- * Views a list of all spaces in pools that need to be auto filled
- * @param {Discord.Message} msg 
- */
-async function viewMissingMaps(msg)
-{
-    if (msg.content === '!missing ?')
-        return msg.channel.send(``);
-    else if (msg.content !== '!missing')
-        return;
-
-    // Get a count of missing maps
-    let result = await db.findMissingMaps();
-    let count = 0;
-    result.forEach(team => {
-        count += 10 - team.maps.length;
-        if (team.maps.length < 10)
-            count += team.maps.reduce((prev, cur) => {
-                if (cur.status.startsWith("Rejected"))
-                    return prev + 1;
-                else
-                    return prev;
-            }, 0);
-    });
-    return msg.channel.send(`Found ${count} missing maps`);
-}
 //#endregion
 /**
  * Sends a list of available commands
