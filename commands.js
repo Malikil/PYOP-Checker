@@ -542,7 +542,7 @@ async function addMap(msg, channel)
     if (args.length < 2 || args.length > 3)
         return;
     else if (args[1] == '?')
-        return msg.channel.send("Usage: !addmap <map> [mod]\n" +
+        return msg.channel.send("Usage: !add <map> [mod]\n" +
         "map: A map link or beatmap id\n" +
         "(optional) mod: What mods to use. Should be some combination of " +
         "CM|HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored. " +
@@ -550,7 +550,7 @@ async function addMap(msg, channel)
         "You may optionally attach a screenshot to automatically use that as " +
         "your pass. It must be as an attachment, to use a separate link use " +
         "the !addpass command.\n" +
-        "Aliases: !add\n\n" +
+        "Aliases: !addmap\n\n" +
         "If there are already two maps in the selected mod pool, the first map " +
         "will be removed when adding a new one. To replace a specific map, " +
         "remove it first before adding another one.");
@@ -730,12 +730,13 @@ async function addPass(msg, channel)
         msg.channel.send("Updated screenshot");
 
     // Forward the screenshot to the proper channel
-    if (args.length == 2)
+    // Always include the attachment if there is one
+    if (msg.attachments.size > 0)
     {
-        let attachment = msg.attachments.first();
-        let nAttach = new Discord.Attachment(attachment.url, attachment.filename);
-        return channel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${team.name}\n`,
-            nAttach);
+        let attach = msg.attachments.first();
+        let attachment = new Discord.Attachment(attach.url, attach.filename);
+        return channel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${team.name}\n` +
+            (args[2] || ""), attachment);
     }
     else
         // Copy the link/image to the screenshots channel
@@ -754,11 +755,12 @@ async function removeMap(msg)
     if (args.length < 2 || args.length > 3)
         return;
     else if (args[1] == '?')
-        return msg.channel.send("Usage: !removemap <map> [mod]\n" +
+        return msg.channel.send("Usage: !remove <map> [mod]\n" +
             "map: Beatmap link or id\n" +
             "(optional) mod: Which mod pool to remove the map from. Should be " +
-            "some combination of NM|HD|HR|DT|CM. If left blank NM is assumed.\n" +
-            "Aliases: !rem, !remove\n\n");
+            "some combination of NM|HD|HR|DT|CM. " +
+            "If left blank will remove the first found copy of the map.\n" +
+            "Aliases: !rem, !removemap\n\n");
 
     // Get which team the player is on
     let team = await db.getTeam(msg.author.id);
@@ -799,22 +801,34 @@ async function removeMap(msg)
     let modpool;
     if (args.length > 2)
     {
-        mods = parseMod(args[2]);
-        if (args[2].toUpperCase().includes("CM"))
-            modpool = 'cm';
+        args[2] = args[2].toUpperCase();
+        // If CM is present, regardless of other mods
+        if (args[2].includes("CM"))
+            modpool = "cm";
+        // Only if other mods are present
+        if (args[2] !== "CM")
+            mods = parseMod(args[2]);
     }
-    else
-        mods = 0;
-    if (!modpool)
-        modpool = getModpool(mods);
 
     console.log(`Removing mapid ${mapid} from ${modpool}`);
     let result = await db.removeMap(team.name, mapid, modpool, mods);
     if (result)
     {
         // Find the map info for this id, for user friendliness' sake
-        let map = team.maps.find(item => item.id == mapid);
-        return msg.channel.send(`Removed ${mapString(map)} from ${modpool.toUpperCase()} pool`);
+        let map = team.maps.find(item => {
+            if (item.id == mapid)
+            {
+                if (modpool !== undefined)
+                    if (item.pool !== modpool)
+                        return false;
+                if (mods !== undefined)
+                    if (item.mod !== mods)
+                        return false;
+                return true;
+            }
+            return false;
+        });
+        return msg.channel.send(`Removed ${mapString(map)} from ${(modpool || map.pool).toUpperCase()} pool`);
     }
     else
         return msg.channel.send("Map not found");
@@ -831,10 +845,10 @@ async function viewPool(msg)
             || !['!view', '!viewpool', '!list'].includes(args[0]))
         return;
     else if (args[1] === '?')
-        return msg.channel.send("Usage: !viewpool [mod]\n" +
+        return msg.channel.send("Usage: !view [mod]\n" +
             "View maps in your pool and their statuses. " +
             "Optionally limit to a specific set of mods from NM|HD|HR|DT|CM\n" +
-            "Aliases: !view, !list");
+            "Aliases: !viewpool, !list");
     
     // Get which team the player is on
     let team = await db.getTeam(msg.author.id);
@@ -1178,7 +1192,7 @@ async function commands(msg)
             "!pending, !approve, !reject, !clearss, !ssrequired, !missing";
     if (await db.getTeam(msg.author.id))
         info += "\nAvailable **Player** commands:\n" +
-            "!addmap, !removemap, !viewpool, !addpass, !osuname, !notif";
+            "!add, !remove, !view, !addpass, !osuname, !notif";
     info += "\n\nGet more info about a command by typing a ? after the name";
     return msg.channel.send(info);
 }
