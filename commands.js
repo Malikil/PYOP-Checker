@@ -756,7 +756,8 @@ async function removeMap(msg)
         return;
     else if (args[1] == '?')
         return msg.channel.send("Usage: !remove <map> [mod]\n" +
-            "map: Beatmap link or id\n" +
+            "map: Beatmap link or id. You can specify `all` instead to clear " +
+            "all maps from your pool\n" +
             "(optional) mod: Which mod pool to remove the map from. Should be " +
             "some combination of NM|HD|HR|DT|CM. " +
             "If left blank will remove the first found copy of the map.\n" +
@@ -770,7 +771,44 @@ async function removeMap(msg)
     // Get the beatmap id
     let mapid = checker.parseMapId(args[1]);
     if (!mapid)
-        return msg.channel.send(`Couldn't recognise beatmap id`);
+    {
+        // If they want to remove all maps, this is where it will be
+        // because 'all' isn't a number
+        if (args[1].toLowerCase() === "all")
+        {
+            // Ask for confirmation
+            console.log("Confirming remove all");
+            await msg.channel.send("This will remove __ALL__ maps from your pool. "
+                + "Are you sure? (y/yes/n/no)");
+            let err = "";
+            let aborted = await msg.channel.awaitMessages(
+                message => ['y', 'yes', 'n', 'no'].includes(message.content.toLowerCase()),
+                { maxMatches: 1, time: 20000, errors: ['time'] }
+            ).then(results => {
+                console.log(results);
+                let response = results.first();
+                return ['n', 'no'].includes(response.content.toLowerCase());
+            }).catch(reason => {
+                console.log("Response timer expired");
+                err = "Timed out. ";
+                return true;
+            });
+            console.log(`Aborted? ${aborted}`);
+            if (aborted)
+                return msg.channel.send(err + "Maps not removed");
+            else
+            {
+                // Remove all maps and return
+                let changed = await db.removeAllMaps(team.name);
+                if (changed)
+                    return msg.channel.send(`Removed ${team.maps.length} maps`);
+                else
+                    return msg.channel.send("No maps to remove.");
+            }
+        }
+        else
+            return msg.channel.send(`Couldn't recognise beatmap id`);
+    }
 
     if (locked)
     {
@@ -836,6 +874,11 @@ async function removeMap(msg)
     }
     else
         return msg.channel.send("Map not found");
+}
+
+async function clearPool(msg)
+{
+
 }
 
 /**

@@ -350,6 +350,24 @@ async function removeMap(team, mapid, modpool, mods)
 }
 
 /**
+ * Removes all maps from the given team's pool
+ * @param {string} team Team name
+ * @returns The number of teams modified
+ */
+async function removeAllMaps(team)
+{
+    let result = await db.collection('teams').updateOne(
+        { name: team },
+        {
+            $set: {
+                maps: []
+            }
+        }
+    );
+    return result.modifiedCount;
+}
+
+/**
  * Finds all maps with a pending status
  * @param {string} status What status the map should have
  */
@@ -572,6 +590,7 @@ module.exports = {
     getTeam,
     addMap,     // Maps
     removeMap,
+    removeAllMaps,
     findMapsWithStatus,
     pendingMap,
     approveMap,
