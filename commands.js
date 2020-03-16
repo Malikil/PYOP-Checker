@@ -981,11 +981,14 @@ async function viewPending(msg)
     let str = "";
     maplist.forEach(mod => {
         str += `**__${modString(mod._id)}:__**\n`;
-        mod.maps.forEach(map =>
-            str += `<${mapLink(map)}> ${mapString(map)}\n`
-        );
+        mod.maps.forEach(map => {
+            if (str.length < 1800)
+                str += `<${mapLink(map)}> ${mapString(map)}\n`;
+        });
     });
-    if (str === "")
+    if (str.length >= 1800)
+        str += "Message too long, some maps skipped...";
+    else if (str === "")
         str = "No pending maps";
     return msg.channel.send(str);
 }
