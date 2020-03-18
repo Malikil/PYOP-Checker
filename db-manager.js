@@ -103,6 +103,22 @@ async function addTeam(teamName, division)
 }
 
 /**
+ * Sets the maps for a team to a certain state
+ * @param {{
+ *     name: string,
+ *     maps: any[]
+ * }} team 
+ */
+async function setTeamState(team)
+{
+    let result = await db.collection('teams').updateOne(
+        { name: team.name },
+        { $set: { maps: team.maps } }
+    );
+    return result.modifiedCount;
+}
+
+/**
  * Adds a player to a team
  * @param {string} teamName The team to add to
  * @param {string} osuid The player's osu id
@@ -588,6 +604,7 @@ module.exports = {
     updatePlayer,
     toggleNotification,
     getTeam,
+    setTeamState,
     addMap,     // Maps
     removeMap,
     removeAllMaps,

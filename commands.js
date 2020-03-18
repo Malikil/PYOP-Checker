@@ -71,6 +71,56 @@ function getModpool(bitwise)
         default:              return "cm";
     }
 }
+
+/**
+ * Silently waits for an undo command, and if it's received the team 
+ * state will be restored to the given one
+ * @param {Discord.Message} msg 
+ * @param {*} team 
+ */
+async function waitForUndo(msg, team)
+{
+    let undo = await getConfirmation(msg, '', ['!undo'], []);
+    if (!undo.aborted)
+    {
+        db.setTeamState(team);
+        msg.channel.send("Reset maps to previous state");
+    }
+}
+
+/**
+ * Will ask for confirmation in the channel of a received message,
+ * from the user who sent that message
+ * @param {Discord.Message} msg 
+ * @param {string} prompt
+ */
+async function getConfirmation(msg, prompt = undefined, accept = ['y', 'yes'], reject = ['n', 'no'])
+{
+    // Prepare the accept/reject values
+    let waitFor = accept.concat(reject);
+    let waitForStr = waitFor.reduce((p, v) => p + `/${v}`, "").slice(1);
+    if (prompt)
+        await msg.channel.send(`${prompt} (${waitForStr})`);
+    let err;
+    let aborted = await msg.channel.awaitMessages(
+        message => message.author.equals(msg.author)
+            && waitFor.includes(message.content.toLowerCase()),
+        { maxMatches: 1, time: 15000, errors: ['time'] }
+    ).then(results => {
+        console.log(results);
+        let response = results.first();
+        return reject.includes(response.content.toLowerCase());
+    }).catch(reason => {
+        console.log("Response timer expired");
+        err = "Timed out. ";
+        return true;
+    });
+    console.log(`Aborted? ${aborted}`);
+    return {
+        aborted,
+        err
+    };
+}
 //#endregion
 //#region Public Commands
 // ============================================================================
@@ -567,7 +617,7 @@ async function addMap(msg, channel)
         return msg.channel.send("Submissions are currently locked. "+
             "Please wait until after pools are released before submitting next week's maps.\n" +
             "If you're submitting a replacement for a map that was rejected after submissions " +
-            "closed, please send it to a Map Approver directly.");
+            "closed, please send it to Malikil directly.");
     // Get beatmap information
     let mod = 0;
     let custom = false;
@@ -682,6 +732,9 @@ async function addMap(msg, channel)
         await msg.channel.send(`${rep}Added map ${mapString(mapitem)} ` +
             `to ${modpool.toUpperCase()} mod pool.\n` +
             `Map approval satus: ${status}\n${cur}`);
+
+        // Check for an undo command
+        return waitForUndo(msg, team);
     }
     else
         return msg.channel.send("Add map failed.");
@@ -874,11 +927,6 @@ async function removeMap(msg)
     }
     else
         return msg.channel.send("Map not found");
-}
-
-async function clearPool(msg)
-{
-
 }
 
 /**
