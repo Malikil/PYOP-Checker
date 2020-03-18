@@ -105,7 +105,7 @@ async function getConfirmation(msg, prompt = undefined, accept = ['y', 'yes'], r
     let aborted = await msg.channel.awaitMessages(
         message => message.author.equals(msg.author)
             && waitFor.includes(message.content.toLowerCase()),
-        { maxMatches: 1, time: 15000, errors: ['time'] }
+        { maxMatches: 1, time: 10000, errors: ['time'] }
     ).then(results => {
         console.log(results);
         let response = results.first();
@@ -170,19 +170,23 @@ async function checkMap(msg)
 /**
  * Displays the current week's star/length requirements
  * @param {Discord.Message} msg 
+ * @param {string[]} args
  */
-async function viewRequirements(msg)
+async function viewRequirements(msg, args)
 {
-    let args = msg.content.split(' ');
     // Make sure the first argument is actually the command.
     if (!['!req', '!requirements'].includes(args[0]))
         return;
-
+    // Ignore if the command has too many args
+    if (args.length > 2)
+        return;
+    
     if (args[1] === '?')
         return msg.channel.send("Usage: !requirements\n" +
             "Displays the star rating and length requirements for " +
             "the current week\n" +
             "Aliases: !req");
+    
     const minStar = process.env.MIN_STAR;   // Minimum star rating
     const maxStar = process.env.MAX_STAR;   // Maximum star rating
     const lowMin = process.env.FIFT_MIN;
@@ -215,10 +219,10 @@ async function viewRequirements(msg)
 /**
  * Displays all teams currently registered, and the players on them
  * @param {Discord.Message} msg 
+ * @param {string[]} args
  */
-async function viewTeamPlayers(msg)
+async function viewTeamPlayers(msg, args)
 {
-    let args = msg.content.split(' ');
     if (args.length > 2 || (args[0] !== "!players" && args[0] !== "!teams"))
         return;
     if (args.length === 2)
@@ -269,7 +273,6 @@ async function viewTeamPlayers(msg)
             fiftstr += `\n${tempstr}`;
     });
     // Decide which table to include
-    let str = "";
     if (args[1] === "open" || args[1] === "Open")
         return msg.channel.send(`**Open division:**${openstr}\`\`\``);
     else if (args[1] === "15k" || args[1] === "15K")
@@ -309,33 +312,20 @@ async function addTeam(msg)
 /**
  * Adds a player to a team
  * @param {Discord.Message} msg 
+ * @param {string[]} args
  */
-async function addPlayer(msg)
+async function addPlayer(msg, args)
 {
-    let args = msg.content.split(' ');
-    if (args.length > 1 && args[1] == '?')
+    if (args[1] === '?')
         return msg.channel.send("Adds a player to an existing team.\n" +
-            "!addPlayer \"Team Name\" <osu name/id> <discordid/@>");
+            "!addPlayer \"Team Name\" (<osu name/id> <discordid/@>)...");
     if (args.length < 4)
         return;
 
     // Remove the command argument, combining team name will require team to
     // be the first argument
     args.shift();
-
-    // Making a note of possible regex
-    // s.match(/(?:[^\s"]+|"[^"]*")+/g)
-    // Recombine quoted team names
     var team = args.shift();
-    if (team.startsWith('"'))
-    {
-        while (!args[0].endsWith('"'))
-            team += " " + args.shift();
-            // Take the last word, the one actually ending with "
-        team += " " + args.shift();
-        team = team.substring(1, team.length - 1);
-    }
-
     console.log(args);
 
     if (args.length % 2 !== 0)
@@ -391,14 +381,14 @@ async function addPlayer(msg)
 /**
  * Removes a player from all the teams they're on
  * @param {Discord.Message} msg 
+ * @param {string[]} args
  */
-async function removePlayer(msg)
+async function removePlayer(msg, args)
 {
-    let args = msg.content.split(' ');
-    if (args.length != 2)
+    if (args.length !== 2)
         return;
 
-    if (args[1] == '?')
+    if (args[1] === '?')
         return msg.channel.send("Removes a player from all teams they might be on.\n" +
             "!removePlayer osuname");
     
@@ -410,23 +400,18 @@ async function removePlayer(msg)
 /**
  * Moves an existing player to a different team
  * @param {Discord.Message} msg 
+ * @param {string[]} args
  */
-async function movePlayer(msg)
+async function movePlayer(msg, args)
 {
-    let args = msg.content.split(' ');
-    if (args.length == 2 && args[1] == '?')
+    if (args.length === 2 && args[1] === '?')
         return msg.channel.send("Moves an existing player to a different team.\n" +
             "!movePlayer <player> <Team Name>");
-    else if (args.length < 3)
+    else if (args.length !== 3)
         return;
-
-    // Recombine the team name into a single string
-    let team = args[2];
-    for (let i = 3; i < args.length; i++)
-        team += " " + args[i];
     
-    if (await db.movePlayer(team, args[1]))
-        return msg.channel.send(`Moved ${args[1]} to ${team}`);
+    if (await db.movePlayer(args[2], args[1]))
+        return msg.channel.send(`Moved ${args[1]} to ${args[2]}`);
     else
         return msg.channel.send("Couldn't move player");
 }
@@ -441,11 +426,7 @@ async function lockSubmissions(msg)
         return msg.channel.send("Submissions are already locked");
 
     locked = true;
-    return msg.channel.send(
-        'Pool submissions are now closed. If you have a map that gets ' +
-        'rejected you will still have a chance to replace it.\n' +
-        'Pools and schedules should be released sometime tomorrow.'
-    );
+    return msg.channel.send("Pools locked.");
 }
 
 /**
@@ -541,10 +522,10 @@ async function recheckMaps(msg)
 /**
  * Updates the osu name of a given player
  * @param {Discord.Message} msg 
+ * @param {string[]} args
  */
-async function updatePlayerName(msg)
+async function updatePlayerName(msg, args)
 {
-    let args = msg.content.split(' ');
     // One arg updates themself, two updates the tagged user
     if (args[0] !== "!osuname" || args.length > 2)
         return;
@@ -585,13 +566,13 @@ async function updatePlayerName(msg)
  * Adds a map to the players's team
  * @param {Discord.Message} msg 
  * @param {Discord.TextChannel} channel Where any attached screenshots should be sent
+ * @param {string[]} args
  */
-async function addMap(msg, channel)
+async function addMap(msg, channel, args)
 {
-    let args = msg.content.split(' ');
     if (args.length < 2 || args.length > 3)
         return;
-    else if (args[1] == '?')
+    else if (args[1] === '?')
         return msg.channel.send("Usage: !add <map> [mod]\n" +
         "map: A map link or beatmap id\n" +
         "(optional) mod: What mods to use. Should be some combination of " +
@@ -604,7 +585,7 @@ async function addMap(msg, channel)
         "If there are already two maps in the selected mod pool, the first map " +
         "will be removed when adding a new one. To replace a specific map, " +
         "remove it first before adding another one.\n" +
-        "If you make a mistake you can use `!undo` within 15 seconds to " +
+        "If you make a mistake you can use `!undo` within 10 seconds to " +
         "return your maps to how they were before.");
     // Get which team the player is on
     let team = await db.getTeam(msg.author.id);
@@ -746,10 +727,10 @@ async function addMap(msg, channel)
  * Adds a pass to a map in the player's team's pool
  * @param {Discord.Message} msg 
  * @param {Discord.TextChannel} channel Where to send the screenshot reply
+ * @param {string[]} args
  */
-async function addPass(msg, channel)
+async function addPass(msg, channel, args)
 {
-    let args = msg.content.split(' ');
     if (args.length < 2 || args.length > 3)
         return;
     else if (args[1] == '?')
@@ -802,11 +783,11 @@ async function addPass(msg, channel)
 /**
  * Removes a map from a player's team's pool
  * @param {Discord.Message} msg 
+ * @param {string[]} args
  */
-async function removeMap(msg)
+async function removeMap(msg, args)
 {
     // Get args amd show help
-    let args = msg.content.split(' ');
     if (args.length < 2 || args.length > 3)
         return;
     else if (args[1] == '?')
@@ -817,7 +798,7 @@ async function removeMap(msg)
             "some combination of NM|HD|HR|DT|CM. " +
             "If left blank will remove the first found copy of the map.\n" +
             "Aliases: !rem, !removemap\n\n" +
-            "If you make a mistake you can use !undo within 15 seconds to " +
+            "If you make a mistake you can use !undo within 10 seconds to " +
             "return your maps to how they were before.");
 
     // Get which team the player is on
@@ -899,10 +880,10 @@ async function removeMap(msg)
 /**
  * Views all the maps in a player's pool
  * @param {Discord.Message} msg 
+ * @param {string[]} args
  */
-async function viewPool(msg)
+async function viewPool(msg, args)
 {
-    let args = msg.content.split(' ');
     if (args.length > 2
             || !['!view', '!viewpool', '!list'].includes(args[0]))
         return;
@@ -1018,10 +999,10 @@ async function toggleNotif(msg)
 /**
  * Displays a list of all pending maps
  * @param {Discord.Message} msg 
+ * @param {string[]} args
  */
-async function viewPending(msg)
+async function viewPending(msg, args)
 {
-    let args = msg.content.split(' ');
     if (args.length > 2 || args[0] !== "!pending")
         return;
     if (args[1] === '?')
@@ -1061,10 +1042,10 @@ async function viewPending(msg)
 /**
  * Displays a list of all 'Screenshot Required' maps
  * @param {Discord.Message} msg 
+ * @param {string[]} args
  */
-async function viewNoScreenshot(msg)
+async function viewNoScreenshot(msg, args)
 {
-    let args = msg.content.split(' ');
     if (args.length > 2 || args[0] !== "!ssrequired")
         return;
     if (args.length === 2)
@@ -1133,12 +1114,10 @@ async function viewMissingMaps(msg)
 /**
  * Approves a map
  * @param {Discord.Message} msg 
+ * @param {string[]} args
  */
-async function approveMap(msg)
+async function approveMap(msg, args)
 {
-    // Split the arguments
-    let args = msg.content.split(' ');
-
     if (args[1] == '?')
         return msg.channel.send("Usage: !approve <map> [mod]\n" +
             "Map: Map link or id to approve\n" +
@@ -1167,12 +1146,10 @@ async function approveMap(msg)
  * @param {Discord.Message} msg 
  * @param {Discord.Collection<string, Discord.GuildMember>} userlist Will DM
  * matching users from this list saying their map was rejected
+ * @param {string[]} args
  */
-async function rejectMap(msg, userlist)
+async function rejectMap(msg, userlist, args)
 {
-    // Split the arguments
-    let args = msg.content.split(' ');
-    
     if (args[1] == '?')
         return msg.channel.send("Usage: !reject <map> <mod> <message>\n" +
             "Map: Map link or id to reject\n" +
@@ -1222,11 +1199,10 @@ async function rejectMap(msg, userlist)
  * @param {Discord.Message} msg 
  * @param {Discord.Collection<string, Discord.GuildMember>} userlist Will DM
  * matching users from this list saying their map needs another screenshot
+ * @param {string[]} args
  */
-async function rejectScreenshot(msg, userlist)
+async function rejectScreenshot(msg, userlist, args)
 {
-    // Split the arguments
-    let args = msg.content.split(' ');
     if (args[1] == '?')
         return msg.channel.send("Usage: !clearss <map> <team>\n" +
             "Map: Map link or id to reject\n" +
@@ -1239,14 +1215,8 @@ async function rejectScreenshot(msg, userlist)
     if (!mapid)
         return msg.channel.send("Unrecognised map id");
 
-    // Get the team name from the last of the args
-    let team = "";
-    while (args.length > 2)
-        team = args.pop() + " " + team;
-    team = team.trim();
-
-    console.log(`Attempting to update team "${team}" map id ${mapid} to unpass status`);
-    let result = await db.pendingMap(team, mapid, false);
+    console.log(`Attempting to update team "${args[2]}" map id ${mapid} to unpass status`);
+    let result = await db.pendingMap(args[2], mapid, false);
     if (result)
     {
         // Tell players on the team that they need a new screenshot
@@ -1255,7 +1225,7 @@ async function rejectScreenshot(msg, userlist)
             {
                 let member = userlist.get(player.discordid);
                 if (member)
-                    return member.send("A screenshot for one of your maps was declined:\n" +
+                    return member.send("A screenshot for one of your maps was reset:\n" +
                         `https://osu.ppy.sh/b/${mapid}`);
             }
         });

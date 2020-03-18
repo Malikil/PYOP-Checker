@@ -21,13 +21,13 @@ var userlist;
  * @param {function(Discord.Message) =>
  * Promise<Discord.Message|Discord.Message[]>} command 
  */
-async function approverCommand(msg, command, args)
+async function approverCommand(msg, command, ...args)
 {
     let member = msg.member;
     if (!member || !member.roles.has(APPROVER))
         return msg.channel.send("This command is only available in the server to Map Approvers");
-    else if (args)
-        return command(msg, args);
+    else if (args.length > 0)
+        return command(msg, ...args);
     else
         return command(msg);
 }
@@ -37,11 +37,13 @@ async function approverCommand(msg, command, args)
  * @param {function(Discord.Message) =>
  * Promise<Discord.Message|Discord.Message[]>} command 
  */
-async function adminCommand(msg, command)
+async function adminCommand(msg, command, ...args)
 {
     let member = msg.member;
     if (!member || !member.roles.has(ADMIN))
         return msg.channel.send("This command is only available to admins");
+    else if (args.length > 0)
+        return command(msg, ...args);
     else
         return command(msg);
 }
@@ -50,7 +52,20 @@ async function adminCommand(msg, command)
  * Splits a string into args
  * @param {string} str 
  */
-const getArgs = (str) => str.match(/(?:[^\s"]+|"[^"]*")+/g);
+function getArgs(str)
+{
+    return str.match(/\\?.|^$/g).reduce((p, c) => {
+        if (c === '"')
+            p.quote ^= 1;
+        else if (!p.quote && c === ' ')
+            p.a.push('');
+        else
+            p.a[p.a.length - 1] += c.replace(/\\(.)/, "$1");
+        
+        return  p;
+    }, { a: [''] }).a;
+    //str.match(/(?:[^\s"]+|"[^"]*")+/g);
+}
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
@@ -73,56 +88,58 @@ client.on('message', msg => {
         response = commands.checkMap(msg);
     else if (msg.content.startsWith('!requirements')
             || msg.content.startsWith('!req'))
-        response = commands.viewRequirements(msg);
+        response = commands.viewRequirements(msg, getArgs(msg.content));
     else if (msg.content.startsWith('!teams')
             || msg.content.startsWith('!players'))
-        response = commands.viewTeamPlayers(msg);
+        response = commands.viewTeamPlayers(msg, getArgs(msg.content));
     else if (msg.content.startsWith("!osuname"))
-        response = commands.updatePlayerName(msg);
+        response = commands.updatePlayerName(msg, getArgs(msg.content));
     // Team/player management
     else if (msg.content.startsWith('!addteam '))
         response = adminCommand(msg, commands.addTeam);
     else if (msg.content.startsWith('!addplayer ')
             || msg.content.startsWith('!ap '))
-        response = adminCommand(msg, commands.addPlayer);
+        response = adminCommand(msg, commands.addPlayer, getArgs(msg.content));
     else if (msg.content.startsWith('!removeplayer ')
             || msg.content.startsWith('!rp '))
-        response = adminCommand(msg, commands.removePlayer);
+        response = adminCommand(msg, commands.removePlayer, getArgs(msg.content));
     else if (msg.content.startsWith('!moveplayer ')
             || msg.content.startsWith('!mp '))
-        response = adminCommand(msg, commands.movePlayer);
+        response = adminCommand(msg, commands.movePlayer, getArgs(msg.content));
     else if (msg.content.startsWith('!notif'))
         response = commands.toggleNotif(msg);
     // Map management
     else if (msg.content.startsWith('!addmap ')
             || msg.content.startsWith('!add '))
-        response = commands.addMap(msg, passChannel);
+        response = commands.addMap(msg, passChannel, getArgs(msg.content));
     else if (msg.content.startsWith('!removemap ')
             || msg.content.startsWith('!remove ')
             || msg.content.startsWith('!rem '))
-        response = commands.removeMap(msg);
+        response = commands.removeMap(msg, getArgs(msg.content));
     else if (msg.content.startsWith('!viewpool')
             || msg.content.startsWith('!view')
             || msg.content.startsWith('!list'))
-        response = commands.viewPool(msg);
+        response = commands.viewPool(msg, getArgs(msg.content));
     else if (msg.content.startsWith('!addpass ')
             || msg.content.startsWith('!pass '))
-        response = commands.addPass(msg, passChannel);
+        response = commands.addPass(msg, passChannel, getArgs(msg.content));
     // Map approvers
     else if (msg.content.startsWith("!pending"))
-        response = approverCommand(msg, commands.viewPending);
+        response = approverCommand(msg, commands.viewPending, getArgs(msg.content));
     else if (msg.content.startsWith("!ssrequired"))
-        response = approverCommand(msg, commands.viewNoScreenshot);
+        response = approverCommand(msg, commands.viewNoScreenshot, getArgs(msg.content));
     else if (msg.content.startsWith("!missing"))
         response = approverCommand(msg, commands.viewMissingMaps);
     else if (msg.content.startsWith('!approve ')
             || msg.content.startsWith('!accept '))
-        response = approverCommand(msg, commands.approveMap);
+        response = approverCommand(msg, commands.approveMap, getArgs(msg.content));
     else if (msg.content.startsWith('!reject '))
-        response = approverCommand(msg, commands.rejectMap, userlist);
+        response = approverCommand(msg, commands.rejectMap,
+            userlist, getArgs(msg.content));
     else if (msg.content.startsWith('!clearss ')
             || msg.content.startsWith('!unpass '))
-        response = approverCommand(msg, commands.rejectScreenshot, userlist);
+        response = approverCommand(msg, commands.rejectScreenshot,
+            userlist, getArgs(msg.content));
     // General admin
     else if (msg.content === "!lock")
         response = adminCommand(msg, commands.lockSubmissions);
