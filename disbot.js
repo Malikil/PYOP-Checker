@@ -44,7 +44,13 @@ async function adminCommand(msg, command)
         return msg.channel.send("This command is only available to admins");
     else
         return command(msg);
-    }
+}
+
+/**
+ * Splits a string into args
+ * @param {string} str 
+ */
+const getArgs = (str) => str.match(/(?:[^\s"]+|"[^"]*")+/g);
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
