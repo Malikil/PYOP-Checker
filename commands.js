@@ -101,7 +101,7 @@ async function getConfirmation(msg, prompt = undefined, accept = ['y', 'yes'], r
     let waitForStr = waitFor.reduce((p, v) => p + `/${v}`, "").slice(1);
     if (prompt)
         await msg.channel.send(`${prompt} (${waitForStr})`);
-    let err;
+    let err = "";
     let aborted = await msg.channel.awaitMessages(
         message => message.author.equals(msg.author)
             && waitFor.includes(message.content.toLowerCase()),
@@ -831,24 +831,10 @@ async function removeMap(msg)
         {
             // Ask for confirmation
             console.log("Confirming remove all");
-            await msg.channel.send("This will remove __ALL__ maps from your pool. "
-                + "Are you sure? (y/yes/n/no)");
-            let err = "";
-            let aborted = await msg.channel.awaitMessages(
-                message => ['y', 'yes', 'n', 'no'].includes(message.content.toLowerCase()),
-                { maxMatches: 1, time: 20000, errors: ['time'] }
-            ).then(results => {
-                console.log(results);
-                let response = results.first();
-                return ['n', 'no'].includes(response.content.toLowerCase());
-            }).catch(reason => {
-                console.log("Response timer expired");
-                err = "Timed out. ";
-                return true;
-            });
-            console.log(`Aborted? ${aborted}`);
-            if (aborted)
-                return msg.channel.send(err + "Maps not removed");
+            let conf = await getConfirmation(msg,
+                "This will remove __ALL__ maps from your pool. Are you sure?");
+            if (conf.aborted)
+                return msg.channel.send(conf.err + "Maps not removed");
             else
             {
                 // Remove all maps and return
@@ -861,31 +847,7 @@ async function removeMap(msg)
         }
         else
             return msg.channel.send(`Couldn't recognise beatmap id`);
-    }
-
-    if (locked)
-    {
-        console.log("Submissions locked, asking confirmation");
-        await msg.channel.send("Map submissions are locked. Any changes made now won't be " +
-            "seen until the following pool. Do you still want to remove this map? (y/yes/n/no)");
-        let err = "";
-        let aborted = await msg.channel.awaitMessages(
-            message => ['y', 'yes', 'n', 'no'].includes(message.content.toLowerCase()),
-            { maxMatches: 1, time: 20000, errors: ['time'] }
-        ).then(results => {
-            console.log(results);
-            let response = results.first();
-            return ['n', 'no'].includes(response.content.toLowerCase());
-        }).catch(reason => {
-            console.log("Response timer expired");
-            err = "Timed out. ";
-            return true;
-        });
-        console.log(`Aborted? ${aborted}`);
-        if (aborted)
-            return msg.channel.send(err + "Map not removed");
-    }
-        
+    }   
 
     // Get the mod pool and mods
     let mods;
