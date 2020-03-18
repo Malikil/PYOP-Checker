@@ -603,7 +603,9 @@ async function addMap(msg, channel)
         "Aliases: !addmap\n\n" +
         "If there are already two maps in the selected mod pool, the first map " +
         "will be removed when adding a new one. To replace a specific map, " +
-        "remove it first before adding another one.");
+        "remove it first before adding another one.\n" +
+        "If you make a mistake you can use `!undo` within 15 seconds to " +
+        "return your maps to how they were before.");
     // Get which team the player is on
     let team = await db.getTeam(msg.author.id);
     if (!team)
@@ -814,7 +816,9 @@ async function removeMap(msg)
             "(optional) mod: Which mod pool to remove the map from. Should be " +
             "some combination of NM|HD|HR|DT|CM. " +
             "If left blank will remove the first found copy of the map.\n" +
-            "Aliases: !rem, !removemap\n\n");
+            "Aliases: !rem, !removemap\n\n" +
+            "If you make a mistake you can use !undo within 15 seconds to " +
+            "return your maps to how they were before.");
 
     // Get which team the player is on
     let team = await db.getTeam(msg.author.id);
@@ -832,7 +836,7 @@ async function removeMap(msg)
             // Ask for confirmation
             console.log("Confirming remove all");
             let conf = await getConfirmation(msg,
-                "This will remove __ALL__ maps from your pool. Are you sure?");
+                "This will remove __ALL__ maps from your pool, there is no undo. Are you sure?");
             if (conf.aborted)
                 return msg.channel.send(conf.err + "Maps not removed");
             else
@@ -847,7 +851,7 @@ async function removeMap(msg)
         }
         else
             return msg.channel.send(`Couldn't recognise beatmap id`);
-    }   
+    }
 
     // Get the mod pool and mods
     let mods;
@@ -881,11 +885,12 @@ async function removeMap(msg)
             }
             return false;
         });
-        return msg.channel.send(`Removed ${mapString(map)}${
+        await msg.channel.send(`Removed ${mapString(map)}${
             map.pool === "cm"
             ? ` +${modString(map.mod)}`
             : ""
         } from ${map.pool.toUpperCase()} pool`);
+        return waitForUndo(msg, team);
     }
     else
         return msg.channel.send("Map not found");
