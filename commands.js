@@ -1024,20 +1024,27 @@ async function viewPending(msg)
     let args = msg.content.split(' ');
     if (args.length > 2 || args[0] !== "!pending")
         return;
-    if (args.length === 2)
-        if (args[1] === '?')
-            return msg.channel.send("Usage: !pending\n" +
-                "Shows all maps with a pending status, " +
-                "waiting to be approved.");
-        else
-            return;
-    // Continue if args.length == 1
+    if (args[1] === '?')
+        return msg.channel.send("Usage: !pending [pool]\n" +
+            "Shows all maps with a pending status, " +
+            "waiting to be approved.\n" +
+            "(optional) pool: Only show maps from the listed modpool. NM|HD|HR|DT|CM");
+    
     console.log("Finding pending maps");
     let maplist = await db.findMapsWithStatus("Pending");
     console.log(maplist);
     
+    // Add all mods if not otherwise requested
+    if (args.length === 2)
+        args[1] = args[1].toLowerCase();
+    else
+        args[1] = "nmhdhrdtcm";
+    
     let str = "";
     maplist.forEach(mod => {
+        // Make sure this mod should be displayed
+        if (!args[1].includes(getModpool(mod._id)))
+            return;
         str += `**__${modString(mod._id)}:__**\n`;
         mod.maps.forEach(map => {
             if (str.length < 1800)
@@ -1136,7 +1143,7 @@ async function approveMap(msg)
         return msg.channel.send("Usage: !approve <map> [mod]\n" +
             "Map: Map link or id to approve\n" +
             "(optional) mod: What mods are used. Should be some combination of " +
-            "CM|HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored.\n" +
+            "HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored.\n" +
             "Aliases: !accept");
 
     if (args.length < 2 || args.length > 3)
