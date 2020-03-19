@@ -5,20 +5,10 @@ this module. Only methods for checking validity are here, and they can be
 called from elsewhere where maps are known and need to be checked.
 */
 const fetch = require('node-fetch');
+const { MODS } = require('./helpers');
 
 const key = process.env.OSUKEY;
 const osuapi = process.env.OSUAPI;
-
-// Mod bitwise
-const MODS = {
-    EZ: 1 << 1,
-    HD: 1 << 3,
-    HR: 1 << 4,
-    DT: 1 << 6,
-    HT: 1 << 8,
-    DIFFMODS: 0
-};
-MODS.DIFFMODS = MODS.HR | MODS.DT | MODS.HT;
 
 // ==============================================================
 // ========== These values should be updated each week ==========
@@ -143,10 +133,11 @@ async function checkPool(maps)
 /**
  * Checks a single beatmap for simple itmes like drain time, star rating, and mode
  * @param beatmap The beatmap to check
+ * @param {number} userid The osuid to check against the mapper
  * @param {boolean} lowDiv True if the low division should be used, otherwise open
  * @returns If the map fails, a message will be returned. Otherwise undefined.
  */
-function quickCheck(beatmap, userid, lowDiv)
+function quickCheck(beatmap, userid = undefined, lowDiv = false)
 {
     console.log({
         bid: beatmap.beatmap_id,
@@ -298,7 +289,6 @@ module.exports = {
     checkPool,
     getBeatmap,
     getPlayer,
-    MODS,
     parseMapId,
     convertSeconds
 };

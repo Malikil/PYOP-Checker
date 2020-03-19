@@ -11,6 +11,7 @@ const checker = require('./checker');
 const db = require('./db-manager');
 const util = require('util');
 const google = require('./gsheets');
+const helpers = require('./helpers');
 
 const APPROVER = process.env.ROLE_MAP_APPROVER;
 const MAP_COUNT = 10;
@@ -29,33 +30,16 @@ function modString(mod)
 {
     let _dt = false;
     let str = '';
-    if (mod & checker.MODS.HD)      str += 'HD';
-    if (mod & checker.MODS.DT)      _dt = true;
-    else if (mod & checker.MODS.HT) str += 'HT';
-    if (mod & checker.MODS.HR)      str += 'HR';
-    else if (mod & checker.MODS.EZ) str = 'EZ' + str;
+    if (mod & helpers.MODS.HD)      str += 'HD';
+    if (mod & helpers.MODS.DT)      _dt = true;
+    else if (mod & helpers.MODS.HT) str += 'HT';
+    if (mod & helpers.MODS.HR)      str += 'HR';
+    else if (mod & helpers.MODS.EZ) str = 'EZ' + str;
     if (_dt)                        str += 'DT';
     if (str == '')                  str = 'NoMod';
     return str;
 }
-/**
- * Converts a mod string into its number equivalent
- * @param {"NM"|"HD"|"HR"|"DT"|"EZ"|"HT"} modstr Mods in string form. Case insensitive
- * @returns The bitwise number representation of the selected mods
- */
-function parseMod(modstr)
-{
-    let mod = 0;
-    modstr = modstr.toUpperCase();
-    // Parse mods
-    if (modstr.includes('HD')) mod = mod | checker.MODS.HD;
-    if (modstr.includes('HR')) mod = mod | checker.MODS.HR;
-    else if (modstr.includes('EZ')) mod = mod | checker.MODS.EZ;
-    if (modstr.includes('DT')) mod = mod | checker.MODS.DT;
-    else if (modstr.includes('HT')) mod = mod | checker.MODS.HT;
-    
-    return mod;
-}
+
 /**
  * Gets a mod pool string from a mod combination
  * @param {number} bitwise The bitwise number representation of the mods
@@ -65,9 +49,9 @@ function getModpool(bitwise)
     switch (bitwise)
     {
         case 0:               return "nm";
-        case checker.MODS.HD: return "hd";
-        case checker.MODS.HR: return "hr";
-        case checker.MODS.DT: return "dt";
+        case helpers.MODS.HD: return "hd";
+        case helpers.MODS.HR: return "hr";
+        case helpers.MODS.DT: return "dt";
         default:              return "cm";
     }
 }
@@ -129,50 +113,51 @@ async function getConfirmation(msg, prompt = undefined, accept = ['y', 'yes'], r
 /**
  * Checks whether a given map would be accepted
  */
-async function checkMap({
-    mapid,
+async function checkMap(mapid, {
     mods = 0,
-    division = "Open"
+    division = undefined,
+    osuid = undefined,
+    discordid = undefined
 }) {
     if (!mapid || isNaN(mapid))
         return "Couldn't recognise beatmap id";
     
-    let mod = 0;
-    if (args.length > 2)
-        mod = parseMod(args[2]);
     console.log(`Checking map ${mapid} with mods ${mods}`);
     // If division is included, use that. Otherwise try to
     // get the division based on who sent the message
     let lowdiv = false;
-    let userid;
-    if (args.length === 4)
-        lowdiv = args[3] === "15k";
-    else
+    if (division)
+        lowdiv = division === '15k';
+    else if (discordid)
     {
-        let team = await db.getTeam(msg.author.id);
+        let team = await db.getTeam(discordid);
         if (team)
         {
             lowdiv = team.division === "15k";
-            userid = team.players.find(p => p.discordid === msg.author.id).osuid;
+            osuid = team.players.find(p => p.discordid === discordid).osuid;
         }
     }
-    let beatmap = await checker.getBeatmap(mapid, mod);
-    let quick = checker.quickCheck(beatmap, userid, lowdiv);
+    else if (osuid)
+    {
+        // TODO Get the user's team based on their osu id
+    }
+    
+    let beatmap = await checker.getBeatmap(mapid, mods);
+    let quick = checker.quickCheck(beatmap, osuid, lowdiv);
     console.log(`Quick check returned: ${quick}`);
     if (quick)
-        return msg.channel.send(quick);
+        return quick;
     
     let status = {
         passed: false,
         message: "Map isn't ranked"
     };
     if (beatmap.approved == 1)
-        status = await checker.leaderboardCheck(mapid, mod, userid);
+        status = await checker.leaderboardCheck(mapid, mods, userid);
     if (status.passed)
-        return msg.channel.send("This map can be accepted automatically");
+        return "This map can be accepted automatically";
     else
-        return msg.channel.send("This map would need to be manually approved:\n" +
-            status.message);
+        return `This map would need to be manually approved: ${status.message}`;
 }
 
 /**
@@ -657,9 +642,9 @@ async function addMap(msg, channel, args)
     else switch (mod)
         {
             case 0:               modpool = "nm"; break;
-            case checker.MODS.HD: modpool = "hd"; break;
-            case checker.MODS.HR: modpool = "hr"; break;
-            case checker.MODS.DT: modpool = "dt"; break;
+            case helpers.MODS.HD: modpool = "hd"; break;
+            case helpers.MODS.HR: modpool = "hr"; break;
+            case helpers.MODS.DT: modpool = "dt"; break;
             default:              modpool = "cm"; break;
         }
 

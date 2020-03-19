@@ -6,6 +6,7 @@ the 'commands' module, but those methods will be called from here.
 const Discord = require('discord.js');
 const commands = require('./commands');
 const util = require('util');
+const helpers = require('./helpers');
 const client = new Discord.Client();
 
 const ADMIN = process.env.ROLE_ADMIN;
@@ -174,9 +175,20 @@ async function checkMap(msg)
             "(Optional) Division: Open or 15k. If left out will try to find which team you're " +
             "on, or use open division if it can't." +
             "Aliases: !map");
-    commands.checkMap({
-        mapid: args[1]
-    })
+    // Convert mods into a number
+    let mods = 0;
+    if (args[2])
+        mods = helpers.parseMod(args[2]);
+    let division = "Open";
+    if (args[3])
+        division = args[3];
+
+    let result = await commands.checkMap(args[1], {
+        mods: mods,
+        division: division,
+        discordid: msg.author.id
+    });
+    msg.channel.send(result);
 }
 //#endregion
 
