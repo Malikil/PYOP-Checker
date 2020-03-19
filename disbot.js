@@ -157,6 +157,14 @@ client.on('message', msg => {
     });
 });
 
+// ============================================================================
+// ======================== Set up the osu client here ========================
+// ============================================================================
+new (require('./boat'))(
+    process.env.BANCHO_USER,
+    process.env.BANCHO_PASS
+);
+
+// Log in with discord
 client.login(process.env.DISCORD_TOKEN);
 
-//module.exports = client;
