@@ -85,7 +85,7 @@ client.on('message', msg => {
         response = commands.commands(msg);
     else if (msg.content.startsWith('!check ')
             || msg.content.startsWith('!map '))
-        response = commands.checkMap(msg);
+        response = commands.checkMap(msg, getArgs(msg.content));
     else if (msg.content.startsWith('!requirements')
             || msg.content.startsWith('!req'))
         response = commands.viewRequirements(msg, getArgs(msg.content));

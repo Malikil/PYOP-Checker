@@ -204,7 +204,7 @@ function quickCheck(beatmap, userid, lowDiv)
  * @param {Number} mapid The map id to get leaderboard info for
  * @param {Number} mod Bitwise representation of mods to check for
  * @param {Number} userid The user to check on the leaderboard for
- * @returns {Promise<boolean>} Whether the leaderboard would make the map accepted
+ * @returns Whether the leaderboard would make the map accepted
  */
 async function leaderboardCheck(mapid, mod, userid)
 {
@@ -215,7 +215,10 @@ async function leaderboardCheck(mapid, mod, userid)
     // I believe the api returns an empty array for unranked maps. If it doesn't
     // then this will need to be changed.
     if (scores.length < 1)
-        return false;
+        return {
+            passed: false,
+            message: "No scores on leaderboard or no leaderboard found"
+        };
     // The leaderboard passes if there are more than n scores, if the
     // first score is perfect, or if the user themself has a score
     console.log(`Found ${scores.length} leaderboard scores. Top score:`);
@@ -228,8 +231,11 @@ async function leaderboardCheck(mapid, mod, userid)
     if (scores.length >= leaderboard
             || scores[0].perfect == 1
             || scores.find(score => score.user_id == userid) !== undefined)
-        return true;
-    return false;
+        return { passed: true };
+    return {
+        passed: false,
+        message: `There are only ${scores.length} scores with mods=${mod}`
+    };
 }
 
 /**

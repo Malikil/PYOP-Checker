@@ -129,42 +129,59 @@ async function getConfirmation(msg, prompt = undefined, accept = ['y', 'yes'], r
 /**
  * Checks whether a given map would be accepted
  * @param {Discord.Message} msg The discord message starting with !check
+ * @param {string[]} args
  */
-async function checkMap(msg)
+async function checkMap(msg, args)
 {
-    // Parse the map id from msg
-    let args = msg.content.split(' ');
-    if (args.length < 2 || args.length > 3)
+    if (args.length < 2 || args.length > 4)
         return;
     else if (args[1] == '?')
-        return msg.channel.send("Usage: !check <map> [mod]\n" +
-            "Map should be a link or map id\n" +
-            "(Optional) mod should be some combination of HD|HR|DT|HT|EZ. Default is NoMod\n" +
-            "This command only checks against the open bracket's star range.\n" +
+        return msg.channel.send("Usage: !check <map> [mod] [division]\n" +
+            "Map: Should be a link or map id\n" +
+            "(Optional) Mod: Should be some combination of HD|HR|DT|HT|EZ. Default is NoMod\n" +
+            "(Optional) Division: Open or 15k. If left out will try to find which team you're " +
+            "on, or use open division if it can't." +
             "Aliases: !map");
-    let mod = 0;
-    if (args.length === 3)
-        mod = parseMod(args[2]);
     let mapid = checker.parseMapId(args[1]);
     if (!mapid)
         return msg.channel.send(`Couldn't recognise beatmap id`);
+    
+    let mod = 0;
+    if (args.length > 2)
+        mod = parseMod(args[2]);
     console.log(`Checking map ${mapid} with mods ${mod}`);
-    // Try to get the user id based on who sent the message
-    let userid = await db.getOsuId(msg.author.id);
-
+    // If division is included, use that. Otherwise try to
+    // get the division based on who sent the message
+    let lowdiv = false;
+    let userid;
+    if (args.length === 4)
+        lowdiv = args[3] === "15k";
+    else
+    {
+        let team = await db.getTeam(msg.author.id);
+        if (team)
+        {
+            lowdiv = team.division === "15k";
+            userid = team.players.find(p => p.discordid === msg.author.id).osuid;
+        }
+    }
     let beatmap = await checker.getBeatmap(mapid, mod);
-    let quick = checker.quickCheck(beatmap, userid);
+    let quick = checker.quickCheck(beatmap, userid, lowdiv);
     console.log(`Quick check returned: ${quick}`);
     if (quick)
         return msg.channel.send(quick);
     
-    let passed = false;
+    let status = {
+        passed: false,
+        message: "Map isn't ranked"
+    };
     if (beatmap.approved == 1)
-        passed = await checker.leaderboardCheck(mapid, mod, userid);
-    if (passed)
+        status = await checker.leaderboardCheck(mapid, mod, userid);
+    if (status.passed)
         return msg.channel.send("This map can be accepted automatically");
     else
-        return msg.channel.send("This map would need to be manually approved");
+        return msg.channel.send("This map would need to be manually approved:\n" +
+            status.message);
 }
 
 /**
@@ -622,7 +639,7 @@ async function addMap(msg, channel, args)
     let status;
     if (quick)
         return msg.channel.send(quick);
-    else if (await checker.leaderboardCheck(mapid, mod, osuid))
+    else if ((await checker.leaderboardCheck(mapid, mod, osuid)).passed)
         if (beatmap.approved == 1 && beatmap.version !== "Aspire")
             status = "Accepted";
         else
