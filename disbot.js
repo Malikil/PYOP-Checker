@@ -85,7 +85,7 @@ client.on('message', msg => {
         response = commands.commands(msg);
     else if (msg.content.startsWith('!check ')
             || msg.content.startsWith('!map '))
-        response = commands.checkMap(msg, getArgs(msg.content));
+        response = checkMap(msg);
     else if (msg.content.startsWith('!requirements')
             || msg.content.startsWith('!req'))
         response = commands.viewRequirements(msg, getArgs(msg.content));
@@ -157,12 +157,36 @@ client.on('message', msg => {
     });
 });
 
+//#region Command Handling
+/**
+ * Checks a map for whether it would be accepted
+ * @param {Discord.Message} msg 
+ */
+async function checkMap(msg)
+{
+    let args = getArgs(msg.content);
+    if (args.length < 2 || args.length > 4)
+        return;
+    else if (args[1] === '?')
+        return msg.channel.send("Usage: !check <map> [mod] [division]\n" +
+            "Map: Should be a link or map id\n" +
+            "(Optional) Mod: Should be some combination of HD|HR|DT|HT|EZ. Default is NoMod\n" +
+            "(Optional) Division: Open or 15k. If left out will try to find which team you're " +
+            "on, or use open division if it can't." +
+            "Aliases: !map");
+    commands.checkMap({
+        mapid: args[1]
+    })
+}
+//#endregion
+
 // ============================================================================
 // ======================== Set up the osu client here ========================
 // ============================================================================
 new (require('./boat'))(
     process.env.BANCHO_USER,
-    process.env.BANCHO_PASS
+    process.env.BANCHO_PASS,
+    commands
 );
 
 // Log in with discord

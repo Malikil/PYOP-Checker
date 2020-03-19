@@ -128,28 +128,19 @@ async function getConfirmation(msg, prompt = undefined, accept = ['y', 'yes'], r
 // ============================================================================
 /**
  * Checks whether a given map would be accepted
- * @param {Discord.Message} msg The discord message starting with !check
- * @param {string[]} args
  */
-async function checkMap(msg, args)
-{
-    if (args.length < 2 || args.length > 4)
-        return;
-    else if (args[1] == '?')
-        return msg.channel.send("Usage: !check <map> [mod] [division]\n" +
-            "Map: Should be a link or map id\n" +
-            "(Optional) Mod: Should be some combination of HD|HR|DT|HT|EZ. Default is NoMod\n" +
-            "(Optional) Division: Open or 15k. If left out will try to find which team you're " +
-            "on, or use open division if it can't." +
-            "Aliases: !map");
-    let mapid = checker.parseMapId(args[1]);
-    if (!mapid)
-        return msg.channel.send(`Couldn't recognise beatmap id`);
+async function checkMap({
+    mapid,
+    mods = 0,
+    division = "Open"
+}) {
+    if (!mapid || isNaN(mapid))
+        return "Couldn't recognise beatmap id";
     
     let mod = 0;
     if (args.length > 2)
         mod = parseMod(args[2]);
-    console.log(`Checking map ${mapid} with mods ${mod}`);
+    console.log(`Checking map ${mapid} with mods ${mods}`);
     // If division is included, use that. Otherwise try to
     // get the division based on who sent the message
     let lowdiv = false;
