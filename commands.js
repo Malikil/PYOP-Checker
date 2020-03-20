@@ -26,19 +26,6 @@ var locked = false;
 // ============================================================================
 const mapString = map => `${map.artist} - ${map.title} [${map.version}]`;
 const mapLink = map => `https://osu.ppy.sh/b/${map.id}`;
-function modString(mod)
-{
-    let _dt = false;
-    let str = '';
-    if (mod & helpers.MODS.HD)      str += 'HD';
-    if (mod & helpers.MODS.DT)      _dt = true;
-    else if (mod & helpers.MODS.HT) str += 'HT';
-    if (mod & helpers.MODS.HR)      str += 'HR';
-    else if (mod & helpers.MODS.EZ) str = 'EZ' + str;
-    if (_dt)                        str += 'DT';
-    if (str == '')                  str = 'NoMod';
-    return str;
-}
 
 /**
  * Gets a mod pool string from a mod combination
@@ -153,11 +140,11 @@ async function checkMap(mapid, {
         message: "Map isn't ranked"
     };
     if (beatmap.approved == 1)
-        status = await checker.leaderboardCheck(mapid, mods, userid);
+        status = await checker.leaderboardCheck(mapid, mods, osuid);
     if (status.passed)
         return "This map can be accepted automatically";
     else
-        return `This map would need to be manually approved: ${status.message}`;
+        return `This map would need to be manually approved - ${status.message}`;
 }
 
 /**
@@ -687,7 +674,7 @@ async function addMap(msg, channel, args)
             rep = `Replaced ${mapString(replaced)}\n`;
 
         // Prepare the current pool state
-        let cur = `Current __${modString(mod)}__ maps:\n`;
+        let cur = `Current __${helpers.modString(mod)}__ maps:\n`;
         team.maps.forEach(m => {
             if (m.mod === mod)
             {
@@ -861,7 +848,7 @@ async function removeMap(msg, args)
         });
         await msg.channel.send(`Removed ${mapString(map)}${
             map.pool === "cm"
-            ? ` +${modString(map.mod)}`
+            ? ` +${helpers.modString(map.mod)}`
             : ""
         } from ${map.pool.toUpperCase()} pool`);
         return waitForUndo(msg, team);
@@ -915,7 +902,7 @@ async function viewPool(msg, args)
             if (!strs[map.pool])
                 strs[map.pool] = modNames[map.pool];
             // Add the map's info to the proper string
-            strs[map.pool] += `${mapString(map)} ${map.pool === 'cm' ? `+${modString(map.mod)} ` : ""}<${mapLink(map)}>\n`;
+            strs[map.pool] += `${mapString(map)} ${map.pool === 'cm' ? `+${helpers.modString(map.mod)} ` : ""}<${mapLink(map)}>\n`;
             strs[map.pool] += `\tDrain: ${checker.convertSeconds(map.drain)}, Stars: ${map.stars}, Status: ${map.status}\n`;
 
             pool.push(map);
@@ -1019,7 +1006,7 @@ async function viewPending(msg, args)
         // Make sure this mod should be displayed
         if (!args[1].includes(getModpool(mod._id)))
             return;
-        str += `**__${modString(mod._id)}:__**\n`;
+        str += `**__${helpers.modString(mod._id)}:__**\n`;
         mod.maps.forEach(map => {
             if (str.length < 1800)
                 str += `<${mapLink(map)}> ${mapString(map)}\n`;
@@ -1056,7 +1043,7 @@ async function viewNoScreenshot(msg, args)
 
     let str = "";
     maplist.forEach(mod => {
-        str += `**__${modString(mod._id)}:__**\n`;
+        str += `**__${helpers.modString(mod._id)}:__**\n`;
         mod.maps.forEach(map =>
             str += `<${mapLink(map)}> ${mapString(map)}\n`
         );
@@ -1180,10 +1167,10 @@ async function rejectMap(msg, userlist, args)
         let member = userlist.get(player.discordid);
         if (member)
             return member.send("A map in your pool was rejected:\n" +
-                `**__Map:__** https://osu.ppy.sh/b/${mapid} +${modString(mod)}\n` +
+                `**__Map:__** https://osu.ppy.sh/b/${mapid} +${helpers.modString(mod)}\n` +
                 `**__Message:__** ${desc}`);
     });
-    dms.push(msg.channel.send(`Rejected ${mapid} +${modString(mod)} from ${result.modified} pools`));
+    dms.push(msg.channel.send(`Rejected ${mapid} +${helpers.modString(mod)} from ${result.modified} pools`));
     return Promise.all(dms);
 }
 

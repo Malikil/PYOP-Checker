@@ -21,16 +21,35 @@ function parseMod(modstr)
     let mod = 0;
     modstr = modstr.toUpperCase();
     // Parse mods
-    if (modstr.includes('HD')) mod = mod | checker.MODS.HD;
-    if (modstr.includes('HR')) mod = mod | checker.MODS.HR;
-    else if (modstr.includes('EZ')) mod = mod | checker.MODS.EZ;
-    if (modstr.includes('DT')) mod = mod | checker.MODS.DT;
-    else if (modstr.includes('HT')) mod = mod | checker.MODS.HT;
+    if (modstr.includes('HD')) mod = mod | MODS.HD;
+    if (modstr.includes('HR')) mod = mod | MODS.HR;
+    else if (modstr.includes('EZ')) mod = mod | MODS.EZ;
+    if (modstr.includes('DT')) mod = mod | MODS.DT;
+    else if (modstr.includes('HT')) mod = mod | MODS.HT;
     
     return mod;
 }
 
+/**
+ * Converts a mod number to its string form
+ * @param {number} mod Mods in bitwise form, as per osu api
+ */
+function modString(mod)
+{
+    let _dt = false;
+    let str = '';
+    if (mod & MODS.HD)      str += 'HD';
+    if (mod & MODS.DT)      _dt = true;
+    else if (mod & MODS.HT) str += 'HT';
+    if (mod & MODS.HR)      str += 'HR';
+    else if (mod & MODS.EZ) str = 'EZ' + str;
+    if (_dt)                str += 'DT';
+    if (str == '')          str = 'NoMod';
+    return str;
+}
+
 module.exports = {
     MODS,
-    parseMod
+    parseMod,
+    modString
 }
