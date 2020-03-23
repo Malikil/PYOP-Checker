@@ -188,7 +188,7 @@ async function checkMap(msg)
         division: division,
         discordid: msg.author.id
     });
-    msg.channel.send(result);
+    msg.channel.send(result.message);
 }
 //#endregion
 

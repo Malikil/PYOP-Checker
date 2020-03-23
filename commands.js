@@ -24,7 +24,6 @@ var locked = false;
 // ============================================================================
 // ========================= Helper Functions =================================
 // ============================================================================
-const mapString = map => `${map.artist} - ${map.title} [${map.version}]`;
 const mapLink = map => `https://osu.ppy.sh/b/${map.id}`;
 
 /**
@@ -107,7 +106,10 @@ async function checkMap(mapid, {
     discordid = undefined
 }) {
     if (!mapid || isNaN(mapid))
-        return "Couldn't recognise beatmap id";
+        return {
+            message: "Couldn't recognise beatmap id",
+            beatmap: null
+        };
     
     console.log(`Checking map ${mapid} with mods ${mods}`);
     // If division is included, use that. Otherwise try to
@@ -133,7 +135,10 @@ async function checkMap(mapid, {
     let quick = checker.quickCheck(beatmap, osuid, lowdiv);
     console.log(`Quick check returned: ${quick}`);
     if (quick)
-        return quick;
+        return {
+            message: quick,
+            beatmap
+        };
     
     let status = {
         passed: false,
@@ -142,9 +147,15 @@ async function checkMap(mapid, {
     if (beatmap.approved == 1)
         status = await checker.leaderboardCheck(mapid, mods, osuid);
     if (status.passed)
-        return "This map can be accepted automatically";
+        return {
+            message: "This map can be accepted automatically",
+            beatmap
+        };
     else
-        return `This map would need to be manually approved - ${status.message}`;
+        return {
+            message: `This map would need to be manually approved - ${status.message}`,
+            beatmap
+        };
 }
 
 /**

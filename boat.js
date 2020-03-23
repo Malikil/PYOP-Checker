@@ -42,13 +42,12 @@ module.exports = class OsuClient
                 }
                 catch (err)
                 {
-                    response = "Something went wrong"
+                    message.user.sendMessage("Something went wrong");
                     console.error(err);
                 }
                 // Give the response, if needed
                 if (response)
-                    message.user.sendMessage(response)
-                        .catch(err => console.error(err));
+                    response.catch(err => console.error(err));
             });
         });
     }
@@ -79,7 +78,8 @@ module.exports = class OsuClient
         };
         // Do I want to do a checkMap here?
         // Yes, then return a message
-        return this.commands.checkMap(bid, { osuid: message.user.id });
+        let result = await this.commands.checkMap(bid, { osuid: message.user.id });
+        return message.user.sendMessage(result.message);
     }
 
     /**
@@ -120,7 +120,8 @@ module.exports = class OsuClient
         Logger.log(`Mods: ${mods}`);
         this.currentMap[message.user.id] = { bid, mods };
 
-        return this.commands.checkMap(bid, { mods: mods, osuid: message.user.id });
+        let result = await this.commands.checkMap(bid, { mods: mods, osuid: message.user.id });
+        return message.user.sendMessage(result.message);
     }
 
    /**
@@ -134,17 +135,45 @@ module.exports = class OsuClient
         if (args.length > 2)
             return;
         if (args[1] === '?')
-            return "Use !with <mods> where mods is some combination of NM|HD|HR|DT|EZ|HT";
+            return message.user.sendMessage("Use !with <mods> where mods is some combination of NM|HD|HR|DT|EZ|HT");
         // Get the map they added before
         let map = this.currentMap[message.user.id];
         if (!map)
-            return "No recent map found, please use /np to add one";
+            return message.user.sendMessage("No recent map found, please use /np to add one");
         // Get the mod info from args
         let mods = helpers.parseMod(args[1].toUpperCase());
         this.currentMap[message.user.id].mods = mods;
 
         // Check the map
-        let response = await this.commands.checkMap(map.bid, { mods: mods, osuid: message.user.id });
-        return `[https://osu.ppy.sh/b/${map.bid} ${map.bid}] +${helpers.modString(mods)}: ${response}`;
+        let result = await this.commands.checkMap(map.bid, { mods: mods, osuid: message.user.id });
+        return message.user.sendMessage(`[https://osu.ppy.sh/b/${map.bid} ${helpers.mapString(result.beatmap)}] +${helpers.modString(mods)}: ${result.message}`);
+    }
+
+    /**
+     * To add a map to the player's pool
+     * @param {Banchojs.PrivateMessage} message 
+     */
+    async addMap(message)
+    {
+        // !add [mods]: to add the current map with a selection of mods
+        // !add: to add the current map with the currently selected mods
+        // !add <mapid> [mods]
+        Logger.log(`${message.user.ircUsername}: ${message.message}`);
+        let args = message.message.split(' ');
+        if (args.length > 2)
+            return;
+        // !add HD something meaningless afterwards
+        if (args[1] === '?') // args.length == 1 => args[1] == undefined
+            return message.user.sendMessage("Use !add [mods] where mods is some combination of NM|HD|HR|DT|EZ|HT, " +
+                "if left out it will use the last mods from !with or /np");
+        let map = this.currentMap[message.user.id];
+        if (!map) 
+            return message.user.sendMessage("No recent map found, please use /np to add one");
+        
+        // Update the mods if specified
+        if (args[1])
+            this.currentMap[message.user.id].mods = helpers.parseMod(args[1].toUpperCase());
+        
+        let result = await this.commands.addMap()
     }
 }

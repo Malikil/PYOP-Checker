@@ -48,8 +48,14 @@ function modString(mod)
     return str;
 }
 
+/**
+ * Converts a map object to the artist - title [version] format
+ */
+const mapString = map => `${map.artist} - ${map.title} [${map.version}]`;
+
 module.exports = {
     MODS,
     parseMod,
-    modString
+    modString,
+    mapString
 }
