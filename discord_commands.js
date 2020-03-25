@@ -57,6 +57,11 @@ const commands = {
         return msg.channel.send(result.message);
     },
 
+    async requirements(msg)
+    {
+
+    },
+
     /**
      * @param {Discord.Message} msg
      */
@@ -68,20 +73,28 @@ const commands = {
 }
 const comnames = Object.keys(commands);
 //#region Aliases
+commands.commands = commands.help;
 commands.checkmap = commands.check;
+commands.map = commands.check;
+commands.req = commands.requirements;
 //#endregion
-
+//#region Command types
+commands.add.player = true;
+//#endregion
 //#region Help messages
+// ==================== Public ====================
 commands.help.help = "Shows a list of available commands";
 commands.check.help = "Usage: !check <map> [mod] [division]\n" +
     "Map: Should be a link or map id\n" +
     "(Optional) Mod: Should be some combination of HD|HR|DT|HT|EZ. Default is NoMod\n" +
     "(Optional) Division: Open or 15k. If left out will try to find which team you're " +
     "on, or use open division if it can't." +
-    "Aliases: !map";
-commands.check.osuhelp = "Use !add [mods] where mods is some combination of NM|HD|HR|DT|EZ|HT, " +
-    "if left out it will use the last mods from !with or /np";
-// ========== Add ==========
+    "Aliases: !map, !checkmap";
+commands.requirements.help = "Usage: !requirements\n" +
+    "Displays the star rating and length requirements for " +
+    "the current week\n" +
+    "Aliases: !req"
+// ==================== Player ====================
 commands.add.help = "Usage: !add <map> [mod]\n" +
     "map: A map link or beatmap id\n" +
     "(optional) mod: What mods to use. Should be some combination of " +
@@ -93,11 +106,18 @@ commands.add.help = "Usage: !add <map> [mod]\n" +
     "Aliases: !addmap\n\n" +
     "If there are already two maps in the selected mod pool, the first map " +
     "will be removed when adding a new one. To replace a specific map, " +
-    "remove it first before adding another one.\n" +
-    "If you make a mistake you can use `!undo` within 10 seconds to " +
-    "return your maps to how they were before.";
+    "remove it first before adding another one.\n"// +
+    //"If you make a mistake you can use `!undo` within 10 seconds to " +
+    //"return your maps to how they were before.";
 commands.add.osuhelp = "Use !add [mods] where mods is a combination of NM|HD|HR|DT|EZ|HT|CM, using the last map from /np";
-
 //#endregion
+async function run(com, msg, client)
+{
+    // functions 
+    commands[com](msg, client);
+}
 
-module.exports = commands;
+module.exports = {
+    commands,
+    run
+};

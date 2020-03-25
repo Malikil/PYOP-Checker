@@ -76,7 +76,7 @@ const commands = {
 //#region 
 //#region Help Messages
 commands.help.help = "Shows a list of available commands";
-commands.ACTION.help = "U sneaky :3";
+commands.ACTION.help = "u sneaky :3";
 //#endregion
 
 module.exports = commands;

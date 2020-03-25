@@ -163,21 +163,8 @@ async function checkMap(mapid, {
  * @param {Discord.Message} msg 
  * @param {string[]} args
  */
-async function viewRequirements(msg, args)
+async function viewRequirements()
 {
-    // Make sure the first argument is actually the command.
-    if (!['!req', '!requirements'].includes(args[0]))
-        return;
-    // Ignore if the command has too many args
-    if (args.length > 2)
-        return;
-    
-    if (args[1] === '?')
-        return msg.channel.send("Usage: !requirements\n" +
-            "Displays the star rating and length requirements for " +
-            "the current week\n" +
-            "Aliases: !req");
-    
     const minStar = process.env.MIN_STAR;   // Minimum star rating
     const maxStar = process.env.MAX_STAR;   // Maximum star rating
     const lowMin = process.env.FIFT_MIN;

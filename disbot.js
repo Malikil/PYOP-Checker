@@ -58,6 +58,8 @@ client.on('ready', () => {
 client.on('message', msg => {
     if (msg.author.bot || msg.content[0] !== '!')
         return;
+    if (msg.content === "!ping") msg.reply("Pong!");
+
     console.log(`\x1b[36mReceived message:\x1b[0m ${msg.content}`);
     let commandNames = Object.keys(commands);
     let commandArgs = msg.content.split(' ');
@@ -65,22 +67,15 @@ client.on('message', msg => {
     if (commandNames.includes(command))
         // Check if this is a help message or not
         if (commandArgs[1] === '?')
-            msg.channel.send(commands[command].help);
+            msg.channel.send(commands.commands[command].help);
         else
-            commands[command](msg, client)
+            commands.run(command, msg, client)
                 .catch(reason => msg.channel.send("Malikil did a stupid, and so the bot broke. " +
                     "Please tell him what you were trying to do and send him this:\n" +
                     "```" + util.inspect(reason).slice(0, 1000) + "```"));
     
     /*
-    if (msg.content === '!ping') msg.reply('Pong!');
-    else if (msg.content === '!commands'
-            || msg.content === '!help')
-        response = commands.commands(msg);
-    else if (msg.content.startsWith('!check ')
-            || msg.content.startsWith('!map '))
-        response = checkMap(msg);
-    else if (msg.content.startsWith('!requirements')
+    if (msg.content.startsWith('!requirements')
             || msg.content.startsWith('!req'))
         response = commands.viewRequirements(msg, getArgs(msg.content));
     else if (msg.content.startsWith('!teams')
