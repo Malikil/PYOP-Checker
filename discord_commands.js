@@ -28,7 +28,9 @@ const commands = {
      */
     async help(msg, client)
     {
-        
+        msg.channel.send("Commands: " +
+            comnames.reduce((p, c) => `${p}, !${c}`, "").slice(2)
+        );
     },
 
     /**
@@ -64,7 +66,7 @@ const commands = {
     }
     
 }
-
+const comnames = Object.keys(commands);
 //#region Aliases
 commands.checkmap = commands.check;
 //#endregion
