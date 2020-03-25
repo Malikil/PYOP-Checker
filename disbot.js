@@ -4,9 +4,8 @@ Connection to discord should be handled here. Commands should be handled with
 the 'commands' module, but those methods will be called from here.
 */
 const Discord = require('discord.js');
-const commands = require('./commands');
+const commands = require('./discord_commands');
 const util = require('util');
-const helpers = require('./helpers');
 const client = new Discord.Client();
 
 const ADMIN = process.env.ROLE_ADMIN;
@@ -49,25 +48,6 @@ async function adminCommand(msg, command, ...args)
         return command(msg);
 }
 
-/**
- * Splits a string into args
- * @param {string} str 
- */
-function getArgs(str)
-{
-    return str.match(/\\?.|^$/g).reduce((p, c) => {
-        if (c === '"')
-            p.quote ^= 1;
-        else if (!p.quote && c === ' ')
-            p.a.push('');
-        else
-            p.a[p.a.length - 1] += c.replace(/\\(.)/, "$1");
-        
-        return  p;
-    }, { a: [''] }).a;
-    //str.match(/(?:[^\s"]+|"[^"]*")+/g);
-}
-
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
     let guild = client.guilds.get(process.env.DISCORD_GUILD);
@@ -76,10 +56,23 @@ client.on('ready', () => {
 });
 
 client.on('message', msg => {
-    if (msg.author.bot || msg.content[0] != '!')
+    if (msg.author.bot || msg.content[0] !== '!')
         return;
     console.log(`\x1b[36mReceived message:\x1b[0m ${msg.content}`);
-    let response;
+    let commandNames = Object.keys(commands);
+    let commandArgs = msg.content.split(' ');
+    let command = commandArgs[0].slice(1);
+    if (commandNames.includes(command))
+        // Check if this is a help message or not
+        if (commandArgs[1] === '?')
+            msg.channel.send(commands[command].help);
+        else
+            commands[command](msg, client)
+                .catch(reason => msg.channel.send("Malikil did a stupid, and so the bot broke. " +
+                    "Please tell him what you were trying to do and send him this:\n" +
+                    "```" + util.inspect(reason).slice(0, 1000) + "```"));
+    
+    /*
     if (msg.content === '!ping') msg.reply('Pong!');
     else if (msg.content === '!commands'
             || msg.content === '!help')
@@ -149,56 +142,15 @@ client.on('message', msg => {
     else if (msg.content === "!updateMaps" ||
                 msg.content === "!update")
         response = adminCommand(msg, commands.recheckMaps);
-    
-    if (response)
-        response.catch(reason => {
-            msg.channel.send("Malikil did a stupid, and so the bot broke. " +
-            "Please tell him what you were trying to do and send him this:\n" +
-            "```" + util.inspect(reason).slice(0, 1000) + "```");
-    });
+    */
 });
-
-//#region Command Handling
-/**
- * Checks a map for whether it would be accepted
- * @param {Discord.Message} msg 
- */
-async function checkMap(msg)
-{
-    let args = getArgs(msg.content);
-    if (args.length < 2 || args.length > 4)
-        return;
-    else if (args[1] === '?')
-        return msg.channel.send("Usage: !check <map> [mod] [division]\n" +
-            "Map: Should be a link or map id\n" +
-            "(Optional) Mod: Should be some combination of HD|HR|DT|HT|EZ. Default is NoMod\n" +
-            "(Optional) Division: Open or 15k. If left out will try to find which team you're " +
-            "on, or use open division if it can't." +
-            "Aliases: !map");
-    // Convert mods into a number
-    let mods = 0;
-    if (args[2])
-        mods = helpers.parseMod(args[2]);
-    let division = "Open";
-    if (args[3])
-        division = args[3];
-
-    let result = await commands.checkMap(args[1], {
-        mods: mods,
-        division: division,
-        discordid: msg.author.id
-    });
-    msg.channel.send(result.message);
-}
-//#endregion
 
 // ============================================================================
 // ======================== Set up the osu client here ========================
 // ============================================================================
 new (require('./boat'))(
     process.env.BANCHO_USER,
-    process.env.BANCHO_PASS,
-    commands
+    process.env.BANCHO_PASS
 );
 
 // Log in with discord

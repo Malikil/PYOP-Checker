@@ -2,7 +2,6 @@
 This module should handle connecting to the database and all the CRUD operations
 */
 const { MongoClient, Db } = require('mongodb');
-const { MODS } = require('./checker');
 const util = require('util');
 
 const mongoUser = process.env.MONGO_USER;
@@ -253,13 +252,18 @@ async function toggleNotification(discordid)
 }
 
 /**
- * Gets which team a player is on based on their discord id
- * @param {string} discordid The player's discord id
+ * Gets which team a player is on based on their osu id or discord id
+ * @param {string|number} id The player's id, either discord or osu id
  */
-async function getTeam(discordid)
+async function getTeam(id)
 {
-    console.log(`Finding team for player ${discordid}`);
-    let team = await db.collection('teams').findOne({ 'players.discordid': discordid });
+    console.log(`Finding team for player ${id}`);
+    let team = await db.collection('teams').findOne({
+        $or: [
+            { 'players.discordid': id },
+            { 'players.osuid': id }
+        ]
+    });
     console.log(util.inspect(team, { depth: 1 }));
     return team;
 }

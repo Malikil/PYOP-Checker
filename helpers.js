@@ -49,6 +49,33 @@ function modString(mod)
 }
 
 /**
+ * Gets a map id from a link, or just returns the id received if given one
+ * @param {string} mapString A string containing a link to the new or old site, or just the id
+ * @returns The map id for the given link, or undefined if no id was found
+ */
+function parseMapId(mapString)
+{
+    // If link is already a number then nothing needs to be done
+    if (isNaN(mapString))
+    {
+        // If the link isn't to a beatmap, then ignore it
+        // If the link is a /s/ link, ignore it
+        if (mapString.includes("sh/b"))
+        {
+            // Get everything after the last slash, this should be the beatmap id
+            mapString = mapString.substring(mapString.lastIndexOf("/") + 1);
+            // The parseInt function will convert the beginning of a string to a number
+            // until it finds a non-number character
+            mapString = parseInt(mapString);
+        }
+        else
+            return undefined;
+    }
+  
+    return mapString | 0;
+}
+
+/**
  * Converts a map object to the artist - title [version] format
  */
 const mapString = map => `${map.artist} - ${map.title} [${map.version}]`;
@@ -56,6 +83,7 @@ const mapString = map => `${map.artist} - ${map.title} [${map.version}]`;
 module.exports = {
     MODS,
     parseMod,
+    parseMapId,
     modString,
     mapString
 }

@@ -1,7 +1,6 @@
 /*
-This module should contain all the commands from the discord bot. If the bot
-will be connected to osu! irc at some point I'm not yet sure if those commands
-should also be put here or in a different file.
+This module should contain all the basic commands to be called after args have been
+split up.
 
 Permissions should also be checked here. Ie if trying to add a team this module
 needs to make sure the user has the proper permissions to do that.
@@ -98,6 +97,12 @@ async function getConfirmation(msg, prompt = undefined, accept = ['y', 'yes'], r
 // ============================================================================
 /**
  * Checks whether a given map would be accepted
+ * @param {number|string} mapid The map id or link to map
+ * @returns {Promise<{
+ *  message: string,
+ *  beatmap: *
+ * }>} A message indicating whether the map would be accepted,
+ * and the map object that got checked
  */
 async function checkMap(mapid, {
     mods = 0,
@@ -107,8 +112,7 @@ async function checkMap(mapid, {
 }) {
     if (!mapid || isNaN(mapid))
         return {
-            message: "Couldn't recognise beatmap id",
-            beatmap: null
+            message: "Couldn't recognise beatmap id"
         };
     
     console.log(`Checking map ${mapid} with mods ${mods}`);
@@ -117,18 +121,14 @@ async function checkMap(mapid, {
     let lowdiv = false;
     if (division)
         lowdiv = division === '15k';
-    else if (discordid)
+    else if (discordid || osuid)
     {
-        let team = await db.getTeam(discordid);
+        let team = await db.getTeam(discordid || osuid);
         if (team)
         {
             lowdiv = team.division === "15k";
             osuid = team.players.find(p => p.discordid === discordid).osuid;
         }
-    }
-    else if (osuid)
-    {
-        // TODO Get the user's team based on their osu id
     }
     
     let beatmap = await checker.getBeatmap(mapid, mods);
@@ -554,90 +554,83 @@ async function updatePlayerName(msg, args)
 }
 
 /**
- * Adds a map to the players's team
- * @param {Discord.Message} msg 
- * @param {Discord.TextChannel} channel Where any attached screenshots should be sent
- * @param {string[]} args
+ * Adds a map to the players's team and makes sure it's acceptable
+ * @param {number|string} mapid Map id or link to a map
+ * @param {Object} p1
+ * @param {number} p1.mods
+ * @param {boolean} p1.cm
+ * @param {string} p1.discordid
+ * @param {number} p1.osuid
+ * 
+ * @returns {Promise<{
+ *   message: string,
+ *   map: Object,
+ *   added: boolean,
+ *   replaced: Object,
+ *   current: Object[]
+ * }>}
  */
-async function addMap(msg, channel, args)
-{
-    if (args.length < 2 || args.length > 3)
-        return;
-    else if (args[1] === '?')
-        return msg.channel.send("Usage: !add <map> [mod]\n" +
-        "map: A map link or beatmap id\n" +
-        "(optional) mod: What mods to use. Should be some combination of " +
-        "CM|HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored. " +
-        "To add the map as a custom mod, include CM.\n" +
-        "You may optionally attach a screenshot to automatically use that as " +
-        "your pass. It must be as an attachment, to use a separate link use " +
-        "the !addpass command.\n" +
-        "Aliases: !addmap\n\n" +
-        "If there are already two maps in the selected mod pool, the first map " +
-        "will be removed when adding a new one. To replace a specific map, " +
-        "remove it first before adding another one.\n" +
-        "If you make a mistake you can use `!undo` within 10 seconds to " +
-        "return your maps to how they were before.");
+async function addMap(mapid, {
+    mods = 0,
+    cm = false,
+    discordid,
+    osuid
+}) {
     // Get which team the player is on
-    let team = await db.getTeam(msg.author.id);
+    let team;
+    if (discordid)
+        team = await db.getTeam(discordid);
+    else if (osuid)
+        team = await db.getTeam(osuid)
     if (!team)
-        return msg.channel.send("Couldn't find which team you're on");
+        return {
+            message: "Couldn't find which team you're on",
+            added: false
+        };
     // Get osu id
-    let osuid = team.players.find(item => item.discordid == msg.author.id).osuid;
+    if (!osuid)
+        osuid = team.players.find(item => item.discordid == discordid).osuid;
     if (!osuid)
         console.warn("Team found but osu id was not");
     // Make sure submissions are open
+    // Stinky code
     if (locked)
-        return msg.channel.send("Submissions are currently locked. "+
-            "Please wait until after pools are released before submitting next week's maps.\n" +
-            "If you're submitting a replacement for a map that was rejected after submissions " +
-            "closed, please send it to Malikil directly.");
-    // Get beatmap information
-    let mod = 0;
-    let custom = false;
-    if (args.length == 3)
-    {
-        mod = parseMod(args[2]);
-        // Custom mod status
-        if (args[2].toUpperCase().includes('CM')
-                || ((mod - 1) & mod) != 0)
-            custom = true;
-    }
-    let mapid = checker.parseMapId(args[1]);
+        return {
+            message: "Submissions are currently locked. " +
+                "If you're submitting a replacement for a map that was rejected after submissions " +
+                "closed, please send it to Malikil directly.",
+            added: false
+        };
+
+    mapid = helpers.parseMapId(mapid);
     if (!mapid)
-        return msg.channel.send(`Couldn't recognise beatmap id`);
+        return {
+            message: `Couldn't recognise beatmap id`,
+            added: false
+        };
     // Check beatmap approval
-    console.log(`Looking for map with id ${mapid} and mod ${mod}`);
-    let beatmap = await checker.getBeatmap(mapid, mod);
+    console.log(`Looking for map with id ${mapid} and mod ${mods}`);
+    let beatmap = await checker.getBeatmap(mapid, mods);
     let quick = checker.quickCheck(beatmap, osuid, team.division === "15k");
     let status;
     if (quick)
-        return msg.channel.send(quick);
-    else if ((await checker.leaderboardCheck(mapid, mod, osuid)).passed)
+        return {
+            message: quick,
+            map: beatmap,
+            added: false
+        };
+    else if ((await checker.leaderboardCheck(mapid, mods, osuid)).passed)
         if (beatmap.approved == 1 && beatmap.version !== "Aspire")
             status = "Accepted";
         else
             status = "Pending"
     else
-    {
-        // Check here for if there's a screenshot attached.
-        if (msg.attachments.size === 0)
-            status = "Screenshot Required";
-        else
-        {
-            // Copy to the screenshots channel, and status is pending
-            let attach = msg.attachments.first();
-            let nAttach = new Discord.Attachment(attach.url, attach.filename);
-            channel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${team.name}\n`,
-                nAttach);
-            status = "Pending";
-        }
-    }
+        status = "Screenshot Required";
     
     // Get the mod pool this map is being added to
     let modpool;
-    if (custom)                   modpool = "cm";
-    else switch (mod)
+    if (cm)                       modpool = "cm";
+    else switch (mods)
         {
             case 0:               modpool = "nm"; break;
             case helpers.MODS.HD: modpool = "hd"; break;
@@ -671,47 +664,42 @@ async function addMap(msg, channel, args)
         title: beatmap.title,
         version: beatmap.version,
         creator: beatmap.creator,
-        mod: mod,
+        mod: mods,
         pool: modpool
     };
     let replaced = await db.addMap(team.name, mapitem);
     if (replaced)
     {
-        // Check here whether to include a replaced map message
-        let rep = "";
-        if (rejected)
-            rep = `Replaced ${mapString(rejected)}\n`;
-        else if (isNaN(replaced))
-            rep = `Replaced ${mapString(replaced)}\n`;
-
         // Prepare the current pool state
-        let cur = `Current __${helpers.modString(mod)}__ maps:\n`;
+        let cur = [];
         team.maps.forEach(m => {
-            if (m.mod === mod)
+            if (m.mod === mods)
             {
                 // Make sure it's not the removed map
-                if ((replaced
-                        ? m.id !== replaced.id
-                        : true)
+                if ((m.id !== replaced.id)
                     && (rejected
                         ? m.id !== rejected.id
                         : true))
-                    cur += `${mapString(m)}${m.pool === 'cm' ? " CM" : ""}\n`;
+                    cur.push(m);
             }
         });
         // Add the newly added map
-        cur += `${mapString(mapitem)}${modpool === 'cm' ? " CM" : ""}`;
+        cur.push(mapitem);
         
         // Send status and current pool info
-        await msg.channel.send(`${rep}Added map ${mapString(mapitem)} ` +
-            `to ${modpool.toUpperCase()} mod pool.\n` +
-            `Map approval satus: ${status}\n${cur}`);
-
-        // Check for an undo command
-        return waitForUndo(msg, team);
+        return {
+            replaced: rejected,
+            added: true,
+            map: mapitem,
+            current: cur
+        };
     }
     else
-        return msg.channel.send("Add map failed.");
+        return {
+            added: false,
+            message: "Add map failed.",
+            map: beatmap
+        };
 }
 
 /**

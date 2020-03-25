@@ -1,5 +1,6 @@
 const Banchojs = require('bancho.js');
 const helpers = require('./helpers');
+const commands = require('./bancho_commands');
 const util = require('util');
 
 class Logger
@@ -17,38 +18,34 @@ class Logger
 
 module.exports = class OsuClient
 {
-    constructor(user, pass, commands)
+    constructor(username, password)
     {
         this.client = new Banchojs.BanchoClient({
-            username: user,
-            password: pass
+            username,
+            password
         });
-        this.commands = commands;
-        this.currentMap = {};
+
+        this.client.on("PM", async msg => {
+            if (msg.message[0] !== '\u0001' && msg.message[0] !== '!')
+                return;
+            console.log(`\x1b[95mReceived message:\x1b[0m ${msg.message}`);
+            let commandNames = Object.keys(commands);
+            let commandArgs = msg.message.split(' ');
+            let command = commandArgs[0].slice(1);
+            if (commandNames.includes(command))
+                // Check if this is a help message or not
+                if (commandArgs[1] === '?')
+                    msg.user.sendMessage(commands[command].help);
+                else
+                    commands[command](msg, this.client)
+                        .catch(reason => {
+                            msg.user.sendMessage("Something went wrong, please tell Malikil what you were trying to do");
+                            console.error(reason);
+                        });
+        });
 
         this.client.connect().then(() => {
             console.log("Connected to osu!bancho");
-            this.client.on("PM", async message => {
-                let response;
-                // Sort the message here
-                try
-                {
-                    if (message.message.startsWith("!with "))
-                        response = await this.checkMap(message);
-                    else if (message.message.startsWith("ACTION is listening to [", 1))
-                        response = await this.onListening(message);
-                    else if (message.message.startsWith("ACTION is playing [", 1))
-                        response = await this.onPlaying(message);
-                }
-                catch (err)
-                {
-                    message.user.sendMessage("Something went wrong");
-                    console.error(err);
-                }
-                // Give the response, if needed
-                if (response)
-                    response.catch(err => console.error(err));
-            });
         });
     }
 
@@ -59,70 +56,6 @@ module.exports = class OsuClient
     \u0001ACTION is playing [link str] +Mod\u0001
     \u0001ACTION is playing [link str] +Mod1 +Mod2 +Mod3\u0001
     */
-    /**
-     * @param {Banchojs.PrivateMessage} message
-     */
-    async onListening(message)
-    {
-        // Get the song id
-        Logger.log(`${message.user.ircUsername}: ${message.message}`);
-        let begin = message.message.indexOf("/b/");
-        let end = message.message.indexOf(' ', begin);
-        let bid = message.message.substring(begin + 3, end);
-        Logger.log(`bid: ${bid}`);
-        // Set the user's latest song to this one
-        // Always set the mod back to 0
-        this.currentMap[message.user.id] = {
-            bid: bid,
-            mods: 0
-        };
-        // Do I want to do a checkMap here?
-        // Yes, then return a message
-        let result = await this.commands.checkMap(bid, { osuid: message.user.id });
-        return message.user.sendMessage(result.message);
-    }
-
-    /**
-     * @param {Banchojs.PrivateMessage} message
-     */
-    async onPlaying(message)
-    {
-        Logger.log(`${message.user.ircUsername}: ${message.message}`);
-        // Get the map id
-        let begin = message.message.indexOf("/b/");
-        let end = message.message.indexOf(' ', begin);
-        let bid = message.message.substring(begin + 3, end);
-        Logger.log(`Beatmap: ${bid}`);
-        // Extract the mods, if they exist
-        begin = message.message.indexOf("]] +");
-        let mods = 0;
-        if (begin > 0)
-        {
-            // Get the mods part of the string
-            let mod = message.message.substr(begin);
-            let modarr = [];
-            for (let i = 0;
-                    (i = mod.indexOf('+')) > -1;
-                    mod = mod.substr(i + 1))
-                modarr.push(mod.slice(i + 1, mod.indexOf(' ', i)));
-            Logger.inspect(modarr);
-            modarr.forEach(modstr => {
-                switch (modstr)
-                {
-                    case "Hidden":     mods |= helpers.MODS.HD; break;
-                    case "HardRock":   mods |= helpers.MODS.HR; break;
-                    case "DoubleTime": mods |= helpers.MODS.DT; break;
-                    case "Easy":       mods |= helpers.MODS.EZ; break;
-                    case "HalfTime":   mods |= helpers.MODS.HT; break;
-                }
-            });
-        }
-        Logger.log(`Mods: ${mods}`);
-        this.currentMap[message.user.id] = { bid, mods };
-
-        let result = await this.commands.checkMap(bid, { mods: mods, osuid: message.user.id });
-        return message.user.sendMessage(result.message);
-    }
 
    /**
     * @param {Banchojs.PrivateMessage} message 
