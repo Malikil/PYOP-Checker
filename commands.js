@@ -23,7 +23,6 @@ var locked = false;
 // ============================================================================
 // ========================= Helper Functions =================================
 // ============================================================================
-const mapLink = map => `https://osu.ppy.sh/b/${map.id}`;
 
 /**
  * Gets a mod pool string from a mod combination
@@ -159,60 +158,11 @@ async function checkMap(mapid, {
 }
 
 /**
- * Displays the current week's star/length requirements
- * @param {Discord.Message} msg 
- * @param {string[]} args
+ * Get strings to display all teams currently registered,
+ * and the players on them
  */
-async function viewRequirements()
+async function getTeamPlayers()
 {
-    const minStar = process.env.MIN_STAR;   // Minimum star rating
-    const maxStar = process.env.MAX_STAR;   // Maximum star rating
-    const lowMin = process.env.FIFT_MIN;
-    const lowMax = process.env.FIFT_MAX;
-    const minLength = parseInt(process.env.MIN_LENGTH); // Minimum drain time
-    const maxLength = parseInt(process.env.MAX_LENGTH); // Maximum drain time
-    const absoluteMax = parseInt(process.env.ABSOLUTE_MAX); // Maximum length limit
-    const minTotal = parseInt(process.env.MIN_TOTAL);       // Pool drain limit, per map
-    const maxTotal = parseInt(process.env.MAX_TOTAL);       // Pool drain limit, per map
-    const poolCount = 10; // 10 maps per pool
-    let minPool = minTotal * poolCount;
-    let maxPool = maxTotal * poolCount;
-    const leaderboard = parseInt(process.env.LEADERBOARD);      // How many leaderboard scores are required for auto-approval
-
-    return msg.channel.send("Requirements for this week:\n" +
-        `Star rating:\n` +
-        `    Open: ${minStar} - ${maxStar}\n` +
-        `    15K: ${lowMin} - ${lowMax}\n` +
-        `Drain length: ${checker.convertSeconds(minLength)}` +
-        ` - ${checker.convertSeconds(maxLength)}\n` +
-        `   Total length must be less than ${checker.convertSeconds(absoluteMax)}\n` +
-        `Total pool drain time must be ${checker.convertSeconds(minPool)}` +
-        ` - ${checker.convertSeconds(maxPool)}\n\n` +
-        `Maps with less than ${leaderboard} scores with the selected ` +
-        `mod on the leaderboard will need to be submitted with a ` +
-        `screenshot of one of the players on your team passing the map.\n` +
-        `Maps without a leaderboard will always need a screenshot.`);
-}
-
-/**
- * Displays all teams currently registered, and the players on them
- * @param {Discord.Message} msg 
- * @param {string[]} args
- */
-async function viewTeamPlayers(msg, args)
-{
-    if (args.length > 2 || (args[0] !== "!players" && args[0] !== "!teams"))
-        return;
-    if (args.length === 2)
-        if (args[1] === '?')
-            return msg.channel.send("Usage: !teams [open|15k]\n" +
-                "Optionally limit to a division by specifying 'open' or '15k'\n" +
-                "Shows the currently registered teams and players on those teams\n" +
-                "Aliases: !players");
-        else if (args[1] !== "open" && args[1] !== "Open"
-                && args[1] !== "15k" && args[1] !== "15K")
-            return;
-    // Continue if args.length == 1
     // Create the tables
     var openname = 0;
     var fiftname = 0;
@@ -240,25 +190,17 @@ async function viewTeamPlayers(msg, args)
             ? openname
             : fiftname, ' ')} | `;
         if (team.info.length > 0)
-        {
-            team.info.forEach(player => tempstr += `${player}, `);
-            tempstr = tempstr.substring(0, tempstr.length - 2);
-        }
+            tempstr = team.info.reduce((p, c) => `${p}${c}, `, tempstr).slice(0, -2);
 
         if (team.range === "Open")
             openstr += `\n${tempstr}`;
         else
             fiftstr += `\n${tempstr}`;
     });
-    // Decide which table to include
-    if (args[1] === "open" || args[1] === "Open")
-        return msg.channel.send(`**Open division:**${openstr}\`\`\``);
-    else if (args[1] === "15k" || args[1] === "15K")
-        return msg.channel.send(`**15k division:**${fiftstr}\`\`\``);
-    else
-    {
-        await msg.channel.send(`**Open division:**${openstr}\`\`\``);
-        return msg.channel.send(`**15k division:**${fiftstr}\`\`\``);
+    
+    return {
+        openstr,
+        fiftstr
     }
 }
 //#endregion
@@ -499,45 +441,23 @@ async function recheckMaps(msg)
 // ============================================================================
 /**
  * Updates the osu name of a given player
- * @param {Discord.Message} msg 
- * @param {string[]} args
+ * @param {string} discordid
  */
-async function updatePlayerName(msg, args)
+async function updatePlayerName(discordid)
 {
-    // One arg updates themself, two updates the tagged user
-    if (args[0] !== "!osuname" || args.length > 2)
-        return;
-    // Help message
-    if (args[1] === "?")
-        return msg.channel.send("Usage: !osuname\n" +
-            "Updates your osu username if you've changed it");
-    // Get the discord id to look for
-    let discordid;
-    if (args.length === 2)
-    {
-        let matches = args[1].match(/[0-9]+/);
-        if (!matches)
-        {
-            console.log("Discord id not recognised. Exiting silently");
-            return;
-        }
-        discordid = matches.pop();
-    }
-    else
-        discordid = msg.author.id;
     // Get the player's current info
     let team = await db.getTeam(discordid);
     if (!team)
-        return msg.channel.send("Couldn't find which team you're on");
+        return "Couldn't find which team you're on";
     let player = team.players.find(p => p.discordid == discordid);
     // Get the player's new info from the server
     let newp = await checker.getPlayer(player.osuid);
     // Update in the database
     let result = await db.updatePlayer(discordid, newp.username);
     if (result)
-        return msg.channel.send(`Updated name from ${player.osuname} to ${newp.username}`);
+        return `Updated name from ${player.osuname} to ${newp.username}`;
     else
-        return msg.channel.send(`No updates made, found username: ${newp.username}`);
+        return `No updates made, found username: ${newp.username}`;
 }
 
 /**
@@ -888,7 +808,7 @@ async function viewPool(msg, args)
             if (!strs[map.pool])
                 strs[map.pool] = modNames[map.pool];
             // Add the map's info to the proper string
-            strs[map.pool] += `${mapString(map)} ${map.pool === 'cm' ? `+${helpers.modString(map.mod)} ` : ""}<${mapLink(map)}>\n`;
+            strs[map.pool] += `${mapString(map)} ${map.pool === 'cm' ? `+${helpers.modString(map.mod)} ` : ""}<${helpers.mapLink(map)}>\n`;
             strs[map.pool] += `\tDrain: ${checker.convertSeconds(map.drain)}, Stars: ${map.stars}, Status: ${map.status}\n`;
 
             pool.push(map);
@@ -995,7 +915,7 @@ async function viewPending(msg, args)
         str += `**__${helpers.modString(mod._id)}:__**\n`;
         mod.maps.forEach(map => {
             if (str.length < 1800)
-                str += `<${mapLink(map)}> ${mapString(map)}\n`;
+                str += `<${helpers.mapLink(map)}> ${mapString(map)}\n`;
         });
     });
     if (str.length >= 1800)
@@ -1031,7 +951,7 @@ async function viewNoScreenshot(msg, args)
     maplist.forEach(mod => {
         str += `**__${helpers.modString(mod._id)}:__**\n`;
         mod.maps.forEach(map =>
-            str += `<${mapLink(map)}> ${mapString(map)}\n`
+            str += `<${helpers.mapLink(map)}> ${mapString(map)}\n`
         );
     });
     if (str === "")
@@ -1203,29 +1123,10 @@ async function rejectScreenshot(msg, userlist, args)
 }
 
 //#endregion
-/**
- * Sends a list of available commands
- * @param {Discord.Message} msg 
- */
-async function commands(msg)
-{
-    var info = "Available **Public** commands:\n" +
-        "!check, !help, !requirements, !teams";
-    if (msg.member && msg.member.roles.has(APPROVER))
-        info += "\nAvailable **Map Approver** commands:\n" +
-            "!pending, !approve, !reject, !clearss, !ssrequired, !missing";
-    if (await db.getTeam(msg.author.id))
-        info += "\nAvailable **Player** commands:\n" +
-            "!add, !remove, !view, !addpass, !osuname, !notif";
-    info += "\n\nGet more info about a command by typing a ? after the name";
-    return msg.channel.send(info);
-}
 
 module.exports = {
     checkMap,   // Public
-    commands,
-    viewRequirements,
-    viewTeamPlayers,
+    getTeamPlayers,
     addTeam,    // Admins
     addPlayer,
     removePlayer,

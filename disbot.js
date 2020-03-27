@@ -8,45 +8,10 @@ const commands = require('./discord_commands');
 const util = require('util');
 const client = new Discord.Client();
 
-const ADMIN = process.env.ROLE_ADMIN;
-const APPROVER = process.env.ROLE_MAP_APPROVER;
 /** @type {Discord.TextChannel} */
 var passChannel;
 /** @type {Discord.Collection<string, Discord.GuildMember>} */
 var userlist;
-
-/**
- * Makes sure the sender is a map approver before executing the command
- * @param {Discord.Message} msg 
- * @param {function(Discord.Message) =>
- * Promise<Discord.Message|Discord.Message[]>} command 
- */
-async function approverCommand(msg, command, ...args)
-{
-    let member = msg.member;
-    if (!member || !member.roles.has(APPROVER))
-        return msg.channel.send("This command is only available in the server to Map Approvers");
-    else if (args.length > 0)
-        return command(msg, ...args);
-    else
-        return command(msg);
-}
-/**
- * Makes sure the sender is an admin before executing the command
- * @param {Discord.Message} msg 
- * @param {function(Discord.Message) =>
- * Promise<Discord.Message|Discord.Message[]>} command 
- */
-async function adminCommand(msg, command, ...args)
-{
-    let member = msg.member;
-    if (!member || !member.roles.has(ADMIN))
-        return msg.channel.send("This command is only available to admins");
-    else if (args.length > 0)
-        return command(msg, ...args);
-    else
-        return command(msg);
-}
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
@@ -67,20 +32,15 @@ client.on('message', msg => {
     if (commandNames.includes(command))
         // Check if this is a help message or not
         if (commandArgs[1] === '?')
-            msg.channel.send(commands.commands[command].help);
+            msg.channel.send(commands.commands[command].help)
+                .catch(() => msg.channel.send("No help available"));
         else
             commands.run(command, msg, client)
                 .catch(reason => msg.channel.send("Malikil did a stupid, and so the bot broke. " +
                     "Please tell him what you were trying to do and send him this:\n" +
-                    "```" + util.inspect(reason).slice(0, 1000) + "```"));
+                    "```" + util.inspect(reason).slice(0, 1000) + "...```"));
     
     /*
-    if (msg.content.startsWith('!requirements')
-            || msg.content.startsWith('!req'))
-        response = commands.viewRequirements(msg, getArgs(msg.content));
-    else if (msg.content.startsWith('!teams')
-            || msg.content.startsWith('!players'))
-        response = commands.viewTeamPlayers(msg, getArgs(msg.content));
     else if (msg.content.startsWith("!osuname"))
         response = commands.updatePlayerName(msg, getArgs(msg.content));
     // Team/player management

@@ -79,11 +79,13 @@ function parseMapId(mapString)
  * Converts a map object to the artist - title [version] format
  */
 const mapString = map => `${map.artist} - ${map.title} [${map.version}]`;
+const mapLink = map => `https://osu.ppy.sh/b/${map.id}`;
 
 module.exports = {
     MODS,
     parseMod,
     parseMapId,
     modString,
-    mapString
+    mapString,
+    mapLink
 }
