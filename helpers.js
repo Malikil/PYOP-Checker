@@ -1,3 +1,6 @@
+const osuapi = "https://osu.ppy.sh/api";
+const key = process.env.OSUKEY;
+
 /**
  * Mods bitwise
  */
@@ -81,11 +84,27 @@ function parseMapId(mapString)
 const mapString = map => `${map.artist} - ${map.title} [${map.version}]`;
 const mapLink = map => `https://osu.ppy.sh/b/${map.id}`;
 
+/**
+ * Gets a single player from the osu server based on id or username
+ * @param {String|Number} osuid 
+ */
+async function getPlayer(osuid)
+{
+    let response = await fetch(`${osuapi}/get_user?k=${key}&u=${osuid}`);
+    let user = (await response.json())[0];
+    if (!user)
+        return undefined;
+    // The user id should be an int
+    user.user_id = parseInt(user.user_id);
+    return user;
+}
+
 module.exports = {
     MODS,
     parseMod,
     parseMapId,
     modString,
     mapString,
-    mapLink
+    mapLink,
+    getPlayer
 }

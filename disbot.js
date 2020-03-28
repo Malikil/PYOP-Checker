@@ -41,11 +41,7 @@ client.on('message', msg => {
                     "```" + util.inspect(reason).slice(0, 1000) + "...```"));
     
     /*
-    else if (msg.content.startsWith("!osuname"))
-        response = commands.updatePlayerName(msg, getArgs(msg.content));
     // Team/player management
-    else if (msg.content.startsWith('!addteam '))
-        response = adminCommand(msg, commands.addTeam);
     else if (msg.content.startsWith('!addplayer ')
             || msg.content.startsWith('!ap '))
         response = adminCommand(msg, commands.addPlayer, getArgs(msg.content));

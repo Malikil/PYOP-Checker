@@ -208,49 +208,30 @@ async function getTeamPlayers()
 // ============================================================================
 // ========================== Admin Functions =================================
 // ============================================================================
-/**
- * Adds a team to the database, requires Admin role
- * @param {Discord.Message} msg 
- */
-async function addTeam(msg)
-{
-    let args = msg.content.substr(9);
-    if (args.length == 0)
-        return;
-    else if (args == '?')
-        return msg.channel.send(`Adds a new team to the database`);
-    
-    let result = await db.addTeam(args, "Open");
-    if (result === undefined)
-        return msg.channel.send("A team with that name already exists");
-    else if (result)
-        return msg.channel.send(`Added team "${args}"`);
-    else
-        return msg.channel.send("Error while adding team");
-}
 
 /**
  * Adds a player to a team
- * @param {Discord.Message} msg 
- * @param {string[]} args
+ * @param {string} team The team name
+ * @param {{
+ *  osuid: string|number,
+ *  discordid?: string
+ * }[]} players An array of player objects containing osuid and discordid
+ * @param {string} division Which division to add the team to
  */
-async function addPlayer(msg, args)
+async function addPlayer(team, players, division = "open")
 {
-    if (args[1] === '?')
-        return msg.channel.send("Adds a player to an existing team.\n" +
-            "!addPlayer \"Team Name\" (<osu name/id> <discordid/@>)...");
-    if (args.length < 4)
-        return;
+    console.log(`Adding ${players.length} players to ${team}`);
 
-    // Remove the command argument, combining team name will require team to
-    // be the first argument
-    args.shift();
-    var team = args.shift();
-    console.log(args);
+    players.reduce(async (modcount, player) => {
+        // Make sure the player isn't already on a team
+        if (await db.getTeam(player.osuid))
 
-    if (args.length % 2 !== 0)
-        return msg.channel.send("Incorrect number of arguments");
-
+        let osuplayer = await helpers.getPlayer(player.osuid);
+        if (!osuplayer)
+            return modcount;
+        
+        // Make sure the player isn't already on a team
+    }, 0)
     // There can be more than one player per command
     // args will come in pairs, osuid first then discordid
     let results = [];
@@ -264,7 +245,7 @@ async function addPlayer(msg, args)
             {
                 // Special case for adding players without a discord id
                 console.log(`Adding player without discord`);
-                let player = await checker.getPlayer(args[i]);
+                let player = await helpers.getPlayer(args[i]);
                 if (!player)
                     results.push(0);
                 else
@@ -286,7 +267,7 @@ async function addPlayer(msg, args)
         else
         {
             // Get the player info from the server
-            let player = await checker.getPlayer(args[i]);
+            let player = await helpers.getPlayer(args[i]);
             if (!player)
                 results.push(0);
             else
@@ -451,7 +432,7 @@ async function updatePlayerName(discordid)
         return "Couldn't find which team you're on";
     let player = team.players.find(p => p.discordid == discordid);
     // Get the player's new info from the server
-    let newp = await checker.getPlayer(player.osuid);
+    let newp = await helpers.getPlayer(player.osuid);
     // Update in the database
     let result = await db.updatePlayer(discordid, newp.username);
     if (result)
@@ -1125,10 +1106,9 @@ async function rejectScreenshot(msg, userlist, args)
 //#endregion
 
 module.exports = {
-    checkMap,   // Public
+    checkMap,  // Public
     getTeamPlayers,
-    addTeam,    // Admins
-    addPlayer,
+    addPlayer, // Admins
     removePlayer,
     movePlayer,
     lockSubmissions,

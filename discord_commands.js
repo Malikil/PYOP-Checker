@@ -159,21 +159,32 @@ const commands = {
     async add(msg, client)
     {
 
-    }
+    },
     //#endregion
     //#region ============================== Admin ==============================
+    /**
+     * Adds a player to a team, and creates the team if it doesn't already exist
+     * @param {Discord.Message} msg 
+     */
+    addplayer(msg)
+    {
+
+    }
     //#endregion
 }
 const comnames = Object.keys(commands);
 //#region Command permissions
-
+commands.addplayer.permissions = "admin";
 //#endregion
 //#region Aliases
+// ========== Public ==========
 commands.commands = commands.help;
 commands.checkmap = commands.check;
 commands.map = commands.check;
 commands.req = commands.requirements;
 commands.teams = commands.players;
+// ========== Admin ==========
+commands.ap = commands.addplayer;
 //#endregion
 //#region Help messages
 // ============================== Public ==============================
@@ -209,6 +220,10 @@ commands.add.help = "Usage: !add <map> [mod]\n" +
     "remove it first before adding another one.\n"// +
     //"If you make a mistake you can use `!undo` within 10 seconds to " +
     //"return your maps to how they were before.";
+// ============================== Admin ==============================
+commands.addplayer.help = "Adds a player to a team. If the team " +
+    "doesn't already exist it is created.\n" +
+    "!addPlayer \"Team Name\" (<osu name/id> <discordid/@>)...";
 commands.add.osuhelp = "Use !add [mods] where mods is a combination of NM|HD|HR|DT|EZ|HT|CM, using the last map from /np";
 //#endregion
 /**

@@ -267,28 +267,11 @@ async function getBeatmap(mapid, mod)
     return beatmap;
 }
 
-/**
- * Gets a single player from the osu server based on id or username
- * @param {String|Number} osuid 
- */
-async function getPlayer(osuid)
-{
-    let response = await fetch(`${osuapi}/get_user?k=${key}&u=${osuid}`);
-    let data = await response.json();
-    let user = data[0];
-    if (!user)
-        return undefined;
-    // The user id should be an int
-    user.user_id = parseInt(user.user_id);
-    return user;
-}
-
 module.exports = {
     quickCheck,
     leaderboardCheck,
     checkPool,
     getBeatmap,
-    getPlayer,
     parseMapId,
     convertSeconds
 };

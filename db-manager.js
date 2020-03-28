@@ -261,7 +261,8 @@ async function getTeam(id)
     let team = await db.collection('teams').findOne({
         $or: [
             { 'players.discordid': id },
-            { 'players.osuid': id }
+            { 'players.osuid': id },
+            { 'players.osuname': id }
         ]
     });
     console.log(util.inspect(team, { depth: 1 }));
