@@ -741,6 +741,37 @@ async function addMap(msg, channel, args)
 }
 
 /**
+ * Adds multiple maps at once
+ * @param {Discord.Message} msg 
+ */
+async function addBulk(msg)
+{
+    // Skip over the !addbulk command and split into lines
+    let lines = msg.content.substr(9).split('\n');
+    let added = lines.reduce((count, line) => {
+        // Split by spaces
+        let lineargs = line.split(' ');
+        if (lineargs.length < 2)
+            return count;
+        // Determine whether the first arg is a link or a mod
+        let id = checker.parseMapId(lineargs[0]);
+        let mod;
+        if (id)
+            mod = parseMod(lineargs[1]);
+        else
+        {
+            mod = parseMod(lineargs[0]);
+            id = checker.parseMapId(lineargs[1]);
+        }
+        // Count the mod
+        count[mod] = (count[mod] || 0) + 1;
+        
+    }, {
+        total: 0
+    })
+}
+
+/**
  * Adds a pass to a map in the player's team's pool
  * @param {Discord.Message} msg 
  * @param {Discord.TextChannel} channel Where to send the screenshot reply
