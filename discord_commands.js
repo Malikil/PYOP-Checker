@@ -48,10 +48,9 @@ const commands = {
      * without actually adding the map to any pools
      * @param {Discord.Message} msg
      */
-    async check(msg)
+    async check(msg, args)
     {
         // args order should be map, mod?, division?
-        let args = getArgs(msg.content).slice(1);
         if (args.length < 1 || args.length > 3)
             return;
         // Convert mods into a number
@@ -107,14 +106,13 @@ const commands = {
      * Gets a list of teams/players
      * @param {Discord.Message} msg 
      */
-    async players(msg)
+    async players(msg, args)
     {
-        let args = getArgs(msg.content);
         let div;
-        if (args[1])
-            div = args[1].toLowerCase();
+        if (args[0])
+            div = args[0].toLowerCase();
         // If args is too long ignore it
-        if (args.length > 2 || (div && div !== "open" && div !== "15k"))
+        if (args.length > 1 || (div && div !== "open" && div !== "15k"))
             return;
         
         let result = await Command.getTeamPlayers();
@@ -135,22 +133,46 @@ const commands = {
      * Updates own osu username or the pinged user's
      * @param {Discord.Message} msg 
      */
-    async osuname(msg)
+    async osuname(msg, args)
     {
-        let args = getArgs(msg.content);
         let discordid;
-        if (args.length === 2)
+        if (args.length === 1)
         {
-            let matches = args[1].match(/[0-9]+/);
+            let matches = args[0].match(/[0-9]+/);
             if (!matches)
                 return console.log("Discord id not recognised. Exiting silently");
             discordid = matches.pop();
         }
-        else if (args.length === 1)
+        else if (args.length === 0)
             discordid = msg.author.id;
         
         if (discordid)
             return msg.channel.send(await Command.updatePlayerName(discordid));
+    },
+
+    /**
+     * Toggles notifications on or off
+     * @param {Discord.Message} msg 
+     * @param {string[]} args
+     */
+    async notif(msg, args)
+    {
+        if (args[0] === '??')
+        {
+            let status = await Command.toggleNotif(msg.author.id, false);
+            if (status === undefined)
+                return msg.channel.send("Couldn't find which team you're on");
+            else
+                return msg.channel.send(`Notifications currently set to: ${!!status}`);
+        }
+        else if (args.length === 0)
+        {
+            let status = await Command.toggleNotif(msg.author.id);
+            if (status === undefined)
+                return msg.channel.send("Couldn't update your notification status");
+            else
+                return msg.channel.send(`Toggled notifications to: ${!!status}`);
+        }
     },
 
     /**
@@ -165,16 +187,72 @@ const commands = {
     /**
      * Adds a player to a team, and creates the team if it doesn't already exist
      * @param {Discord.Message} msg 
+     * @param {string[]} args
      */
-    addplayer(msg)
+    async addplayer(msg, args)
     {
+        // First arg is team name
+        let team = args.shift();
+        // Then player osuid/discordid come in pairs
+        // Starting in the second spot and using i - 1 so the last arg will be
+        // ignored if there are an odd number
+        let players = [];
+        for (let i = 1; i < args.length; i += 2)
+        {
+            // Extract the number from the discord id
+            let match = args[i].match(/[0-9]+/)[0];
+            if (match || args[i] === '_')
+                players.push({
+                    osuid: args[i - 1],
+                    discordid: match
+                });
+        }
 
+        // If there are an odd number of args, the last one should be division
+        let added;
+        if (args.length % 2 === 1)
+            added = await Command.addPlayer(team, players, args.pop());
+        else
+            added = await Command.addPlayer(team, players);
+        
+        return msg.channel.send(`Added ${added} players`);
+    },
+
+    /**
+     * Removes a player from their team
+     * @param {Discord.Message} msg 
+     * @param {string[]} args 
+     */
+    async removeplayer(msg, args)
+    {
+        // Combine multiple words into one
+        let osuname = args.reduce((p, c) => `${p} ${c}`, '').slice(1);
+        let result = await Command.removePlayer(osuname);
+        return msg.channel.send(`Removed ${osuname} from ${result} teams`);
+    },
+
+    /**
+     * Moves an existing player to a different team
+     * @param {Discord.Message} msg 
+     * @param {string[]} args 
+     */
+    async moveplayer(msg, args)
+    {
+        if (args.length > 2)
+            return;
+
+        if ((await Command.movePlayer(args[0], args[1])) > 0)
+            return msg.channel.send(`Moved ${args[0]} to ${args[1]}`);
+        else
+            return msg.channel.send("Couldn't move player");
     }
     //#endregion
 }
 const comnames = Object.keys(commands);
 //#region Command permissions
 commands.addplayer.permissions = "admin";
+commands.removeplayer.permissions = "admin";
+commands.moveplayer.permissions = "admin";
 //#endregion
 //#region Aliases
 // ========== Public ==========
@@ -185,6 +263,8 @@ commands.req = commands.requirements;
 commands.teams = commands.players;
 // ========== Admin ==========
 commands.ap = commands.addplayer;
+commands.rp = commands.removeplayer;
+commands.mp = commands.moveplayer;
 //#endregion
 //#region Help messages
 // ============================== Public ==============================
@@ -220,10 +300,17 @@ commands.add.help = "Usage: !add <map> [mod]\n" +
     "remove it first before adding another one.\n"// +
     //"If you make a mistake you can use `!undo` within 10 seconds to " +
     //"return your maps to how they were before.";
+commands.notif.help = "Usage: !notif\n" +
+    "Toggles whether the bot will DM you if one of your maps is rejected\n" +
+    "Use `!notif ??` to view the current setting";
 // ============================== Admin ==============================
 commands.addplayer.help = "Adds a player to a team. If the team " +
     "doesn't already exist it is created.\n" +
-    "!addPlayer \"Team Name\" (<osu name/id> <discordid/@>)...";
+    "!addPlayer \"Team Name\" (<osu name/id> <discordid/@/_>)...";
+commands.removeplayer.help = "Removes a player from all teams they might be on.\n" +
+    "!removePlayer osuname";
+commands.moveplayer.help = "Moves an existing player to a different team.\n" +
+    "!movePlayer <player> <TeamName>";
 commands.add.osuhelp = "Use !add [mods] where mods is a combination of NM|HD|HR|DT|EZ|HT|CM, using the last map from /np";
 //#endregion
 /**
@@ -243,7 +330,7 @@ async function run(comname, msg, client)
     else if (com.permissions === "admin" && !msg.member.roles.has(ADMIN))
         return msg.channel.send("This command is only available in the server to Admins");
     else
-        return com(msg, client);
+        return com(msg, getArgs(msg.content).slice(1), client);
 }
 
 module.exports = {

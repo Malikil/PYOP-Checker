@@ -217,104 +217,48 @@ async function getTeamPlayers()
  *  discordid?: string
  * }[]} players An array of player objects containing osuid and discordid
  * @param {string} division Which division to add the team to
+ * @returns {Promise<number>} How many players got added/moved
  */
 async function addPlayer(team, players, division = "open")
 {
     console.log(`Adding ${players.length} players to ${team}`);
 
-    players.reduce(async (modcount, player) => {
+    let playercount = players.reduce(async (pcount, player) => {
         // Make sure the player isn't already on a team
         if (await db.getTeam(player.osuid))
+            // If the player is on a team, move them instead
+            return pcount + await db.movePlayer(team, player.osuid);
 
         let osuplayer = await helpers.getPlayer(player.osuid);
         if (!osuplayer)
-            return modcount;
+            return pcount;
         
-        // Make sure the player isn't already on a team
-    }, 0)
-    // There can be more than one player per command
-    // args will come in pairs, osuid first then discordid
-    let results = [];
-    for (let i = 0; i < args.length; i += 2)
-    {
-        // Get the player's discord id
-        let matches = args[i + 1].match(/[0-9]+/);
-        if (!matches)
-        {
-            if (args[i + 1] === '_')
-            {
-                // Special case for adding players without a discord id
-                console.log(`Adding player without discord`);
-                let player = await helpers.getPlayer(args[i]);
-                if (!player)
-                    results.push(0);
-                else
-                    results.push(await db.addPlayer(team, player.user_id, player.username, undefined));
-                continue;
-            }
-            else
-                results.push(0);
-            continue;
-        }
-        let discordid = matches[0];
-        // Make sure the player isn't already on a team
-        // If the player is already on a team, move them to the new one
-        if (await db.getTeam(discordid))
-        {
-            if (await db.movePlayer(team, args[i]) > 0)
-                results.push(1);
-        }
-        else
-        {
-            // Get the player info from the server
-            let player = await helpers.getPlayer(args[i]);
-            if (!player)
-                results.push(0);
-            else
-                results.push(await db.addPlayer(team, player.user_id, player.username, discordid));
-        }
-    }
-    // Figure out what the results mean
-    let modified = results.reduce((prev, item) => prev + item, 0);
-    return msg.channel.send(`Added ${modified} players`);
+        // We should have a player now, add them to their team
+        return pcount + await db.addPlayer(team, osuplayer.user_id, osuplayer.username, player.discordid);
+    }, 0);
+    
+    return playercount;
 }
 
 /**
  * Removes a player from all the teams they're on
- * @param {Discord.Message} msg 
- * @param {string[]} args
+ * @param {string} osuid
  */
-async function removePlayer(msg, args)
+async function removePlayer(osuname)
 {
-    if (args.length !== 2)
-        return;
-
-    if (args[1] === '?')
-        return msg.channel.send("Removes a player from all teams they might be on.\n" +
-            "!removePlayer osuname");
-    
-    console.log(`Removing ${args[1]}`);
-    let result = await db.removePlayer(args[1]);
-    return msg.channel.send(`Removed ${args[1]} from ${result} teams`);
+    console.log(`Removing ${osuname}`);
+    return db.removePlayer(osuname);
 }
 
 /**
  * Moves an existing player to a different team
- * @param {Discord.Message} msg 
- * @param {string[]} args
+ * @param {string|number} osuname Osu username or id
+ * @param {string} team
+ * @returns How many teams got changed, or -1 if no player was found
  */
-async function movePlayer(msg, args)
+async function movePlayer(osuname, team)
 {
-    if (args.length === 2 && args[1] === '?')
-        return msg.channel.send("Moves an existing player to a different team.\n" +
-            "!movePlayer <player> <Team Name>");
-    else if (args.length !== 3)
-        return;
-    
-    if (await db.movePlayer(args[2], args[1]))
-        return msg.channel.send(`Moved ${args[1]} to ${args[2]}`);
-    else
-        return msg.channel.send("Couldn't move player");
+    return db.movePlayer(team, osuname);
 }
 
 /**
@@ -829,34 +773,23 @@ async function viewPool(msg, args)
 
 /**
  * Toggles whether the player wants to receive notifications when their maps are rejected
- * @param {Discord.Message} msg 
+ * @param {string} discordid Who to toggle the status of
+ * @param toggle Set to false if no changes should be made, only check the current value
+ * 
+ * @returns {Promise<boolean>} The current notification status of the player,
+ * or undefined if player not found
  */
-async function toggleNotif(msg)
+async function toggleNotif(discordid, toggle = true)
 {
-    let args = msg.content.split(' ');
-    if (args[0] !== "!notif")
+    if (toggle)
+        return db.toggleNotification(discordid);
+    
+    let team = await db.getTeam(discordid);
+    if (!team)
         return;
 
-    if (args.length === 1)
-    {
-        let status = await db.toggleNotification(msg.author.id);
-        if (status === undefined)
-            return msg.channel.send("Couldn't update your notification status");
-        else
-            return msg.channel.send(`Toggled notifications ${status ? "on" : "off"}`);
-    }
-    else if (args[1] === '?')
-    {
-        let team = await db.getTeam(msg.author.id);
-        if (!team)
-            return msg.channel.send("Couldn't find which team you're on");
-
-        let status = team.players.find(p => p.discordid === msg.author.id).notif;
-        // Show help and the current setting
-        return msg.channel.send("Usage: !notif\n" +
-            "Toggles whether the bot will DM you if one of your maps is rejected\n" +
-            `Currently set to: ${status === false ? "Ignore" : "Notify"}`);
-    }
+    let status = team.players.find(p => p.discordid === discordid).notif;
+    return !!status;
 }
 //#endregion
 //#region Approver Commands

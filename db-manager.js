@@ -183,7 +183,7 @@ async function removePlayer(osuname)
 /**
  * Move a player from one team to another
  * @param {string} teamName The team name to move to
- * @param {string} osuname The player's osu username
+ * @param {string|number} osuname The player's osu username or osu id
  * @returns How many records were modified, or -1 if the player wasn't found
  */
 async function movePlayer(teamName, osuname)
@@ -193,12 +193,15 @@ async function movePlayer(teamName, osuname)
     // Pull the player from their old team
     let team = await db.collection('teams').findOneAndUpdate(
         { 'players.osuname': reg },
-        { $pull: { players: { osuname: reg } } }
+        { $pull: { players: { $or: [
+            { osuname: reg },
+            { osuid: osuname }
+        ] } } }
     );
     // If the player wasn't found, quit early
     if (!team.value)
-        return 0;
-    let player = team.value.players.find(item => item.osuname.match(reg));
+        return -1;
+    let player = team.value.players.find(item => item.osuname.match(reg) || item.osuid == osuname);
     return addPlayer(teamName, player.osuid, player.osuname, player.discordid);
 }
 

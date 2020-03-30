@@ -41,18 +41,6 @@ client.on('message', msg => {
                     "```" + util.inspect(reason).slice(0, 1000) + "...```"));
     
     /*
-    // Team/player management
-    else if (msg.content.startsWith('!addplayer ')
-            || msg.content.startsWith('!ap '))
-        response = adminCommand(msg, commands.addPlayer, getArgs(msg.content));
-    else if (msg.content.startsWith('!removeplayer ')
-            || msg.content.startsWith('!rp '))
-        response = adminCommand(msg, commands.removePlayer, getArgs(msg.content));
-    else if (msg.content.startsWith('!moveplayer ')
-            || msg.content.startsWith('!mp '))
-        response = adminCommand(msg, commands.movePlayer, getArgs(msg.content));
-    else if (msg.content.startsWith('!notif'))
-        response = commands.toggleNotif(msg);
     // Map management
     else if (msg.content.startsWith('!addmap ')
             || msg.content.startsWith('!add '))
