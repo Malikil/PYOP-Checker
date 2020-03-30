@@ -99,6 +99,44 @@ async function getPlayer(osuid)
     return user;
 }
 
+/**
+ * Gets a single beatmap from the server, and verifies all values are proper
+ * @param {Number} mapid The map id to get info for
+ * @param {Number} mod The bitwise value of the selected mods
+ * @returns {Promise} A promise which will resolve to a beatmap object, or undefined if
+ *     no beatmap was found
+ */
+async function getBeatmap(mapid, mod)
+{
+    let response = await fetch(`${osuapi}/get_beatmaps?k=${key}&b=${mapid}&mods=${mod & MODS.DIFFMODS}`);
+    let data = await response.json();
+    let beatmap = data[0];
+    if (!beatmap)
+        return undefined;
+    // Parse ints/floats
+    beatmap.drain = parseInt(beatmap.hit_length);
+    beatmap.total_length = parseInt(beatmap.total_length);
+    beatmap.bpm = parseFloat(beatmap.bpm);
+    // Update length/bpm if DT/HT
+    if (mod & MODS.DT)
+    {
+        beatmap.bpm = beatmap.bpm * (3.0 / 2.0);
+        beatmap.drain = (beatmap.drain * (2.0 / 3.0)) | 0;
+        beatmap.total_length = (beatmap.total_length * (2.0 / 3.0)) | 0;
+    }
+    else if (mod & MODS.HT)
+    {
+        beatmap.bpm = beatmap.bpm * (3.0 / 4.0);
+        beatmap.drain = (beatmap.drain * (4.0 / 3.0)) | 0;
+        beatmap.total_length = (beatmap.total_length * (4.0 / 3.0)) | 0;
+    }
+    beatmap.stars = parseFloat(parseFloat(beatmap.difficultyrating).toFixed(2));
+    beatmap.mode = parseInt(beatmap.mode);
+    beatmap.approved = parseInt(beatmap.approved);
+    beatmap.last_update = new Date(beatmap.last_update);
+    return beatmap;
+}
+
 module.exports = {
     MODS,
     parseMod,
@@ -106,5 +144,6 @@ module.exports = {
     modString,
     mapString,
     mapLink,
-    getPlayer
+    getPlayer,
+    getBeatmap
 }

@@ -42,33 +42,6 @@ function convertSeconds(length)
 }
 
 /**
- * Gets a map id from a link, or just returns the id received if given one
- * @param {string} mapString A string containing a link to the new or old site, or just the id
- * @returns The map id for the given link, or undefined if no id was found
- */
-function parseMapId(mapString)
-{
-    // If link is already a number then nothing needs to be done
-    if (isNaN(mapString))
-    {
-        // If the link isn't to a beatmap, then ignore it
-        // If the link is a /s/ link, ignore it
-        if (mapString.includes("sh/b"))
-        {
-            // Get everything after the last slash, this should be the beatmap id
-            mapString = mapString.substring(mapString.lastIndexOf("/") + 1);
-            // The parseInt function will convert the beginning of a string to a number
-            // until it finds a non-number character
-            mapString = parseInt(mapString);
-        }
-        else
-            return undefined;
-    }
-  
-    return mapString | 0;
-}
-
-/**
  * Checks an entire pool, including things like duplicates or total drain time.
  * Doesn't really check the map things.
  * @param {*[]} maps An array of map objects to check.
@@ -229,49 +202,9 @@ async function leaderboardCheck(mapid, mod, userid)
     };
 }
 
-/**
- * Gets a single beatmap from the server, and verifies all values are proper
- * @param {Number} mapid The map id to get info for
- * @param {Number} mod The bitwise value of the selected mods
- * @returns {Promise} A promise which will resolve to a beatmap object, or undefined if
- *     no beatmap was found
- */
-async function getBeatmap(mapid, mod)
-{
-    let response = await fetch(`${osuapi}/get_beatmaps?k=${key}&b=${mapid}&mods=${mod & MODS.DIFFMODS}`);
-    let data = await response.json();
-    let beatmap = data[0];
-    if (!beatmap)
-        return undefined;
-    // Parse ints/floats
-    beatmap.drain = parseInt(beatmap.hit_length);
-    beatmap.total_length = parseInt(beatmap.total_length);
-    beatmap.bpm = parseFloat(beatmap.bpm);
-    // Update length/bpm if DT/HT
-    if (mod & MODS.DT)
-    {
-        beatmap.bpm = beatmap.bpm * (3.0 / 2.0);
-        beatmap.drain = (beatmap.drain * (2.0 / 3.0)) | 0;
-        beatmap.total_length = (beatmap.total_length * (2.0 / 3.0)) | 0;
-    }
-    else if (mod & MODS.HT)
-    {
-        beatmap.bpm = beatmap.bpm * (3.0 / 4.0);
-        beatmap.drain = (beatmap.drain * (4.0 / 3.0)) | 0;
-        beatmap.total_length = (beatmap.total_length * (4.0 / 3.0)) | 0;
-    }
-    beatmap.stars = parseFloat(parseFloat(beatmap.difficultyrating).toFixed(2));
-    beatmap.mode = parseInt(beatmap.mode);
-    beatmap.approved = parseInt(beatmap.approved);
-    beatmap.last_update = new Date(beatmap.last_update);
-    return beatmap;
-}
-
 module.exports = {
     quickCheck,
     leaderboardCheck,
     checkPool,
-    getBeatmap,
-    parseMapId,
     convertSeconds
 };

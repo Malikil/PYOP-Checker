@@ -20,6 +20,40 @@ function getArgs(str)
     //str.match(/(?:[^\s"]+|"[^"]*")+/g);
 }
 
+/**
+ * Will ask for confirmation in the channel of a received message,
+ * from the user who sent that message
+ * @param {Discord.Message} msg 
+ * @param {string} prompt
+ */
+async function getConfirmation(msg, prompt = undefined, accept = ['y', 'yes'], reject = ['n', 'no'])
+{
+    // Prepare the accept/reject values
+    let waitFor = accept.concat(reject);
+    let waitForStr = waitFor.reduce((p, v) => p + `/${v}`, "").slice(1);
+    if (prompt)
+        await msg.channel.send(`${prompt} (${waitForStr})`);
+    let err = "";
+    let aborted = await msg.channel.awaitMessages(
+        message => message.author.equals(msg.author)
+            && waitFor.includes(message.content.toLowerCase()),
+        { maxMatches: 1, time: 10000, errors: ['time'] }
+    ).then(results => {
+        console.log(results);
+        let response = results.first();
+        return reject.includes(response.content.toLowerCase());
+    }).catch(reason => {
+        console.log("Response timer expired");
+        err = "Timed out. ";
+        return true;
+    });
+    console.log(`Aborted? ${aborted}`);
+    return {
+        aborted,
+        err
+    };
+}
+
 const commands = {
     //#region ============================== Public ==============================
     /**
@@ -176,11 +210,115 @@ const commands = {
     },
 
     /**
+     * Adds a map to the player's pool
      * @param {Discord.Message} msg
+     * @param {string[]} args
      */
-    async add(msg, client)
+    async add(msg, args)
     {
+        // Ignore commands with too many args
+        if (args.length < 1 || args.length > 2)
+            return;
+        // Check for locked here
+        if (global.locked)
+            return msg.channel.send("Submissions are currently locked. " +
+                "If you're submitting a replacement for a map that was rejected " +
+                "after submissions closed, please send it to Malikil directly.");
+        let mapid = helpers.parseMapId(args[0]);
+        if (!mapid)
+            return msg.channel.send("Couldn't recognise beatmap id");
+        let mods = helpers.parseMod(args[1]);
+        let result = await Command.addMap(mapid, {
+            mods,
+            cm: args[1].toUpperCase().includes("CM"),
+            discordid: msg.author.id
+        });
 
+        // Show the results of adding the map
+        if (result.added)
+            return msg.channel.send((result.replaced ? `Replaced ${helpers.mapString(result.replaced)}\n` : "") +
+                `Added ${helpers.mapString(result.map)} to ${result.map.pool.toUpperCase()} mod pool.\n` +
+                `Map approval status: ${result.map.status}\n` +
+                `Current __${result.map.pool.toUpperCase()}__ maps:` +
+                result.current.reduce((str, map) =>
+                    `${str}\n${helpers.mapString(map)}${map.pool === "cm" ? "CM" : ""}`
+                , '')
+            );
+        else
+            return msg.channel.send(
+                `Couldn't add ${result.map ? helpers.mapString(result.map) : "map"}\n` +
+                `Message: ${result.error}`
+            );
+    },
+
+    /**
+     * Removes a map from the player's pool
+     * @param {Discord.Message} msg 
+     * @param {string[]} args 
+     */
+    async remove(msg, args)
+    {
+        // args should be mapid/all, mod
+        if (args.length < 1 || args.length > 2)
+            return;
+        // Special case for removing all maps
+        if (args[0].toLowerCase() === "all" && args.length === 1)
+        {
+            let conf = await getConfirmation(msg,
+                "This will remove __ALL__ maps from your pool, there is no undo. Are you sure?");
+            if (conf.aborted)
+                return msg.channel.send(conf.err + "Maps not removed");
+            else
+            {
+                // Remove all maps and return
+                let result = await Command.removeMap('all', {
+                    discordid: msg.author.id
+                });
+                if (result.error)
+                    return msg.channel.send(result.error);
+                else if (result.count > 0)
+                    return msg.channel.send(`Removed ${result.count} maps`);
+                else
+                    return msg.channel.send("No maps to remove.");
+            }
+        }
+        // Get the map id
+        let mapid = helpers.parseMapId(args[0]);
+        if (!mapid)
+            return msg.channel.send("Couldn't recognise the beatmap id");
+
+        // Get the mod pool and mods
+        let mods;
+        let modpool;
+        if (args.length > 1)
+        {
+            args[1] = args[1].toUpperCase();
+            // If CM is present, regardless of other mods
+            if (args[1].includes("CM"))
+                modpool = "cm";
+            // Only if other mods are present
+            if (args[1] !== "CM")
+                mods = helpers.parseMod(args[1]);
+        }
+
+        let result = await Command.removeMap(mapid, {
+            mods,
+            cm: modpool === 'cm',
+            discordid: msg.author.id
+        });
+        if (result.error)
+            return msg.channel.send(result.error);
+        else if (result.count === 0)
+            return msg.channel.send("Map not found");
+        else
+        {
+            let map = result.removed[0];
+            return msg.channel.send(`Removed ${mapString(map)}${
+                map.pool === "cm"
+                ? ` +${helpers.modString(map.mod)}`
+                : ""
+            } from ${map.pool.toUpperCase()} pool`);
+        }
     },
     //#endregion
     //#region ============================== Admin ==============================
@@ -261,6 +399,10 @@ commands.checkmap = commands.check;
 commands.map = commands.check;
 commands.req = commands.requirements;
 commands.teams = commands.players;
+// ========== Player ==========
+commands.addmap = commands.add;
+commands.removemap = commands.remove;
+commands.rem = commands.remove;
 // ========== Admin ==========
 commands.ap = commands.addplayer;
 commands.rp = commands.removeplayer;
@@ -297,8 +439,18 @@ commands.add.help = "Usage: !add <map> [mod]\n" +
     "Aliases: !addmap\n\n" +
     "If there are already two maps in the selected mod pool, the first map " +
     "will be removed when adding a new one. To replace a specific map, " +
-    "remove it first before adding another one.\n"// +
+    "remove it first before adding another one. Rejected maps will be " +
+    "replaced in preference to pending/accepted.\n"// +
     //"If you make a mistake you can use `!undo` within 10 seconds to " +
+    //"return your maps to how they were before.";
+commands.remove.help = "Usage: !remove <map> [mod]\n" +
+    "map: Beatmap link or id. You can specify `all` instead to clear " +
+    "all maps from your pool\n" +
+    "(optional) mod: Which mod pool to remove the map from. Should be " +
+    "some combination of NM|HD|HR|DT|CM. " +
+    "If left blank will remove the first found copy of the map.\n" +
+    "Aliases: !rem, !removemap\n\n"// +
+    //"If you make a mistake you can use !undo within 10 seconds to " +
     //"return your maps to how they were before.";
 commands.notif.help = "Usage: !notif\n" +
     "Toggles whether the bot will DM you if one of your maps is rejected\n" +

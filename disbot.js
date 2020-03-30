@@ -7,6 +7,7 @@ const Discord = require('discord.js');
 const commands = require('./discord_commands');
 const util = require('util');
 const client = new Discord.Client();
+global.locked = false;
 
 /** @type {Discord.TextChannel} */
 var passChannel;
@@ -42,13 +43,6 @@ client.on('message', msg => {
     
     /*
     // Map management
-    else if (msg.content.startsWith('!addmap ')
-            || msg.content.startsWith('!add '))
-        response = commands.addMap(msg, passChannel, getArgs(msg.content));
-    else if (msg.content.startsWith('!removemap ')
-            || msg.content.startsWith('!remove ')
-            || msg.content.startsWith('!rem '))
-        response = commands.removeMap(msg, getArgs(msg.content));
     else if (msg.content.startsWith('!viewpool')
             || msg.content.startsWith('!view')
             || msg.content.startsWith('!list'))

@@ -130,7 +130,7 @@ async function checkMap(mapid, {
         }
     }
     
-    let beatmap = await checker.getBeatmap(mapid, mods);
+    let beatmap = await helpers.getBeatmap(mapid, mods);
     let quick = checker.quickCheck(beatmap, osuid, lowdiv);
     console.log(`Quick check returned: ${quick}`);
     if (quick)
@@ -387,15 +387,15 @@ async function updatePlayerName(discordid)
 
 /**
  * Adds a map to the players's team and makes sure it's acceptable
- * @param {number|string} mapid Map id or link to a map
+ * @param {number} mapid Map id
  * @param {Object} p1
  * @param {number} p1.mods
  * @param {boolean} p1.cm
- * @param {string} p1.discordid
- * @param {number} p1.osuid
+ * @param {string} p1.discordid Optional
+ * @param {number} p1.osuid Optional
  * 
  * @returns {Promise<{
- *   message: string,
+ *   error: string,
  *   map: Object,
  *   added: boolean,
  *   replaced: Object,
@@ -413,10 +413,10 @@ async function addMap(mapid, {
     if (discordid)
         team = await db.getTeam(discordid);
     else if (osuid)
-        team = await db.getTeam(osuid)
+        team = await db.getTeam(osuid);
     if (!team)
         return {
-            message: "Couldn't find which team you're on",
+            error: "Couldn't find which team you're on",
             added: false
         };
     // Get osu id
@@ -424,30 +424,15 @@ async function addMap(mapid, {
         osuid = team.players.find(item => item.discordid == discordid).osuid;
     if (!osuid)
         console.warn("Team found but osu id was not");
-    // Make sure submissions are open
-    // Stinky code
-    if (locked)
-        return {
-            message: "Submissions are currently locked. " +
-                "If you're submitting a replacement for a map that was rejected after submissions " +
-                "closed, please send it to Malikil directly.",
-            added: false
-        };
 
-    mapid = helpers.parseMapId(mapid);
-    if (!mapid)
-        return {
-            message: `Couldn't recognise beatmap id`,
-            added: false
-        };
     // Check beatmap approval
     console.log(`Looking for map with id ${mapid} and mod ${mods}`);
-    let beatmap = await checker.getBeatmap(mapid, mods);
+    let beatmap = await helpers.getBeatmap(mapid, mods);
     let quick = checker.quickCheck(beatmap, osuid, team.division === "15k");
     let status;
     if (quick)
         return {
-            message: quick,
+            error: quick,
             map: beatmap,
             added: false
         };
@@ -520,7 +505,7 @@ async function addMap(mapid, {
         
         // Send status and current pool info
         return {
-            replaced: rejected,
+            replaced: rejected || replaced,
             added: true,
             map: mapitem,
             current: cur
@@ -529,7 +514,7 @@ async function addMap(mapid, {
     else
         return {
             added: false,
-            message: "Add map failed.",
+            error: "Add map failed.",
             map: beatmap
         };
 }
@@ -563,7 +548,7 @@ async function addPass(msg, channel, args)
         return msg.channel.send("Couldn't find which team you're on");
     
     // Get the beatmap id
-    let mapid = checker.parseMapId(args[1]);
+    let mapid = helpers.parseMapId(args[1]);
     if (!mapid)
         return msg.channel.send(`Couldn't recognise beatmap id`);
 
@@ -593,72 +578,43 @@ async function addPass(msg, channel, args)
 
 /**
  * Removes a map from a player's team's pool
- * @param {Discord.Message} msg 
- * @param {string[]} args
+ * @param {number|"all"} mapid The mapid to remove, or "all" to remove all maps
+ * @param {object} p1
+ * @param {number} p1.mods
+ * @param {boolean} p1.cm
+ * @param {string} p1.discordid
+ * @param {number} p1.osuid
+ * 
+ * @returns {Promise<{
+ *  error: string,
+ *  count: number,
+ *  removed: *[]
+ * }>}
  */
-async function removeMap(msg, args)
-{
-    // Get args amd show help
-    if (args.length < 2 || args.length > 3)
-        return;
-    else if (args[1] == '?')
-        return msg.channel.send("Usage: !remove <map> [mod]\n" +
-            "map: Beatmap link or id. You can specify `all` instead to clear " +
-            "all maps from your pool\n" +
-            "(optional) mod: Which mod pool to remove the map from. Should be " +
-            "some combination of NM|HD|HR|DT|CM. " +
-            "If left blank will remove the first found copy of the map.\n" +
-            "Aliases: !rem, !removemap\n\n" +
-            "If you make a mistake you can use !undo within 10 seconds to " +
-            "return your maps to how they were before.");
-
+async function removeMap(mapid, {
+    mods,
+    cm = false,
+    discordid,
+    osuid
+}) {
     // Get which team the player is on
-    let team = await db.getTeam(msg.author.id);
+    let team = await db.getTeam(discordid || osuid);
     if (!team)
-        return msg.channel.send("Couldn't find which team you're on");
-
-    // Get the beatmap id
-    let mapid = checker.parseMapId(args[1]);
-    if (!mapid)
+        return {
+            error: "Couldn't find which team you're on",
+            count: 0,
+            removed: []
+        };
+    // Special case for removing all maps
+    if (mapid === "all")
     {
-        // If they want to remove all maps, this is where it will be
-        // because 'all' isn't a number
-        if (args[1].toLowerCase() === "all")
-        {
-            // Ask for confirmation
-            console.log("Confirming remove all");
-            let conf = await getConfirmation(msg,
-                "This will remove __ALL__ maps from your pool, there is no undo. Are you sure?");
-            if (conf.aborted)
-                return msg.channel.send(conf.err + "Maps not removed");
-            else
-            {
-                // Remove all maps and return
-                let changed = await db.removeAllMaps(team.name);
-                if (changed)
-                    return msg.channel.send(`Removed ${team.maps.length} maps`);
-                else
-                    return msg.channel.send("No maps to remove.");
-            }
-        }
-        else
-            return msg.channel.send(`Couldn't recognise beatmap id`);
+        await db.removeAllMaps(team.name)
+        return {
+            count: team.maps.length,
+            removed: team.maps
+        };
     }
-
-    // Get the mod pool and mods
-    let mods;
-    let modpool;
-    if (args.length > 2)
-    {
-        args[2] = args[2].toUpperCase();
-        // If CM is present, regardless of other mods
-        if (args[2].includes("CM"))
-            modpool = "cm";
-        // Only if other mods are present
-        if (args[2] !== "CM")
-            mods = parseMod(args[2]);
-    }
-
+    let modpool = (cm ? "cm" : undefined);
     console.log(`Removing mapid ${mapid} from ${modpool}`);
     let result = await db.removeMap(team.name, mapid, modpool, mods);
     if (result)
@@ -677,15 +633,16 @@ async function removeMap(msg, args)
             }
             return false;
         });
-        await msg.channel.send(`Removed ${mapString(map)}${
-            map.pool === "cm"
-            ? ` +${helpers.modString(map.mod)}`
-            : ""
-        } from ${map.pool.toUpperCase()} pool`);
-        return waitForUndo(msg, team);
+        return {
+            count: 1,
+            removed: [ map ]
+        };
     }
     else
-        return msg.channel.send("Map not found");
+        return {
+            count: 0,
+            removed: []
+        };
 }
 
 /**
