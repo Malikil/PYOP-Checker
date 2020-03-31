@@ -123,6 +123,8 @@ client.on('message', msg => {
     else if (msg.content.startsWith('!addpass ')
             || msg.content.startsWith('!pass '))
         response = commands.addPass(msg, passChannel, getArgs(msg.content));
+    else if (msg.content.startsWith('!bulkadd '))
+        response = commands.addBulk(msg);
     // Map approvers
     else if (msg.content.startsWith("!pending"))
         response = approverCommand(msg, commands.viewPending, getArgs(msg.content));

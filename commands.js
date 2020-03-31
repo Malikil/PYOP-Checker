@@ -746,6 +746,10 @@ async function addMap(msg, channel, args)
  */
 async function addBulk(msg)
 {
+    if (msg.content['!addbulk '.length] === '?')
+        return msg.channel.send("Use !addbulk, then include map id/links and mods one per line. eg:\n" +
+            "    !addbulk\n    <https://osu.ppy.sh/b/8708> NM\n    <https://osu.ppy.sh/b/8708> HD\n" +
+            "    <https://osu.ppy.sh/b/75> HR\n    <https://osu.ppy.sh/b/8708> DT\n");
     // Get the user
     let team = db.getTeam(msg.author.id);
     if (!team)
@@ -1368,6 +1372,7 @@ module.exports = {
     addPass,
     removeMap,
     viewPool,
+    addBulk,
     viewPending,    // Map approvers
     viewNoScreenshot,
     approveMap,
