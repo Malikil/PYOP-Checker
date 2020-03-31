@@ -1354,7 +1354,7 @@ async function commands(msg)
             "!pending, !approve, !reject, !clearss, !ssrequired, !missing";
     if (await db.getTeam(msg.author.id))
         info += "\nAvailable **Player** commands:\n" +
-            "!add, !remove, !view, !addpass, !osuname, !notif";
+            "!add, !bulkadd, !remove, !view, !addpass, !osuname, !notif";
     info += "\n\nGet more info about a command by typing a ? after the name";
     return msg.channel.send(info);
 }
