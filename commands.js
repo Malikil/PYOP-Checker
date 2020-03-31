@@ -746,20 +746,24 @@ async function addMap(msg, channel, args)
  */
 async function addBulk(msg)
 {
-    if (msg.content['!addbulk '.length] === '?')
+    if (msg.content[9] === '?')
         return msg.channel.send("Use !addbulk, then include map id/links and mods one per line. eg:\n" +
-            "    !addbulk\n    <https://osu.ppy.sh/b/8708> NM\n    <https://osu.ppy.sh/b/8708> HD\n" +
+            "    !addbulk <https://osu.ppy.sh/b/8708> NM\n    <https://osu.ppy.sh/b/8708> HD\n" +
             "    <https://osu.ppy.sh/b/75> HR\n    <https://osu.ppy.sh/b/8708> DT\n");
     // Get the user
-    let team = db.getTeam(msg.author.id);
+    let team = await db.getTeam(msg.author.id);
     if (!team)
         return msg.channel.send("Couldn't find which team you're on");
+    console.log(`Found team ${team.name}`);
     let osuid = team.players.find(p => p.discordid === msg.author.id).osuid;
+    console.log(`Found osuid ${osuid}`);
     // Skip over the !addbulk command and split into lines
     let lines = msg.content.substr(9).split('\n');
+    console.log(lines);
     let added = await lines.reduce(async (count, line) => {
         // Split by spaces
         let lineargs = line.split(' ');
+        console.log(`Adding map ${lineargs}`);
         if (lineargs.length < 2)
             return count;
         // Determine whether the first arg is a link or a mod
@@ -776,6 +780,7 @@ async function addBulk(msg)
             custom = lineargs[0].toUpperCase().includes("CM");
             id = checker.parseMapId(lineargs[1]);
         }
+        console.log(`Found id: ${id}, mods: ${mod}`);
         if (!id)
             return count;
         // Prepare and check map
@@ -784,7 +789,7 @@ async function addBulk(msg)
         if (quick)
             return count;
         let status;
-        if ((await checker.leaderboardCheck(mapid, mod, osuid)).passed)
+        if ((await checker.leaderboardCheck(id, mod, osuid)).passed)
             if (beatmap.approved == 1 && beatmap.version !== "Aspire")
                 status = "Accepted";
             else
