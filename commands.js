@@ -746,29 +746,76 @@ async function addMap(msg, channel, args)
  */
 async function addBulk(msg)
 {
+    // Get the user
+    let team = db.getTeam(msg.author.id);
+    if (!team)
+        return msg.channel.send("Couldn't find which team you're on");
+    let osuid = team.players.find(p => p.discordid === msg.author.id).osuid;
     // Skip over the !addbulk command and split into lines
     let lines = msg.content.substr(9).split('\n');
-    let added = lines.reduce((count, line) => {
+    let added = await lines.reduce(async (count, line) => {
         // Split by spaces
         let lineargs = line.split(' ');
         if (lineargs.length < 2)
             return count;
         // Determine whether the first arg is a link or a mod
         let id = checker.parseMapId(lineargs[0]);
-        let mod;
+        let mod, custom;
         if (id)
+        {
             mod = parseMod(lineargs[1]);
+            custom = lineargs[1].toUpperCase().includes("CM");
+        }
         else
         {
             mod = parseMod(lineargs[0]);
+            custom = lineargs[0].toUpperCase().includes("CM");
             id = checker.parseMapId(lineargs[1]);
         }
-        // Count the mod
-        count[mod] = (count[mod] || 0) + 1;
-        
-    }, {
-        total: 0
-    })
+        if (!id)
+            return count;
+        // Prepare and check map
+        let beatmap = await checker.getBeatmap(id, mod);
+        let quick = checker.quickCheck(beatmap, osuid, team.division === "15k");
+        if (quick)
+            return count;
+        let status;
+        if ((await checker.leaderboardCheck(mapid, mod, osuid)).passed)
+            if (beatmap.approved == 1 && beatmap.version !== "Aspire")
+                status = "Accepted";
+            else
+                status = "Pending"
+        else
+            status = "Screenshot Required";
+        let pool;
+        if (custom)                   pool = "cm";
+        else switch (mod)
+            {
+                case 0:               pool = "nm"; break;
+                case checker.MODS.HD: pool = "hd"; break;
+                case checker.MODS.HR: pool = "hr"; break;
+                case checker.MODS.DT: pool = "dt"; break;
+                default:              pool = "cm"; break;
+            }
+        let mapitem = {
+            id, status,
+            drain: beatmap.drain,
+            stars: beatmap.stars,
+            bpm: beatmap.bpm,
+            artist: beatmap.artist,
+            title: beatmap.title,
+            version: beatmap.version,
+            creator: beatmap.creator,
+            mod, pool
+        };
+        // Add map
+        let added = await db.addMap(team.name, mapitem);
+        if (added)
+            return (await count) + 1;
+        else
+            return count;
+    }, Promise.resolve(0));
+    msg.channel.send(`Added ${added} maps`);
 }
 
 /**
