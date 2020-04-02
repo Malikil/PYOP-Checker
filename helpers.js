@@ -85,6 +85,19 @@ const mapString = map => `${map.artist} - ${map.title} [${map.version}]`;
 const mapLink = map => `https://osu.ppy.sh/b/${map.id}`;
 
 /**
+ * @param {Number} length The length, in seconds, to convert to string time
+ * @returns {String} The passed length, in mm:ss format
+ */
+function convertSeconds(length)
+{
+    let seconds = '';
+    if (length % 60 < 10)
+        seconds += '0';
+    seconds += length % 60;
+    return (Math.floor(length / 60) + ':' + seconds);
+}
+
+/**
  * Gets a single player from the osu server based on id or username
  * @param {String|Number} osuid 
  */
@@ -144,6 +157,7 @@ module.exports = {
     modString,
     mapString,
     mapLink,
+    convertSeconds,
     getPlayer,
     getBeatmap
 }

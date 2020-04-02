@@ -5,7 +5,7 @@ this module. Only methods for checking validity are here, and they can be
 called from elsewhere where maps are known and need to be checked.
 */
 const fetch = require('node-fetch');
-const { MODS } = require('./helpers');
+const { MODS, convertSeconds } = require('./helpers');
 
 const key = process.env.OSUKEY;
 const osuapi = process.env.OSUAPI;
@@ -27,19 +27,6 @@ const drainBuffer = parseInt(process.env.DRAIN_BUFFER);     // How much time can
 const leaderboard = parseInt(process.env.LEADERBOARD);      // How many leaderboard scores are required for auto-approval
 // ==============================================================
 // ==============================================================
-
-/**
- * @param {Number} length The length, in seconds, to convert to string time
- * @returns {String} The passed length, in mm:ss format
- */
-function convertSeconds(length)
-{
-    let seconds = '';
-    if (length % 60 < 10)
-        seconds += '0';
-    seconds += length % 60;
-    return (Math.floor(length / 60) + ':' + seconds);
-}
 
 /**
  * Checks an entire pool, including things like duplicates or total drain time.
@@ -205,6 +192,5 @@ async function leaderboardCheck(mapid, mod, userid)
 module.exports = {
     quickCheck,
     leaderboardCheck,
-    checkPool,
-    convertSeconds
+    checkPool
 };

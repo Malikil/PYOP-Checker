@@ -9,15 +9,12 @@ const util = require('util');
 const client = new Discord.Client();
 global.locked = false;
 
-/** @type {Discord.TextChannel} */
-var passChannel;
 /** @type {Discord.Collection<string, Discord.GuildMember>} */
 var userlist;
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
     let guild = client.guilds.get(process.env.DISCORD_GUILD);
-    passChannel = guild.channels.get(process.env.CHANNEL_SCREENSHOTS);
     userlist = guild.members;
 });
 
@@ -42,14 +39,6 @@ client.on('message', msg => {
                     "```" + util.inspect(reason).slice(0, 1000) + "...```"));
     
     /*
-    // Map management
-    else if (msg.content.startsWith('!viewpool')
-            || msg.content.startsWith('!view')
-            || msg.content.startsWith('!list'))
-        response = commands.viewPool(msg, getArgs(msg.content));
-    else if (msg.content.startsWith('!addpass ')
-            || msg.content.startsWith('!pass '))
-        response = commands.addPass(msg, passChannel, getArgs(msg.content));
     // Map approvers
     else if (msg.content.startsWith("!pending"))
         response = approverCommand(msg, commands.viewPending, getArgs(msg.content));

@@ -22,7 +22,6 @@ client.connect(err => {
         console.log("Connected to mongodb");
 
     db = client.db('pyopdb');
-    //discordClient.login(process.env.DISCORD_TOKEN);
 });
 
 /**
@@ -501,7 +500,7 @@ async function approveMap(mapid, mods)
             {
                 'pendmap.id': mapid,
                 'pendmap.mod': mods,
-                'pendmap.status': "Pending"
+                //'pendmap.status': "Pending" don't worry about if a map is ssrequired
             }
         ] }
     );

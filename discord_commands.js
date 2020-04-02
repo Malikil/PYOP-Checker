@@ -320,6 +320,108 @@ const commands = {
             } from ${map.pool.toUpperCase()} pool`);
         }
     },
+
+    /**
+     * Views current maps in the team's pool
+     * @param {Discord.Message} msg 
+     * @param {string[]} args
+     */
+    async viewpool(msg, args)
+    {
+        if (args.length > 1)
+            return;
+        
+        // Split the first argument into modpools
+        let mods;
+        if (args[0])
+        {
+            let modstr = args[0].toLowerCase();
+            mods = ['nm', 'hd', 'hr', 'dt', 'cm'].reduce((arr, mod) => {
+                if (modstr.includes(mod))
+                    arr.push(mod);
+                return arr;
+            }, []);
+        }
+
+        // Get the pool
+        let result = await Command.viewPool(msg.author.id, mods);
+        if (result.error)
+            return msg.channel.send(result.error);
+        else
+            return msg.channel.send(result.poolstr);
+    },
+
+    /**
+     * Adds a pass
+     * @param {Discord.Message} msg 
+     * @param {string[]} args 
+     * @param {Discord.Client} client
+     */
+    async addpass(msg, args, client)
+    {
+        // 3 because some people are including the mod, I'll let them include it,
+        // but if they include more I'll ignore the command
+        if (args.length > 3)
+            return;
+
+        // Make sure there's something to update with
+        if (msg.attachments.size == 0 && (args.length === 1 || !args[1].includes("http")))
+            return msg.channel.send("Please include a link or image attachment");
+        // Get the beatmap id
+        let mapid = helpers.parseMapId(args[1]);
+        if (!mapid)
+            return msg.channel.send(`Couldn't recognise beatmap id`);
+
+        // Attempt to update the map status, this also gets the team name
+        let result = await Command.addPass(mapid, msg.author.id);
+        if (result.error)
+            return msg.channel.send(result.error);
+        // Forward the screenshot to the proper channel
+        const passChannel = client.channels.get(process.env.CHANNEL_SCREENSHOTS);
+        if (passChannel && passChannel.type === "text")
+        {
+            // Always include the attachment if there is one
+            if (msg.attachments.size > 0)
+            {
+                let attach = msg.attachments.first();
+                let attachment = new Discord.Attachment(attach.url, attach.filename);
+                passChannel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${msg.author.username}; ${result.team.name}`,
+                    attachment);
+            }
+            else
+                // Copy the link/image to the screenshots channel
+                passChannel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${team.name}\n` +
+                    args[1]);
+        }
+        else
+            return msg.channel.send("Couldn't find screenshots channel. " +
+                `Found ${passChannel} instead.\n` +
+                "This is not a good thing, please tell Malikil.");
+        // Screenshot should be updated by this point
+        return msg.channel.send("Screenshot updated");
+    },
+    //#endregion
+    //#region ============================== Approver ==============================
+    /**
+     * Approves a map/mod combination
+     * @param {Discord.Message} msg 
+     * @param {string[]} args 
+     */
+    async approve(msg, args)
+    {
+        // Args should me mapid, then mods
+        if (args.length > 2)
+            return;
+
+        let mapid = helpers.parseMapId(args[0]);
+        let mods = helpers.parseMod(args[1] || "NM");
+
+        if (!mapid)
+            return msg.channel.send("Couldn't find beatmap id");
+        
+        let result = await Command.approveMap(mapid, mods);
+        return msg.channel.send(`Approved maps for ${result} teams`);
+    },
     //#endregion
     //#region ============================== Admin ==============================
     /**
@@ -388,6 +490,15 @@ const commands = {
 }
 const comnames = Object.keys(commands);
 //#region Command permissions
+commands.osuname.permissions = "player";
+commands.notif.permissions = "player";
+commands.add.permissions = "player";
+commands.remove.permissions = "player";
+commands.viewpool.permissions = "player";
+commands.addpass.permissions = "player";
+
+commands.approve.permissions = "approver";
+
 commands.addplayer.permissions = "admin";
 commands.removeplayer.permissions = "admin";
 commands.moveplayer.permissions = "admin";
@@ -403,6 +514,11 @@ commands.teams = commands.players;
 commands.addmap = commands.add;
 commands.removemap = commands.remove;
 commands.rem = commands.remove;
+commands.view = commands.viewpool;
+commands.list = commands.viewpool;
+commands.pass = commands.addpass;
+// ========== Approver ==========
+commands.accept = commands.approve;
 // ========== Admin ==========
 commands.ap = commands.addplayer;
 commands.rp = commands.removeplayer;
@@ -452,9 +568,26 @@ commands.remove.help = "Usage: !remove <map> [mod]\n" +
     "Aliases: !rem, !removemap\n\n"// +
     //"If you make a mistake you can use !undo within 10 seconds to " +
     //"return your maps to how they were before.";
+commands.viewpool.help = "Usage: !view [mod]\n" +
+    "View maps in your pool and their statuses. " +
+    "Optionally limit to a specific set of mods from NM|HD|HR|DT|CM\n" +
+    "Aliases: !viewpool, !list";
+commands.addpass.help = "Usage: !addpass <map> [screenshot]\n" +
+    "map: A map link or beatmap id\n" +
+    "screenshot: A link to a screenshot of your pass on the map\n" +
+    "You can upload your screenshot as a message attachment in discord " +
+    "instead of using a link if you prefer. You still need to include " +
+    "the map link/id regardless.\n" +
+    "Aliases: !pass";
 commands.notif.help = "Usage: !notif\n" +
     "Toggles whether the bot will DM you if one of your maps is rejected\n" +
     "Use `!notif ??` to view the current setting";
+// ============================== Approver ==============================
+commands.approve.help = "Usage: !approve <map> [mod]\n" +
+    "Map: Map link or id to approve\n" +
+    "(optional) mod: What mods are used. Should be some combination of " +
+    "HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored.\n" +
+    "Aliases: !accept";
 // ============================== Admin ==============================
 commands.addplayer.help = "Adds a player to a team. If the team " +
     "doesn't already exist it is created.\n" +

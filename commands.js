@@ -521,59 +521,33 @@ async function addMap(mapid, {
 
 /**
  * Adds a pass to a map in the player's team's pool
- * @param {Discord.Message} msg 
- * @param {Discord.TextChannel} channel Where to send the screenshot reply
- * @param {string[]} args
+ * @param {number} mapid
+ * @param {string} discordid 
+ * 
+ * @returns {Promise<{
+ *  error: string,
+ *  team: *
+ * }>}
  */
-async function addPass(msg, channel, args)
+async function addPass(mapid, discordid)
 {
-    if (args.length < 2 || args.length > 3)
-        return;
-    else if (args[1] == '?')
-        return msg.channel.send("Usage: !addpass <map> [screenshot]\n" +
-        "map: A map link or beatmap id\n" +
-        "screenshot: A link to a screenshot of your pass on the map\n" +
-        "You can upload your screenshot as a message attachment in discord " +
-        "instead of using a link if you prefer. You still need to include " +
-        "the map link/id regardless.\n" +
-        "Aliases: !pass");
-
-    // Make sure there's something to update with
-    if (args.length == 2 && msg.attachments.size == 0)
-        return msg.channel.send("Please include a link or image attachment");
-
     // Get which team the player is on
-    let team = await db.getTeam(msg.author.id);
+    let team = await db.getTeam(discordid);
     if (!team)
-        return msg.channel.send("Couldn't find which team you're on");
-    
-    // Get the beatmap id
-    let mapid = helpers.parseMapId(args[1]);
-    if (!mapid)
-        return msg.channel.send(`Couldn't recognise beatmap id`);
+        return {
+            error: "Couldn't find which team you're on"
+        };
 
     // Update the status
     let result = await db.pendingMap(team.name, mapid, true);
-    if (result == 1)
-        msg.channel.send("Submitted new pass screenshot");
-    else if (result == -1)
-        return msg.channel.send("Couldn't update the map status");
+    if (result)
+        return {
+            team: result
+        };
     else
-        msg.channel.send("Updated screenshot");
-
-    // Forward the screenshot to the proper channel
-    // Always include the attachment if there is one
-    if (msg.attachments.size > 0)
-    {
-        let attach = msg.attachments.first();
-        let attachment = new Discord.Attachment(attach.url, attach.filename);
-        return channel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${team.name}\n` +
-            (args[2] || ""), attachment);
-    }
-    else
-        // Copy the link/image to the screenshots channel
-        return channel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${team.name}\n` +
-            args[2]);
+        return {
+            error: "Couldn't update screenshot"
+        };
 }
 
 /**
@@ -647,30 +621,26 @@ async function removeMap(mapid, {
 
 /**
  * Views all the maps in a player's pool
- * @param {Discord.Message} msg 
- * @param {string[]} args
+ * @param {string} discordid
+ * @param {("nm"|"hd"|"hr"|"dt"|"cm")[]} mods
+ * 
+ * @returns {Promise<{
+ *  error: string,
+ *  poolstr: string
+ * }>}
  */
-async function viewPool(msg, args)
+async function viewPool(discordid, mods)
 {
-    if (args.length > 2
-            || !['!view', '!viewpool', '!list'].includes(args[0]))
-        return;
-    else if (args[1] === '?')
-        return msg.channel.send("Usage: !view [mod]\n" +
-            "View maps in your pool and their statuses. " +
-            "Optionally limit to a specific set of mods from NM|HD|HR|DT|CM\n" +
-            "Aliases: !viewpool, !list");
-    
     // Get which team the player is on
-    let team = await db.getTeam(msg.author.id);
+    let team = await db.getTeam(discordid);
     if (!team)
-        return msg.channel.send("Couldn't find which team you're on");
+        return {
+            error: "Couldn't find which team you're on"
+        };
 
     // Add all mods if not otherwise requested
-    if (args.length == 2)
-        args[1] = args[1].toLowerCase();
-    else
-        args[1] = "nmhdhrdtcm";
+    if (!mods || mods.length === 0)
+        mods = ["nm", "hd", "hr", "dt", "cm"];
 
     let strs = {};
     let pool = [];
@@ -684,32 +654,26 @@ async function viewPool(msg, args)
     // Loop over all the maps, add them to the proper output string,
     // and add them to the pool for checking.
     team.maps.forEach(map => {
-        if (args[1].includes(map.pool))
+        if (mods.includes(map.pool))
         {
             // If the mod hasn't been seen yet, add it to the output
             if (!strs[map.pool])
                 strs[map.pool] = modNames[map.pool];
             // Add the map's info to the proper string
-            strs[map.pool] += `${mapString(map)} ${map.pool === 'cm' ? `+${helpers.modString(map.mod)} ` : ""}<${helpers.mapLink(map)}>\n`;
-            strs[map.pool] += `\tDrain: ${checker.convertSeconds(map.drain)}, Stars: ${map.stars}, Status: ${map.status}\n`;
+            strs[map.pool] += `${helpers.mapString(map)} ${map.pool === 'cm' ? `+${helpers.modString(map.mod)} ` : ""}<${helpers.mapLink(map)}>\n`;
+            strs[map.pool] += `\tDrain: ${helpers.convertSeconds(map.drain)}, Stars: ${map.stars}, Status: ${map.status}\n`;
 
             pool.push(map);
         }
     });
     // Put all the output strings together in order
-    let str = "";
-    ['nm', 'hd', 'hr', 'dt', 'cm'].forEach(m => {
-        if (!!strs[m])
-            str += strs[m];
-    });
-
+    let str = mods.reduce((s, m) => s + strs[m], '');
     // Check the pool as a whole
     let result = await checker.checkPool(pool);
-
     // Don't display pool error messages if limited by a certain mod
-    if (args[1] === "nmhdhrdtcm")
+    if (mods.length === 5)
     {
-        str += `\nTotal drain: ${checker.convertSeconds(result.totalDrain)}`;
+        str += `\nTotal drain: ${helpers.convertSeconds(result.totalDrain)}`;
         str += `\n${result.overUnder} maps are within 15 seconds of drain time limit`;
         // Show pool problems
         str += `\nThere are ${MAP_COUNT - team.maps.length} unfilled slots\n`;
@@ -720,12 +684,16 @@ async function viewPool(msg, args)
     if (result.duplicates.length > 0)
     {
         str += "\nThe following maps were found more than once:";
-        result.duplicates.forEach(dupe => str += `\n\t${mapString(dupe)}`);
+        result.duplicates.forEach(dupe => str += `\n\t${helpers.mapString(dupe)}`);
     }
 
     if (str === "")
-        return msg.channel.send("Nothing to display");
-    return msg.channel.send(str);
+        return {
+            poolstr: "Nothing to display"
+        };
+    return {
+        poolstr: str
+    };
 }
 
 /**
@@ -870,32 +838,13 @@ async function viewMissingMaps(msg)
 
 /**
  * Approves a map
- * @param {Discord.Message} msg 
- * @param {string[]} args
+ * @param {number} mapid
+ * @param {number} mods
  */
-async function approveMap(msg, args)
+async function approveMap(mapid, mods)
 {
-    if (args[1] == '?')
-        return msg.channel.send("Usage: !approve <map> [mod]\n" +
-            "Map: Map link or id to approve\n" +
-            "(optional) mod: What mods are used. Should be some combination of " +
-            "HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored.\n" +
-            "Aliases: !accept");
-
-    if (args.length < 2 || args.length > 3)
-        return;
-    
-    let mapid = checker.parseMapId(args[1]);
-    if (!mapid)
-        return msg.channel.send("Map not recognised");
-    
-    // Get the mods
-    let mod = 0;
-    if (args.length == 3)
-        mod = parseMod(args[2].toUpperCase());
-    
-    let count = await db.approveMap(mapid, mod);
-    return msg.channel.send(`Approved maps for ${count} teams`);
+    // You ever feel like a function is kind of pointless?
+    return db.approveMap(mapid, mods);
 }
 
 /**
