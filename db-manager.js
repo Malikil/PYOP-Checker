@@ -513,7 +513,10 @@ async function approveMap(mapid, mods)
  * @param {Number} mapid The map id to update
  * @param {Number} mods The mods the map uses
  * @param {string} message The reject message to add to the end
- * @returns A list of players to notify of the change, plus the number of
+ * @returns {Promise<{
+ *  playerNotif: *[],
+ *  modified: number
+ * }>} A list of players to notify of the change, plus the number of
  * updated teams
  */
 async function rejectMap(mapid, mods, message)
@@ -524,7 +527,8 @@ async function rejectMap(mapid, mods, message)
         { $match: {
             maps: { $elemMatch: {
                 id: mapid,
-                mod: mods
+                mod: mods,
+                status: { $not: /^Rejected/ }
             } }
         } },
         { $project: {

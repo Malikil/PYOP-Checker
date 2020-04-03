@@ -12,33 +12,12 @@ const util = require('util');
 const google = require('./gsheets');
 const helpers = require('./helpers');
 
-const APPROVER = process.env.ROLE_MAP_APPROVER;
 const MAP_COUNT = 10;
-
-// There's probably a better way to do this, but for now I'm just using a
-// global variable to store whether submissions are open or closed
-var locked = false;
 
 //#region Helper Functions
 // ============================================================================
 // ========================= Helper Functions =================================
 // ============================================================================
-
-/**
- * Gets a mod pool string from a mod combination
- * @param {number} bitwise The bitwise number representation of the mods
- */
-function getModpool(bitwise)
-{
-    switch (bitwise)
-    {
-        case 0:               return "nm";
-        case helpers.MODS.HD: return "hd";
-        case helpers.MODS.HR: return "hr";
-        case helpers.MODS.DT: return "dt";
-        default:              return "cm";
-    }
-}
 
 /**
  * Silently waits for an undo command, and if it's received the team 
@@ -262,23 +241,13 @@ async function movePlayer(osuname, team)
 }
 
 /**
- * Locks submissions for the week, makes an announcement to players as well
- * @param {Discord.Message} msg 
- */
-async function lockSubmissions(msg)
-{
-    if (locked)
-        return msg.channel.send("Submissions are already locked");
-
-    locked = true;
-    return msg.channel.send("Pools locked.");
-}
-
-/**
  * Pushes all maps for all teams to google sheets
- * @param {Discord.Message} msg 
+ * @returns {Promise<{
+ *  ok: boolean,
+ *  message?: string
+ * }>}
  */
-async function exportMaps(msg)
+async function exportMaps()
 {
     let mapdata = await db.performAction(google.getSheetData);
     let rowdata = [];
@@ -289,18 +258,22 @@ async function exportMaps(msg)
     let response = await google.pushMaps(rowdata);
     // console.log(response);
     if (response.status === 200)
-        msg.channel.send('Maps exported');
+        return {
+            ok: true
+        };
     else
-        msg.channel.send(util.inspect(response, { depth: 4 }));
+        return {
+            ok: false,
+            message: util.inspect(response, { depth: 4 })
+        };
 }
 
 /**
  * Runs through all pools and updates statuses for maps.  
  * Ie this is used at the beginning of a new week, it will make sure the old maps
  * still meet star requirements.
- * @param {Discord.Message} msg 
  */
-async function recheckMaps(msg)
+async function recheckMaps()
 {
     let update = async function (team) {
         // Check each map with the quick check.
@@ -347,17 +320,11 @@ async function recheckMaps(msg)
     // Update each map from the results with a reject message
     // Don't bother updating if there are no maps needed to update
     let updateCount = 0;
-    if (openrejects.length === 0 && fiftrejects.length === 0)
-        return msg.channel.send("No maps outside range");
     if (openrejects.length > 0)
         updateCount += await db.bulkReject(openrejects, "Map is below the new week's star range", "Open");
     if (fiftrejects.length > 0)
         updateCount += await db.bulkReject(fiftrejects, "Map is below the new week's star range", "15k");
-    
-    if (updateCount)
-        return msg.channel.send(`Updated ${updateCount} teams`);
-    else
-        return msg.channel.send("No teams updated");
+    return updateCount;
 }
 //#endregion
 //#region Player Commands
@@ -723,33 +690,23 @@ async function toggleNotif(discordid, toggle = true)
 // ============================================================================
 /**
  * Displays a list of all pending maps
- * @param {Discord.Message} msg 
- * @param {string[]} args
+ * @param {("nm"|"hd"|"hr"|"dt"|"cm")[]} mods
  */
-async function viewPending(msg, args)
+async function viewPending(mods)
 {
-    if (args.length > 2 || args[0] !== "!pending")
-        return;
-    if (args[1] === '?')
-        return msg.channel.send("Usage: !pending [pool]\n" +
-            "Shows all maps with a pending status, " +
-            "waiting to be approved.\n" +
-            "(optional) pool: Only show maps from the listed modpool. NM|HD|HR|DT|CM");
-    
     console.log("Finding pending maps");
     let maplist = await db.findMapsWithStatus("Pending");
     console.log(maplist);
     
     // Add all mods if not otherwise requested
-    if (args.length === 2)
-        args[1] = args[1].toLowerCase();
-    else
-        args[1] = "nmhdhrdtcm";
+    if (!mods || mods.length === 0)
+        mods = ['nm', 'hd', 'hr', 'dt', 'cm'];
+        
     
     let str = "";
     maplist.forEach(mod => {
         // Make sure this mod should be displayed
-        if (!args[1].includes(getModpool(mod._id)))
+        if (!mods.includes(helpers.getModpool(mod._id)))
             return;
         str += `**__${helpers.modString(mod._id)}:__**\n`;
         mod.maps.forEach(map => {
@@ -761,56 +718,14 @@ async function viewPending(msg, args)
         str += "Message too long, some maps skipped...";
     else if (str === "")
         str = "No pending maps";
-    return msg.channel.send(str);
+    return str;
 }
 
 /**
- * Displays a list of all 'Screenshot Required' maps
- * @param {Discord.Message} msg 
- * @param {string[]} args
+ * Gets a count of how many maps are needed in each modpool 
  */
-async function viewNoScreenshot(msg, args)
+async function viewMissingMaps()
 {
-    if (args.length > 2 || args[0] !== "!ssrequired")
-        return;
-    if (args.length === 2)
-        if (args[1] === '?')
-            return msg.channel.send("Usage: !ssrequired\n" +
-                "Shows all maps with a \"Screenshot Required\" status, " +
-                "waiting for one to be submitted.\n" +
-                "These maps aren't ready to be approved yet.");
-        else
-            return;
-    // Continue if args.length == 1
-    console.log("Finding screenshot required maps");
-    let maplist = await db.findMapsWithStatus("Screenshot Required");
-    console.log(maplist);
-
-    let str = "";
-    maplist.forEach(mod => {
-        str += `**__${helpers.modString(mod._id)}:__**\n`;
-        mod.maps.forEach(map =>
-            str += `<${helpers.mapLink(map)}> ${mapString(map)}\n`
-        );
-    });
-    if (str === "")
-        str = "No maps";
-    return msg.channel.send(str);
-}
-
-/**
- * Displays a count of how many maps are needed in each modpool
- * @param {Discord.Message} msg 
- */
-async function viewMissingMaps(msg)
-{
-    if (msg.content === "!missing ?")
-        return msg.channel.send("Usage: !missing\n" +
-            "Shows how many map slots need to be filled for each mod " +
-            "in either division.");
-    else if (msg.content !== "!missing")
-        return;
-    
     let missing = await db.findMissingMaps();
 
     var counts = {
@@ -832,8 +747,8 @@ async function viewMissingMaps(msg)
         });
     });
 
-    // Write out the results
-    return msg.channel.send(`\`\`\`${util.inspect(counts)}\`\`\``);
+    // Return the results
+    return counts;
 }
 
 /**
@@ -849,97 +764,35 @@ async function approveMap(mapid, mods)
 
 /**
  * Rejects a map and provides a reason for rejection
- * @param {Discord.Message} msg 
- * @param {Discord.Collection<string, Discord.GuildMember>} userlist Will DM
- * matching users from this list saying their map was rejected
- * @param {string[]} args
+ * @param {number} mapid
+ * @param {number} mods
+ * @param {string} desc A reject message for the map
  */
-async function rejectMap(msg, userlist, args)
+async function rejectMap(mapid, mods, desc)
 {
-    if (args[1] == '?')
-        return msg.channel.send("Usage: !reject <map> <mod> <message>\n" +
-            "Map: Map link or id to reject\n" +
-            "mod: What mods are used. Should be some combination of NM|CM|HD|HR|DT|HT|EZ." +
-            " It is required even for nomod and items do need to be correct.\n" +
-            "Message: A rejection message so the player knows why the map was rejected. " +
-            "Including quotes around the message isn't required, everything after the " +
-            "mod string will be captured.");
-
-    if (args.length < 3)
-        return;
-
-    // Get the map, mod, and message
-    let mapid = checker.parseMapId(args[1]);
-    if (!mapid)
-        return msg.channel.send("Map not recognised");
-    // Combine all the last arguments into the description
-    let desc = "";
-    while (args.length > 3)
-        desc = args.pop() + " " + desc;
-    
-    let mod = parseMod(args[2]);
-    if (mod === 0 && !args[2].toUpperCase().includes("NM"))
-        return msg.channel.send(("Mod not recognised"));
-
-    console.log(`Mod: ${mod}, Message: ${desc}`);
-    
-    // Require a reject message
-    if (!desc)
-        return msg.channel.send('Please add a reject message');
-
-    let result = await db.rejectMap(mapid, mod, desc);
-    // Get the list of players, and send them a message if they're in the server
-    let dms = result.playerNotif.map(player => {
-        let member = userlist.get(player.discordid);
-        if (member)
-            return member.send("A map in your pool was rejected:\n" +
-                `**__Map:__** https://osu.ppy.sh/b/${mapid} +${helpers.modString(mod)}\n` +
-                `**__Message:__** ${desc}`);
-    });
-    dms.push(msg.channel.send(`Rejected ${mapid} +${helpers.modString(mod)} from ${result.modified} pools`));
-    return Promise.all(dms);
+    console.log(`Mod: ${mods}, Message: ${desc}`);
+    return db.rejectMap(mapid, mod, desc);
 }
 
 /**
  * Sets a map back to screenshot required status
- * @param {Discord.Message} msg 
- * @param {Discord.Collection<string, Discord.GuildMember>} userlist Will DM
- * matching users from this list saying their map needs another screenshot
- * @param {string[]} args
+ * @param {number} mapid
+ * @param {string} team
  */
-async function rejectScreenshot(msg, userlist, args)
+async function rejectScreenshot(mapid, team)
 {
-    if (args[1] == '?')
-        return msg.channel.send("Usage: !clearss <map> <team>\n" +
-            "Map: Map link or id to reject\n" +
-            "Team: The team name\n" +
-            "Aliases: !unpass");
-    if (args.length < 3)
-        return;
-    
-    let mapid = checker.parseMapId(args[1]);
-    if (!mapid)
-        return msg.channel.send("Unrecognised map id");
-
-    console.log(`Attempting to update team "${args[2]}" map id ${mapid} to unpass status`);
-    let result = await db.pendingMap(args[2], mapid, false);
+    console.log(`Attempting to update team "${team}" map id ${mapid} to unpass status`);
+    let result = await db.pendingMap(team, mapid, false);
     if (result)
-    {
-        // Tell players on the team that they need a new screenshot
-        let dms = result.players.map(player => {
-            if (player.notif === undefined)
-            {
-                let member = userlist.get(player.discordid);
-                if (member)
-                    return member.send("A screenshot for one of your maps was reset:\n" +
-                        `https://osu.ppy.sh/b/${mapid}`);
-            }
-        });
-        dms.push(msg.channel.send("Set status to \"Screenshot Required\""));
-        return Promise.all(dms);
-    }
+        return {
+            ok: true,
+            players: result.players
+        };
     else
-        return msg.channel.send("Team not found or no matching map");
+        return {
+            ok: false,
+            players: []
+        };
 }
 
 //#endregion
@@ -950,7 +803,6 @@ module.exports = {
     addPlayer, // Admins
     removePlayer,
     movePlayer,
-    lockSubmissions,
     exportMaps,
     recheckMaps,
     toggleNotif,    // Players
@@ -960,7 +812,6 @@ module.exports = {
     removeMap,
     viewPool,
     viewPending,    // Map approvers
-    viewNoScreenshot,
     approveMap,
     rejectMap,
     rejectScreenshot,

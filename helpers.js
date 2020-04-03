@@ -34,6 +34,22 @@ function parseMod(modstr)
 }
 
 /**
+ * Gets a mod pool string from a mod combination
+ * @param {number} bitwise The bitwise number representation of the mods
+ */
+function getModpool(bitwise)
+{
+    switch (bitwise)
+    {
+        case 0:               return "nm";
+        case helpers.MODS.HD: return "hd";
+        case helpers.MODS.HR: return "hr";
+        case helpers.MODS.DT: return "dt";
+        default:              return "cm";
+    }
+}
+
+/**
  * Converts a mod number to its string form
  * @param {number} mod Mods in bitwise form, as per osu api
  */
@@ -154,6 +170,7 @@ module.exports = {
     MODS,
     parseMod,
     parseMapId,
+    getModpool,
     modString,
     mapString,
     mapLink,

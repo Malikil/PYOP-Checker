@@ -1,6 +1,7 @@
 const Discord = require('discord.js');
 const helpers = require('./helpers');
 const Command = require('./commands');
+const { inspect } = require('util');
 /**
  * Splits a string into args
  * @param {string} str 
@@ -69,8 +70,13 @@ const commands = {
             admin: []
         }
         comnames.forEach(name => sorted[commands[name].permissions || 'public'].push(name));
+        let approver = msg.member.roles.has(process.env.ROLE_MAP_APPROVER);
+        let admin = msg.member.roles.has(process.env.ROLE_ADMIN);
         msg.channel.send(
             Object.keys(sorted).reduce((prev, key) => {
+                if ((!approver && key === 'approver')
+                        || (!admin && key === 'admin'))
+                    return prev;
                 return `${prev}\nAvailable **${key}** commands:\n` +
                     sorted[key].reduce((p, c) => `${p}, !${c}`, '').slice(2);
             }, '')
@@ -422,6 +428,117 @@ const commands = {
         let result = await Command.approveMap(mapid, mods);
         return msg.channel.send(`Approved maps for ${result} teams`);
     },
+
+    /**
+     * Reject a map/mod combination, and notify players if enabled
+     * @param {Discord.Message} msg
+     * @param {string[]} args
+     * @param {Discord.Client} client
+     */
+    async reject(msg, args, client)
+    {
+        // Need mapid, mods, and message
+        if (args.length < 3)
+            return;
+
+        // Get map id
+        let mapid = helpers.parseMapId(args.shift());
+        if (!mapid)
+            return msg.channel.send("Map id not recognised");
+        // Get mod
+        let mods = helpers.parseMod(args[0]);
+        if (mods === 0 && args.shift().toUpperCase() !== "NM")
+            return msg.channel.send("Mod not recognised");
+        // Combine message back into a single string
+        let message = args.reduce((p, s) => `${p} ${s}`, '').slice(1);
+        if (!message)
+            return msg.channel.send("Please include a reject message");
+        let result = await Command.rejectMap(mapid, mods, message);
+        // Get the list of players, and send them a message if they're in the server
+        const guild = client.guilds.get(process.env.DISCORD_GUILD);
+        let dms = result.playerNotif.map(player => {
+            let member = guild.members.get(player.discordid);
+            if (member)
+                return member.send("A map in your pool was rejected:\n" +
+                    `**__Map:__** https://osu.ppy.sh/b/${mapid} +${helpers.modString(mods)}\n` +
+                    `**__Message:__** ${message}`);
+        });
+        dms.push(msg.channel.send(`Rejected ${mapid} +${helpers.modString(mods)} from ${result.modified} pools`));
+        return Promise.all(dms);
+    },
+
+    /**
+     * Views all currently pending maps
+     * @param {Discord.Message} msg 
+     * @param {string[]} args
+     */
+    async pending(msg, args)
+    {
+        if (args.length > 1)
+            return;
+
+        let mods;
+        if (args[0])
+        {
+            let modstr = args[0].toLowerCase();
+            mods = ['nm', 'hd', 'hr', 'dt', 'cm'].reduce((arr, mod) => {
+                if (modstr.includes(mod))
+                    arr.push(mod);
+                return arr;
+            }, []);
+        }
+
+        let pendstr = await Command.viewPending(mods);
+        return msg.channel.send(pendstr);
+    },
+
+    /**
+     * Clears a screenshot from a map, and notifies the team that it's happened
+     * @param {Discord.Message} msg 
+     * @param {string[]} args 
+     * @param {Discord.Client} client 
+     */
+    async clearss(msg, args, client)
+    {
+        // Get mapid
+        let mapid = helpers.parseMapId(args.shift());
+        if (!mapid)
+            return msg.channel.send("Didn't recognise beatmap id");
+        let team = args.reduce((p, s) => `${p} ${s}`, '').slice(1);
+
+        let result = await Command.rejectScreenshot(mapid, team);
+        if (result.ok)
+        {
+            const guild = client.guilds.get(process.env.DISCORD_GUILD);
+            let userlist = guild.members;
+
+            // Tell players on the team that they need a new screenshot
+            let dms = result.players.map(player => {
+                if (player.notif === undefined)
+                {
+                    let member = userlist.get(player.discordid);
+                    if (member)
+                        return member.send("A screenshot for one of your maps was reset:\n" +
+                            `https://osu.ppy.sh/b/${mapid}`);
+                }
+            });
+            dms.push(msg.channel.send("Set status to \"Screenshot Required\""));
+            return Promise.all(dms);
+        }
+        else
+            return msg.channel.send("Team not found or no matching map");
+    },
+
+    /**
+     * Shows how many unfilled slots there are in pools
+     * @param {Discord.Message} msg 
+     */
+    async missing(msg)
+    {
+        // Not much to it, just get the numbers and show them
+        let count = await Command.viewMissingMaps();
+        return msg.channel.send("```" + inspect(count) + "```");
+    },
     //#endregion
     //#region ============================== Admin ==============================
     /**
@@ -485,6 +602,42 @@ const commands = {
             return msg.channel.send(`Moved ${args[0]} to ${args[1]}`);
         else
             return msg.channel.send("Couldn't move player");
+    },
+
+    /**
+     * Toggles submissions locked
+     * @param {Discord.Message} msg 
+     */
+    async lock(msg)
+    {
+        global.locked = !global.locked;
+        return msg.channel.send(`Submissions ${global.locked ? "locked" : "unlocked"}`);
+    },
+
+    /**
+     * Exports maps to google sheets
+     * @param {Discord.Message} msg 
+     */
+    async export(msg)
+    {
+        let result = await Command.exportMaps();
+        if (result.ok)
+            return msg.channel.send("Maps exported");
+        else
+            return msg.channel.send(result.message);
+    },
+
+    /**
+     * Updates maps with new weekly star range
+     * @param {Discord.Message} msg 
+     */
+    async update(msg)
+    {
+        let updateCount = await Command.recheckMaps();
+        if (updateCount)
+            return msg.channel.send(`Updated ${updateCount} teams`);
+        else
+            return msg.channel.send("No teams updated");
     }
     //#endregion
 }
@@ -498,10 +651,17 @@ commands.viewpool.permissions = "player";
 commands.addpass.permissions = "player";
 
 commands.approve.permissions = "approver";
+commands.pending.permissions = "approver";
+commands.missing.permissions = "approver";
+commands.reject.permissions = "approver";
+commands.clearss.permissions = "approver";
 
 commands.addplayer.permissions = "admin";
 commands.removeplayer.permissions = "admin";
 commands.moveplayer.permissions = "admin";
+commands.lock.permissions = "admin";
+commands.export.permissions = "admin";
+commands.update.permissions = "admin";
 //#endregion
 //#region Aliases
 // ========== Public ==========
@@ -519,10 +679,12 @@ commands.list = commands.viewpool;
 commands.pass = commands.addpass;
 // ========== Approver ==========
 commands.accept = commands.approve;
+commands.unpass = commands.clearss;
 // ========== Admin ==========
 commands.ap = commands.addplayer;
 commands.rp = commands.removeplayer;
 commands.mp = commands.moveplayer;
+commands.updatemaps = commands.update;
 //#endregion
 //#region Help messages
 // ============================== Public ==============================
@@ -588,6 +750,24 @@ commands.approve.help = "Usage: !approve <map> [mod]\n" +
     "(optional) mod: What mods are used. Should be some combination of " +
     "HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored.\n" +
     "Aliases: !accept";
+commands.reject.help = "Usage: !reject <map> <mod> <message>\n" +
+    "Map: Map link or id to reject\n" +
+    "mod: What mods are used. Should be some combination of NM|CM|HD|HR|DT|HT|EZ." +
+    " It is required even for nomod.\n" +
+    "Message: A rejection message so the player knows why the map was rejected. " +
+    "Including quotes around the message isn't required, everything after the " +
+    "mod string will be captured.";
+commands.pending.help = "Usage: !pending [pool]\n" +
+    "Shows all maps with a pending status, " +
+    "waiting to be approved.\n" +
+    "(optional) pool: Only show maps from the listed modpool. NM|HD|HR|DT|CM";
+commands.clearss.help = "Usage: !clearss <map> <team>\n" +
+    "Map: Map link or id to reject\n" +
+    "Team: The team name\n" +
+    "Aliases: !unpass";
+commands.missing.help = "Usage: !missing\n" +
+    "Shows how many map slots need to be filled for each mod " +
+    "in either division.";
 // ============================== Admin ==============================
 commands.addplayer.help = "Adds a player to a team. If the team " +
     "doesn't already exist it is created.\n" +
@@ -596,6 +776,7 @@ commands.removeplayer.help = "Removes a player from all teams they might be on.\
     "!removePlayer osuname";
 commands.moveplayer.help = "Moves an existing player to a different team.\n" +
     "!movePlayer <player> <TeamName>";
+commands.update.help = "Updates map rejections with new star range";
 commands.add.osuhelp = "Use !add [mods] where mods is a combination of NM|HD|HR|DT|EZ|HT|CM, using the last map from /np";
 //#endregion
 /**
