@@ -1,3 +1,5 @@
+const fetch = require('node-fetch');
+
 const osuapi = "https://osu.ppy.sh/api";
 const key = process.env.OSUKEY;
 

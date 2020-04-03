@@ -63,6 +63,7 @@ const commands = {
      */
     async help(msg)
     {
+        console.log("Showing help");
         let sorted = {
             public: [],
             player: [],
@@ -788,6 +789,7 @@ commands.add.osuhelp = "Use !add [mods] where mods is a combination of NM|HD|HR|
  */
 async function run(comname, msg, client)
 {
+    console.log(`Running command ${comname}`);
     const APPROVER = process.env.ROLE_MAP_APPROVER;
     const ADMIN = process.env.ROLE_ADMIN;
     let com = commands[comname];
