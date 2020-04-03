@@ -98,7 +98,7 @@ async function checkMap(mapid, {
     // get the division based on who sent the message
     let lowdiv = false;
     if (division)
-        lowdiv = division === '15k';
+        lowdiv = division.toLowerCase() === '15k';
     else if (discordid || osuid)
     {
         let team = await db.getTeam(discordid || osuid);
@@ -451,8 +451,8 @@ async function addMap(mapid, {
         mod: mods,
         pool: modpool
     };
-    let replaced = await db.addMap(team.name, mapitem);
-    if (replaced)
+    let result = await db.addMap(team.name, mapitem);
+    if (result)
     {
         // Prepare the current pool state
         let cur = [];
@@ -460,7 +460,7 @@ async function addMap(mapid, {
             if (m.mod === mods)
             {
                 // Make sure it's not the removed map
-                if ((m.id !== replaced.id)
+                if ((m.id !== result.id)
                     && (rejected
                         ? m.id !== rejected.id
                         : true))
@@ -471,8 +471,11 @@ async function addMap(mapid, {
         cur.push(mapitem);
         
         // Send status and current pool info
+        let replaced = rejected;
+        if (result.id)
+            replaced = result;
         return {
-            replaced: rejected || replaced,
+            replaced,
             added: true,
             map: mapitem,
             current: cur
@@ -488,54 +491,45 @@ async function addMap(mapid, {
 
 /**
  * Adds multiple maps at once
- * @param {Discord.Message} msg 
+ * @param {{
+ *  mapid: number,
+ *  mods: number,
+ *  cm: boolean
+ * }[]} maps
+ * @param {object} o1
+ * 
+ * @param {string} o1.discordid
+ * @param {number} o1.osuid
+ * 
+ * @returns {Promise<{
+ *  error?: string,
+ *  added: number
+ * }>}
  */
-async function addBulk(msg)
-{
-    if (msg.content[9] === '?')
-        return msg.channel.send("Use !addbulk, then include map id/links and mods one per line. eg:\n" +
-            "    !addbulk <https://osu.ppy.sh/b/8708> NM\n    <https://osu.ppy.sh/b/8708> HD\n" +
-            "    <https://osu.ppy.sh/b/75> HR\n    <https://osu.ppy.sh/b/8708> DT\n");
-    // Get the user
-    let team = await db.getTeam(msg.author.id);
+async function addBulk(maps, {
+    discordid,
+    osuid
+}) {
+    // Get the user's team
+    let team = await db.getTeam(discordid || osuid);
     if (!team)
-        return msg.channel.send("Couldn't find which team you're on");
+        return {
+            error: "Couldn't find which team you're on",
+            added: 0
+        };
     console.log(`Found team ${team.name}`);
-    let osuid = team.players.find(p => p.discordid === msg.author.id).osuid;
+    if (!osuid)
+        osuid = team.players.find(p => p.discordid === discordid).osuid;
     console.log(`Found osuid ${osuid}`);
-    // Skip over the !addbulk command and split into lines
-    let lines = msg.content.substr(9).split('\n');
-    console.log(lines);
-    let added = await lines.reduce(async (count, line) => {
-        // Split by spaces
-        let lineargs = line.split(' ');
-        console.log(`Adding map ${lineargs}`);
-        if (lineargs.length < 2)
-            return count;
-        // Determine whether the first arg is a link or a mod
-        let id = checker.parseMapId(lineargs[0]);
-        let mod, custom;
-        if (id)
-        {
-            mod = parseMod(lineargs[1]);
-            custom = lineargs[1].toUpperCase().includes("CM");
-        }
-        else
-        {
-            mod = parseMod(lineargs[0]);
-            custom = lineargs[0].toUpperCase().includes("CM");
-            id = checker.parseMapId(lineargs[1]);
-        }
-        console.log(`Found id: ${id}, mods: ${mod}`);
-        if (!id)
-            return count;
-        // Prepare and check map
-        let beatmap = await checker.getBeatmap(id, mod);
+    let added = await maps.reduce(async (count, map) => {
+        console.log(`Checking map ${map.mapid} +${map.mods}${map.cm ? " CM" : ""}`);
+        // Get the map
+        let beatmap = helpers.getBeatmap(map.mapid, map.mods);
         let quick = checker.quickCheck(beatmap, osuid, team.division === "15k");
         if (quick)
             return count;
         let status;
-        if ((await checker.leaderboardCheck(id, mod, osuid)).passed)
+        if ((await checker.leaderboardCheck(map.mapid, map.mods, osuid)).passed)
             if (beatmap.approved == 1 && beatmap.version !== "Aspire")
                 status = "Accepted";
             else
@@ -543,17 +537,12 @@ async function addBulk(msg)
         else
             status = "Screenshot Required";
         let pool;
-        if (custom)                   pool = "cm";
-        else switch (mod)
-            {
-                case 0:               pool = "nm"; break;
-                case checker.MODS.HD: pool = "hd"; break;
-                case checker.MODS.HR: pool = "hr"; break;
-                case checker.MODS.DT: pool = "dt"; break;
-                default:              pool = "cm"; break;
-            }
+        if (map.cm)
+            pool = "cm";
+        else
+            pool = helpers.getModpool(map.mods);
         let mapitem = {
-            id, status,
+            id: map.mapid, status,
             drain: beatmap.drain,
             stars: beatmap.stars,
             bpm: beatmap.bpm,
@@ -561,7 +550,7 @@ async function addBulk(msg)
             title: beatmap.title,
             version: beatmap.version,
             creator: beatmap.creator,
-            mod, pool
+            mod: map.mods, pool
         };
         // Add map
         let added = await db.addMap(team.name, mapitem);
@@ -570,7 +559,9 @@ async function addBulk(msg)
         else
             return count;
     }, Promise.resolve(0));
-    msg.channel.send(`Added ${added} maps`);
+    return {
+        added
+    };
 }
 
 /**
@@ -721,7 +712,7 @@ async function viewPool(discordid, mods)
         }
     });
     // Put all the output strings together in order
-    let str = mods.reduce((s, m) => s + strs[m], '');
+    let str = mods.reduce((s, m) => s + (strs[m] || ""), '');
     // Check the pool as a whole
     let result = await checker.checkPool(pool);
     // Don't display pool error messages if limited by a certain mod

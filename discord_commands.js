@@ -88,6 +88,7 @@ const commands = {
      * Checks whether a given map would be valid,
      * without actually adding the map to any pools
      * @param {Discord.Message} msg
+     * @param {string[]} args
      */
     async check(msg, args)
     {
@@ -235,12 +236,15 @@ const commands = {
         if (!mapid)
             return msg.channel.send("Couldn't recognise beatmap id");
         let mods = helpers.parseMod(args[1]);
+        let cm = false;
+        if (args[1])
+            cm = args[1].toUpperCase().includes("CM");
         let result = await Command.addMap(mapid, {
-            mods,
-            cm: args[1].toUpperCase().includes("CM"),
+            mods, cm,
             discordid: msg.author.id
         });
-
+        console.log("Result of addMap command:");
+        console.log(result);
         // Show the results of adding the map
         if (result.added)
             return msg.channel.send((result.replaced ? `Replaced ${helpers.mapString(result.replaced)}\n` : "") +
@@ -256,6 +260,44 @@ const commands = {
                 `Couldn't add ${result.map ? helpers.mapString(result.map) : "map"}\n` +
                 `Message: ${result.error}`
             );
+    },
+
+    /**
+     * Adds multiple maps to the player's pool
+     * @param {Discord.Message} msg 
+     */
+    async addbulk(msg)
+    {
+        // Skip over the !addbulk command and split into lines
+        let lines = msg.content.substr(9).split('\n');
+        console.log(lines);
+        let maps = lines.reduce((arr, line) => {
+            let lineargs = line.split(' ');
+            // try to get mapid and mods
+            let mapid = helpers.parseMapId(lineargs[0]);
+            let mods, cm;
+            if (mapid)
+            {
+                mods = helpers.parseMod(lineargs[1]);
+                cm = lineargs[1].toUpperCase().includes("CM");
+            }
+            else
+            {
+                mapid = helpers.parseMapId(lineargs[1]);
+                mods = helpers.parseMod(lineargs[0]);
+                cm = lineargs[0].toUpperCase().includes("CM");
+            }
+            if (mapid)
+                arr.push({
+                    mapid, mods, cm
+                });
+            return arr;
+        }, []);
+        let result = await Command.addBulk(maps, { discordid: msg.author.id });
+        if (result.error)
+            return msg.channel.send(result.error);
+        else
+            return msg.channel.send(`Added ${result.added} maps`);
     },
 
     /**
@@ -320,7 +362,7 @@ const commands = {
         else
         {
             let map = result.removed[0];
-            return msg.channel.send(`Removed ${mapString(map)}${
+            return msg.channel.send(`Removed ${helpers.mapString(map)}${
                 map.pool === "cm"
                 ? ` +${helpers.modString(map.mod)}`
                 : ""
@@ -647,6 +689,7 @@ const comnames = Object.keys(commands);
 commands.osuname.permissions = "player";
 commands.notif.permissions = "player";
 commands.add.permissions = "player";
+commands.addbulk.permissions = "player";
 commands.remove.permissions = "player";
 commands.viewpool.permissions = "player";
 commands.addpass.permissions = "player";
@@ -673,6 +716,7 @@ commands.req = commands.requirements;
 commands.teams = commands.players;
 // ========== Player ==========
 commands.addmap = commands.add;
+commands.bulkadd = commands.addbulk;
 commands.removemap = commands.remove;
 commands.rem = commands.remove;
 commands.view = commands.viewpool;
@@ -722,6 +766,9 @@ commands.add.help = "Usage: !add <map> [mod]\n" +
     "replaced in preference to pending/accepted.\n"// +
     //"If you make a mistake you can use `!undo` within 10 seconds to " +
     //"return your maps to how they were before.";
+commands.addbulk.help = "Use !addbulk, then include map id/links and mods one per line. eg:\n" +
+    "    !addbulk <https://osu.ppy.sh/b/8708> NM\n    <https://osu.ppy.sh/b/8708> HD\n" +
+    "    <https://osu.ppy.sh/b/75> HR\n    <https://osu.ppy.sh/b/75> DT\n";
 commands.remove.help = "Usage: !remove <map> [mod]\n" +
     "map: Beatmap link or id. You can specify `all` instead to clear " +
     "all maps from your pool\n" +

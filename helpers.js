@@ -23,6 +23,9 @@ MODS.DIFFMODS = MODS.HR | MODS.DT | MODS.HT;
  */
 function parseMod(modstr)
 {
+    // Undefined check
+    if (!modstr) return 0;
+    
     let mod = 0;
     modstr = modstr.toUpperCase();
     // Parse mods

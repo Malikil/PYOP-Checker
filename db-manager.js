@@ -360,6 +360,8 @@ async function removeMap(team, mapid, modpool, mods)
         updateobj.filter.maps.$elemMatch.pool = modpool;
     if (mods !== undefined)
         updateobj.filter.maps.$elemMatch.mod = mods;
+    console.log("Remove map update filter:");
+    console.log(util.inspect(updateobj, false, 4, true));
     let result = await db.collection('teams').bulkWrite([
         { updateOne: updateobj },
         {
