@@ -5,7 +5,7 @@ this module. Only methods for checking validity are here, and they can be
 called from elsewhere where maps are known and need to be checked.
 */
 const fetch = require('node-fetch');
-const { MODS, convertSeconds } = require('./helpers');
+const { MODS, convertSeconds, modString } = require('./helpers');
 
 const key = process.env.OSUKEY;
 const osuapi = process.env.OSUAPI;
@@ -185,7 +185,7 @@ async function leaderboardCheck(mapid, mod, userid)
         return { passed: true };
     return {
         passed: false,
-        message: `There are only ${scores.length} scores with mods=${mod}`
+        message: `There are only ${scores.length} scores with ${modString(mod)}`
     };
 }
 
