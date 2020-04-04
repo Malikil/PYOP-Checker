@@ -408,16 +408,16 @@ const commands = {
      */
     async addpass(msg, args, client)
     {
-        // 3 because some people are including the mod, I'll let them include it,
+        // 2 because some people are including the mod, I'll let them include it,
         // but if they include more I'll ignore the command
-        if (args.length > 3)
+        if (args.length > 2)
             return;
 
         // Make sure there's something to update with
         if (msg.attachments.size == 0 && (args.length === 1 || !args[1].includes("http")))
             return msg.channel.send("Please include a link or image attachment");
         // Get the beatmap id
-        let mapid = helpers.parseMapId(args[1]);
+        let mapid = helpers.parseMapId(args[0]);
         if (!mapid)
             return msg.channel.send(`Couldn't recognise beatmap id`);
 

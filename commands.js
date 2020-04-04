@@ -524,7 +524,7 @@ async function addBulk(maps, {
     let added = await maps.reduce(async (count, map) => {
         console.log(`Checking map ${map.mapid} +${map.mods}${map.cm ? " CM" : ""}`);
         // Get the map
-        let beatmap = helpers.getBeatmap(map.mapid, map.mods);
+        let beatmap = await helpers.getBeatmap(map.mapid, map.mods);
         let quick = checker.quickCheck(beatmap, osuid, team.division === "15k");
         if (quick)
             return count;
@@ -789,7 +789,7 @@ async function viewPending(mods)
         str += `**__${helpers.modString(mod._id)}:__**\n`;
         mod.maps.forEach(map => {
             if (str.length < 1800)
-                str += `<${helpers.mapLink(map)}> ${mapString(map)}\n`;
+                str += `<${helpers.mapLink(map)}> ${helpers.mapString(map)}\n`;
         });
     });
     if (str.length >= 1800)
@@ -849,7 +849,7 @@ async function approveMap(mapid, mods)
 async function rejectMap(mapid, mods, desc)
 {
     console.log(`Mod: ${mods}, Message: ${desc}`);
-    return db.rejectMap(mapid, mod, desc);
+    return db.rejectMap(mapid, mods, desc);
 }
 
 /**

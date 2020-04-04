@@ -25,7 +25,7 @@ function parseMod(modstr)
 {
     // Undefined check
     if (!modstr) return 0;
-    
+
     let mod = 0;
     modstr = modstr.toUpperCase();
     // Parse mods
@@ -46,11 +46,11 @@ function getModpool(bitwise)
 {
     switch (bitwise)
     {
-        case 0:               return "nm";
-        case helpers.MODS.HD: return "hd";
-        case helpers.MODS.HR: return "hr";
-        case helpers.MODS.DT: return "dt";
-        default:              return "cm";
+        case 0:       return "nm";
+        case MODS.HD: return "hd";
+        case MODS.HR: return "hr";
+        case MODS.DT: return "dt";
+        default:      return "cm";
     }
 }
 
@@ -77,14 +77,14 @@ function modString(mod)
  * @param {string} mapString A string containing a link to the new or old site, or just the id
  * @returns The map id for the given link, or undefined if no id was found
  */
-function parseMapId(mapString)
+function parseMapId(mapString = '')
 {
     // If link is already a number then nothing needs to be done
     if (isNaN(mapString))
     {
         // If the link isn't to a beatmap, then ignore it
         // If the link is a /s/ link, ignore it
-        if (mapString.includes("sh/b"))
+        if (mapString && mapString.includes("sh/b"))
         {
             // Get everything after the last slash, this should be the beatmap id
             mapString = mapString.substring(mapString.lastIndexOf("/") + 1);
