@@ -412,16 +412,7 @@ async function addMap(mapid, {
         status = "Screenshot Required";
     
     // Get the mod pool this map is being added to
-    let modpool;
-    if (cm)                       modpool = "cm";
-    else switch (mods)
-        {
-            case 0:               modpool = "nm"; break;
-            case helpers.MODS.HD: modpool = "hd"; break;
-            case helpers.MODS.HR: modpool = "hr"; break;
-            case helpers.MODS.DT: modpool = "dt"; break;
-            default:              modpool = "cm"; break;
-        }
+    let modpool = cm ? "cm" : helpers.getModpool(mods);
 
     // Check if a map should be removed to make room for this one
     // We need the first rejected map, and a count of maps in the modpool
@@ -437,6 +428,8 @@ async function addMap(mapid, {
     }, 0);
     if (rejected && count > 1)
         await db.removeMap(team.name, rejected.id, rejected.pool, rejected.mod);
+    else // We don't need to remove a map, because there's still an empty space
+        rejected = undefined;
 
     let mapitem = {
         id: mapid,
@@ -456,15 +449,18 @@ async function addMap(mapid, {
     {
         // Prepare the current pool state
         let cur = [];
+        let skipped = false; // Whether we've skipped a map yet
         team.maps.forEach(m => {
             if (m.mod === mods)
             {
                 // Make sure it's not the removed map
-                if ((m.id !== result.id)
+                if (skipped || (m.id !== result.id)
                     && (rejected
                         ? m.id !== rejected.id
                         : true))
                     cur.push(m);
+                else
+                    skipped = true;
             }
         });
         // Add the newly added map
