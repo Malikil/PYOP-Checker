@@ -133,11 +133,11 @@ const commands = {
             `Star rating:\n` +
             `    Open: ${minStar} - ${maxStar}\n` +
             `    15K: ${lowMin} - ${lowMax}\n` +
-            `Drain length: ${checker.convertSeconds(minLength)}` +
-            ` - ${checker.convertSeconds(maxLength)}\n` +
-            `   Total length must be less than ${checker.convertSeconds(absoluteMax)}\n` +
-            `Total pool drain time must be ${checker.convertSeconds(minPool)}` +
-            ` - ${checker.convertSeconds(maxPool)}\n\n` +
+            `Drain length: ${helpers.convertSeconds(minLength)}` +
+            ` - ${helpers.convertSeconds(maxLength)}\n` +
+            `   Total length must be less than ${helpers.convertSeconds(absoluteMax)}\n` +
+            `Total pool drain time must be ${helpers.convertSeconds(minPool)}` +
+            ` - ${helpers.convertSeconds(maxPool)}\n\n` +
             `Maps with less than ${leaderboard} scores with the selected ` +
             `mod on the leaderboard will need to be submitted with a ` +
             `screenshot of one of the players on your team passing the map.\n` +
