@@ -1,14 +1,13 @@
 const {google} = require('googleapis');
-const util = require('util');
+//const util = require('util');
 const sheets = google.sheets('v4');
 const spreadsheetId = process.env.SPREADSHEET_ID;
-const {convertSeconds} = require('./checker');
-const {MODS} = require('./checker');
+const { modString, convertSeconds } = require('./helpers');
 
 // Copied from commands.js (import didn't seem to work)
 const mapString = map => `${map.artist} - ${map.title} [${map.version}]`;
 const mapLink = map => `https://osu.ppy.sh/b/${map.id}`;
-function modString(mod)
+/*function modString(mod)
 {
     let str = '';
     if (mod & MODS.HD)      str += 'HD';
@@ -18,7 +17,7 @@ function modString(mod)
     else if (mod & MODS.HT) str += 'HT';
     if (str == '')                  str = 'NM';
     return str;
-}
+}*/
 
 const authFactory = new google.auth.GoogleAuth({
     scopes: ['https://www.googleapis.com/auth/spreadsheets']
