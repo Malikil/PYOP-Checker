@@ -46,101 +46,35 @@ async function performAction(action)
 }
 
 /**
- * Will get an osu id from a discord id if that user is currently registered
- * on a team in the database
- * @param {string} discordid The discord userid to search for
- * @returns {Promise<string>}
- */
-async function getOsuId(discordid)
-{
-    console.log(`Looking for id: ${discordid}`);
-    let cursor = db.collection('teams').aggregate([
-        { $match: { 'players.discordid': discordid } },
-        { $unwind: '$players' },
-        { $match: { 'players.discordid': discordid } },
-        { $project: {
-            _id: 0,
-            discordid: '$players.discordid',
-            osuid: '$players.osuid'
-        } }
-    ]);
-
-    let info = await cursor.next();
-    if (info)
-    {
-        console.log(`Found ${discordid} => ${util.inspect(info)}`);
-        return info.osuid;
-    }
-    else
-        return null;
-}
-
-/**
- * Adds a team to the database
- * @param {string} teamName The team's name
- * @param {string} division What division the team is in
- * @returns {Promise<boolean>} Whether the team was added
- */
-async function addTeam(teamName, division)
-{
-    console.log(`Looking for team: ${teamName}`);
-    let find = await db.collection('teams').findOne({ name: teamName });
-    console.log(find);
-
-    if (find)
-        return undefined;
-
-    let result = await db.collection('teams').insertOne({
-        name: teamName,
-        division: division,
-        players: [],
-        maps: []
-    });
-
-    return result.insertedCount > 0;
-}
-
-/**
- * Sets the maps for a team to a certain state
- * @param {{
- *     name: string,
- *     maps: any[]
- * }} team 
- */
-async function setTeamState(team)
-{
-    let result = await db.collection('teams').updateOne(
-        { name: team.name },
-        { $set: { maps: team.maps } }
-    );
-    return result.modifiedCount;
-}
-
-/**
  * Adds a player to a team
- * @param {string} teamName The team to add to
  * @param {string} osuid The player's osu id
  * @param {string} osuname The player's osu username
  * @param {string} discordid The player's discord id
+ * @param {string} division Which division to add the player to
+ * @param {string} utc The player's utc time modifier
  * @returns How many records were modified
  */
-async function addPlayer(teamName, osuid, osuname, discordid)
+async function updatePlayer(osuid, osuname, discordid, division, utc)
 {
-    console.log(`Adding ${osuname} to ${teamName}`);
+    console.log(`Adding ${osuname}`);
     // If the team doesn't exist, add it first
 
     let result = await db.collection('teams').updateOne(
-        { name: teamName },
+        { $or: [
+            { osuid },
+            { discordid }
+        ] },
         {
-            $push: { players: {
-                osuid: osuid,
-                osuname: osuname,
-                discordid: discordid,
-                notif: false
-            } },
+            $set: {
+                osuid,
+                osuname,
+                discordid,
+                division,
+                utc
+            },
             $setOnInsert: {
-                division: "Open",
-                maps: []
+                maps: [],
+                unconfirmed: true
             }
         },
         { upsert: true }
@@ -163,60 +97,30 @@ function regexify(str, options)
 }
 
 /**
+ * Convenience function for wrapping an id in an or check on osuid or discordid
+ * @param {string|number} id Player's osu or discord id
+ */
+function identify(id)
+{
+    return { $or: [
+        { osuid: id },
+        { discordid: id }
+    ]};
+}
+
+/**
  * Removes a player from all teams they might be on
- * @param {string} osuname The player to remove
+ * @param {string} playerid The player to remove. Should be either a discord id or osu id
  * @returns How many records were modified
  */
-async function removePlayer(osuname)
+async function removePlayer(playerid)
 {
-    console.log(`Removing ${osuname} from all their teams`);
-    let reg = regexify(osuname, 'i');
-    let result = await db.collection('teams').updateMany(
-        { 'players.osuname': reg },
-        { $pull: { players: { osuname: reg } } }
+    console.log(`Removing ${playerid}`);
+    let result = await db.collection('teams').deleteOne(
+        identify(playerid)
     );
-    console.log(`Removed from ${result.modifiedCount} teams`);
-    return result.modifiedCount;
-}
-
-/**
- * Move a player from one team to another
- * @param {string} teamName The team name to move to
- * @param {string|number} osuname The player's osu username or osu id
- * @returns How many records were modified, or -1 if the player wasn't found
- */
-async function movePlayer(teamName, osuname)
-{
-    console.log(`Moving ${osuname} to ${teamName}`);
-    let reg = regexify(osuname, 'i');
-    // Pull the player from their old team
-    let team = await db.collection('teams').findOneAndUpdate(
-        { 'players.osuname': reg },
-        { $pull: { players: { $or: [
-            { osuname: reg },
-            { osuid: osuname }
-        ] } } }
-    );
-    // If the player wasn't found, quit early
-    if (!team.value)
-        return -1;
-    let player = team.value.players.find(item => item.osuname.match(reg) || item.osuid == osuname);
-    return addPlayer(teamName, player.osuid, player.osuname, player.discordid);
-}
-
-/**
- * Updates the osuname of a given discordid
- * @param {String} discordid 
- * @param {String} osuname What to update the player's name to
- * @returns How many documents were modified
- */
-async function updatePlayer(discordid, osuname)
-{
-    let result = await db.collection('teams').updateOne(
-        { 'players.discordid': discordid },
-        { $set: { 'players.$.osuname': osuname } }
-    );
-    return result.modifiedCount;
+    console.log(`Removed ${result.deletedCount} players`);
+    return result.deletedCount;
 }
 
 /**
@@ -227,17 +131,15 @@ async function updatePlayer(discordid, osuname)
  */
 async function toggleNotification(discordid)
 {
-    let team = await db.collection('teams').findOne({
-        'players.discordid': discordid
-    });
-    if (!team)
+    let player = await db.collection('teams').findOne({ discordid });
+    if (!player)
         return;
     
-    if (team.players.find(p => p.discordid === discordid).notif === false)
+    if (player.notif)
     {
         let result = await db.collection('teams').updateOne(
-            { 'players.discordid': discordid },
-            { $unset: { 'players.$.notif': "" } }
+            { discordid },
+            { $unset: { notif: "" } }
         );
         if (result.modifiedCount)
             return true;
@@ -245,8 +147,8 @@ async function toggleNotification(discordid)
     else
     {
         let result = await db.collection('teams').updateOne(
-            { 'players.discordid': discordid },
-            { $set: { 'players.$.notif': false } }
+            { discordid },
+            { $set: { notif: true } }
         );
         if (result.modifiedCount)
             return false;
@@ -257,14 +159,14 @@ async function toggleNotification(discordid)
  * Gets which team a player is on based on their osu id or discord id
  * @param {string|number} id The player's id, either discord or osu id
  */
-async function getTeam(id)
+async function getPlayer(id)
 {
-    console.log(`Finding team for player ${id}`);
+    console.log(`Finding player with id ${id}`);
     let team = await db.collection('teams').findOne({
         $or: [
-            { 'players.discordid': id },
-            { 'players.osuid': id },
-            { 'players.osuname': id }
+            { discordid: id },
+            { osuid: id },
+            { osuname: id }
         ]
     });
     console.log(util.inspect(team, { depth: 1 }));
@@ -274,7 +176,7 @@ async function getTeam(id)
 /**
  * Adds a map to the given mod bracket. Removes the first map on the list if
  * two maps are already present.
- * @param {string} team The team name
+ * @param {string|number} playerid The player identifier, either osuid or discordid
  * @param {{
  *  id: Number,
  *  status: String,
@@ -285,19 +187,19 @@ async function getTeam(id)
  *  title: String,
  *  version: String,
  *  creator: String,
- *  mod: Number,
+ *  mods: Number,
  *  pool: String
  * }} map The map object to add
  * @returns True if the map was added without issue, false if the map wasn't added,
  * and a map object if a map got replaced.
  */
-async function addMap(team, map)
+async function addMap(playerid, map)
 {
     console.log(`Adding map ${map.id} to ${team}'s ${map.pool} pool`);
     // let updateobj = { $push: {}};
     // updateobj.$push[`maps.${mod}`] = map;
     let teamobj = await db.collection('teams').findOneAndUpdate(
-        { name: team },
+        identify(playerid),
         { $push: { maps: map } },
         { returnOriginal: false }
     );
@@ -335,59 +237,50 @@ async function addMap(team, map)
 /**
  * Removes a map from a team's pool. If two maps in the pool are the same, only one
  * will be removed.
- * @param {string} team The team name to remove the map from
+ * @param {string|number} playerid The player who's pool to remove the map from
  * @param {Number} mapid The beatmap id to remove
  * @param {"nm"|"hd"|"hr"|"dt"|"cm"} modpool The modpool for the map
  * @param {number} mods Which mods the map uses
  * @returns The number of modified documents
  */
-async function removeMap(team, mapid, modpool, mods)
+async function removeMap(playerid, mapid, modpool, mods)
 {
     // I can't guarantee there will only be one matching map
     // Set one matching map to null, then pull nulls
-    let updateobj = {
-        filter: {
-            name: team,
-            maps: { $elemMatch: {
-                id: mapid
-            } }
-        },
-        update: {
-            $unset: { 'maps.$': "" }
-        }
-    };
+    let filter = identify(playerid);
+    filter.maps = { $elemMatch: { id: mapid } };
     if (modpool !== undefined)
-        updateobj.filter.maps.$elemMatch.pool = modpool;
+        filter.maps.$elemMatch.pool = modpool;
     if (mods !== undefined)
-        updateobj.filter.maps.$elemMatch.mod = mods;
+        filter.maps.$elemMatch.mods = mods;
+
     console.log("Remove map update filter:");
-    console.log(util.inspect(updateobj, false, 4, true));
+    console.log(util.inspect(filter, false, 4, true));
     let result = await db.collection('teams').bulkWrite([
-        { updateOne: updateobj },
-        {
-            updateOne: {
-                filter: { name: team },
-                update: { $pull: { maps: null } }
+        { updateOne: {
+            filter,
+            update: {
+                $unset: { 'maps.$': "" }
             }
-        }
+        } },
+        { updateOne: {
+            filter: identify(playerid),
+            update: { $pull: { maps: null } }
+        } }
     ]);
     return result.modifiedCount;
 }
 
 /**
  * Removes all maps from the given team's pool
- * @param {string} team Team name
+ * @param {string|number} playerid Team name
  * @returns The number of teams modified
  */
-async function removeAllMaps(team)
+async function removeAllMaps(playerid)
 {
     let result = await db.collection('teams').updateOne(
-        { name: team },
-        {
-            $set: {
-                maps: []
-            }
-        }
+        identify(playerid),
+        { $set: { maps: [] } }
     );
     return result.modifiedCount;
 }
@@ -438,26 +331,14 @@ async function findMissingMaps()
 
 /**
  * Changes a map between "Screenshot Required" and "Pending" statuses
- * @param {String} team The team to update
+ * @param {String} discordid The player to update
  * @param {Number} mapid The map id to update
- * @param {boolean} to_pending True if changing to "Pending" status,
- * false if changing back to "Screenshot Required" status
  * @returns The team that got updated, or null if no team/map matched
  */
-async function pendingMap(team, mapid, to_pending = true)
+async function pendingMap(discordid, mapid)
 {
-    let fromstatus;
-    let tostatus;
-    if (to_pending)
-    {
-        fromstatus = "Screenshot Required";
-        tostatus = "Pending";
-    }
-    else
-    {
-        fromstatus = "Pending";
-        tostatus = "Screenshot Required"
-    }
+    let fromstatus = "Screenshot Required";
+    let tostatus = "Pending";
     console.log(`Updating from ${fromstatus} to ${tostatus}`);
     // We don't care about mod at this point, they're not supposed to have
     // the same map more than once anyways.
@@ -465,16 +346,16 @@ async function pendingMap(team, mapid, to_pending = true)
     // approved status back to pending just by submitting a screenshot
     let result = await db.collection('teams').findOneAndUpdate(
         {
-            name: regexify(team, 'i'),
+            discordid,
             maps: { $elemMatch: {
                 id: mapid,
-                status: fromstatus
+                status: "Screenshot Required"
             } }
         },
-        { $set: { 'maps.$[pendmap].status': tostatus } },
+        { $set: { 'maps.$[pendmap].status': "Pending" } },
         { arrayFilters: [
             {
-                'pendmap.status': fromstatus,
+                'pendmap.status': "Screenshot Required",
                 'pendmap.id': mapid
             }
         ] }
@@ -525,7 +406,8 @@ async function rejectMap(mapid, mods, message)
 {
     console.log(`Rejecting mapid ${mapid} +${mods}`);
     // Get a list of players on teams with maps to be rejected
-    let playerlist = db.collection('teams').aggregate([
+    // ========== Keeping for if I decide to do another teams tourney ==========
+    /*let playerlist = db.collection('teams').aggregate([
         { $match: {
             maps: { $elemMatch: {
                 id: mapid,
@@ -547,7 +429,15 @@ async function rejectMap(mapid, mods, message)
     let players = [];
     if (parr)
         players = parr.players;
-    console.log(players);
+    console.log(players);*/
+    let playerNotif = await db.collection('teams').find({
+        maps: { $elemMatch: {
+            id: mapid,
+            mods,
+            status: { $not: /^Rejected/ }
+        } },
+        notif: true
+    }).toArray();
     // Update the status
     // Not limiting to pending maps here because it's conceivable that a
     // screenshot required map can be rejected, and maps that are rejected
@@ -555,19 +445,20 @@ async function rejectMap(mapid, mods, message)
     let result = await db.collection('teams').updateMany(
         { maps: { $elemMatch: {
             id: mapid,
-            mod: mods
+            mods
         } } },
         { $set: { 'maps.$[map].status': "Rejected - " + message } },
         { arrayFilters: [
             {
                 'map.id': mapid,
-                'map.mod': mods
+                'map.mods': mods,
+                'map.status': { $not: /^Rejected/ }
             }
         ] }
     );
     console.log(`Matched ${result.matchedCount}, modified ${result.modifiedCount}`);
     return {
-        playerNotif: players,
+        playerNotif,
         modified: result.modifiedCount
     };
 }
@@ -577,7 +468,7 @@ async function rejectMap(mapid, mods, message)
  * @param {[
  *  {
  *      id: Number,
- *      mod: Number
+ *      mods: Number
  *  }
  * ]} maps An array of maps to reject
  * @param {String} message The reject message to use
@@ -591,7 +482,7 @@ async function bulkReject(maps, message, division)
     let filters = maps.map(item => {
         return {
             'badmap.id': item.id,
-            'badmap.mod': item.mod
+            'badmap.mods': item.mods
         };
     });
 
@@ -609,15 +500,10 @@ async function bulkReject(maps, message, division)
 }
 
 module.exports = {
-    getOsuId,
-    addTeam,    // Teams/players
-    addPlayer,
+    updatePlayer,  // Teams/players
     removePlayer,
-    movePlayer,
-    updatePlayer,
     toggleNotification,
-    getTeam,
-    setTeamState,
+    getPlayer,
     addMap,     // Maps
     removeMap,
     removeAllMaps,
