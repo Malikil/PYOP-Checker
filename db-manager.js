@@ -1,7 +1,7 @@
 /*
 This module should handle connecting to the database and all the CRUD operations
 */
-const { MongoClient, Db } = require('mongodb');
+const { MongoClient, Db, ObjectID } = require('mongodb');
 const util = require('util');
 
 const mongoUser = process.env.MONGO_USER;
@@ -47,14 +47,16 @@ async function performAction(action)
 
 /**
  * Adds a player to a team
- * @param {string} osuid The player's osu id
- * @param {string} osuname The player's osu username
- * @param {string} discordid The player's discord id
- * @param {string} division Which division to add the player to
- * @param {string} utc The player's utc time modifier
+ * @param {object} p
+ * 
+ * @param {string} p.osuid The player's osu id
+ * @param {string} p.osuname The player's osu username
+ * @param {string} p.discordid The player's discord id
+ * @param {string} p.division Which division to add the player to
+ * @param {string} p.utc The player's utc time modifier
  * @returns How many records were modified
  */
-async function updatePlayer(osuid, osuname, discordid, division, utc)
+async function updatePlayer({osuid, osuname, discordid, division, utc})
 {
     console.log(`Adding ${osuname}`);
     // If the team doesn't exist, add it first
@@ -80,6 +82,21 @@ async function updatePlayer(osuid, osuname, discordid, division, utc)
         { upsert: true }
     );
     return result.modifiedCount + result.upsertedCount;
+}
+
+/**
+ * Finishes registering a player with matching osuid and discord id
+ * @param {number} osuid The player's osu id
+ * @param {string} discordid The discord id for the player
+ */
+async function confirmPlayer(osuid, discordid)
+{
+    let result = await db.collection('teams').updateOne(
+        { osuid, discordid },
+        { $unset: { unconfirmed: "" } }
+    );
+
+    return result.result;
 }
 
 /**
@@ -158,11 +175,20 @@ async function toggleNotification(discordid)
 /**
  * Gets which team a player is on based on their osu id or discord id
  * @param {string|number} id The player's id, either discord or osu id
+ * @returns {Promise<{
+ *  osuid: number,
+ *  osuname: string,
+ *  discordid: string,
+ *  division: "Open"|"15k",
+ *  utc: string,
+ *  maps: *[],
+ *  unconfirmed?: boolean
+ * }>}
  */
 async function getPlayer(id)
 {
     console.log(`Finding player with id ${id}`);
-    let team = await db.collection('teams').findOne({
+    let player = await db.collection('teams').findOne({
         $or: [
             { discordid: id },
             { osuid: id },
@@ -170,7 +196,7 @@ async function getPlayer(id)
         ]
     });
     console.log(util.inspect(team, { depth: 1 }));
-    return team;
+    return player;
 }
 
 /**
@@ -501,6 +527,7 @@ async function bulkReject(maps, message, division)
 
 module.exports = {
     updatePlayer,  // Teams/players
+    confirmPlayer,
     removePlayer,
     toggleNotification,
     getPlayer,

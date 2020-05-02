@@ -101,11 +101,11 @@ async function checkMap(mapid, {
         lowdiv = division.toLowerCase() === '15k';
     else if (discordid || osuid)
     {
-        let team = await db.getTeam(discordid || osuid);
-        if (team)
+        let player = await db.getPlayer(discordid || osuid);
+        if (player)
         {
-            lowdiv = team.division === "15k";
-            osuid = team.players.find(p => p.discordid === discordid).osuid;
+            lowdiv = player.division === "15k";
+            osuid = player.osuid;
         }
     }
     
@@ -137,49 +137,23 @@ async function checkMap(mapid, {
 }
 
 /**
- * Get strings to display all teams currently registered,
- * and the players on them
+ * Get a list of all players in either division
  */
-async function getTeamPlayers()
+async function getPlayers()
 {
-    // Create the tables
-    var openname = 0;
-    var fiftname = 0;
-    let result = await db.performAction(async function(team) {
-        let teaminfo = [];
-        teaminfo.push(team.name);
-        if (team.division === "Open" && team.name.length > openname)
-            openname = team.name.length;
-        else if (team.division === "15k" && team.name.length > fiftname)
-            fiftname = team.name.length;
-        team.players.forEach(player => teaminfo.push(player.osuname));
-        return {
-            range: team.division,
-            info: teaminfo
-        };
-    });
-
-    var openstr = "```\n";
-    var fiftstr = "```\n";
-    result.forEach(team => {
-        // Prepare the current string
-        let tname = team.info.shift();
-        let tempstr = `${tname.padEnd(
-            team.range === "Open"
-            ? openname
-            : fiftname, ' ')} | `;
-        if (team.info.length > 0)
-            tempstr = team.info.reduce((p, c) => `${p}${c}, `, tempstr).slice(0, -2);
-
-        if (team.range === "Open")
-            openstr += `\n${tempstr}`;
+    // Create the player lists
+    var open = [];
+    var fift = [];
+    await db.performAction(async function(player) {
+        if (player.division === "15k")
+            fift.push(player.osuname);
         else
-            fiftstr += `\n${tempstr}`;
+            open.push(player.osuname);
     });
-    
+
     return {
-        openstr,
-        fiftstr
+        open,
+        fift
     }
 }
 //#endregion
@@ -189,34 +163,35 @@ async function getTeamPlayers()
 // ============================================================================
 
 /**
- * Adds a player to a team
- * @param {string} team The team name
- * @param {{
- *  osuid: string|number,
- *  discordid?: string
- * }[]} players An array of player objects containing osuid and discordid
+ * Adds a player in an unconfirmed state
+ * @param {string|number} osuid The player's osu id
+ * @param {string} discordid The player's discord id
+ * @param {string} utc The player's utc timezone
  * @param {string} division Which division to add the team to
  * @returns {Promise<number>} How many players got added/moved
  */
-async function addPlayer(team, players, division = "open")
+async function addPlayer(osuid, discordid, utc, division = "Open")
 {
-    console.log(`Adding ${players.length} players to ${team}`);
-
-    let playercount = players.reduce(async (pcount, player) => {
-        // Make sure the player isn't already on a team
-        if (await db.getTeam(player.osuid))
-            // If the player is on a team, move them instead
-            return pcount + await db.movePlayer(team, player.osuid);
-
-        let osuplayer = await helpers.getPlayer(player.osuid);
-        if (!osuplayer)
-            return pcount;
-        
-        // We should have a player now, add them to their team
-        return pcount + await db.addPlayer(team, osuplayer.user_id, osuplayer.username, player.discordid);
-    }, 0);
-    
-    return playercount;
+    // If the player already exists, update their division
+    //let player = await db.getPlayer(playerid.discordid);
+    /*if (player)
+    {
+        player.division = division;
+        db.updatePlayer(player)
+    }*/
+    // Get the player info
+    let player = await helpers.getPlayer(osuid);
+    if (player)
+    {
+        // Add the player's info to db
+        let pobj = {
+            osuid = player.user_id,
+            osuname = player.username,
+            discordid, utc, division
+        };
+        return db.updatePlayer(pobj);
+    }
+    return 0;
 }
 
 /**
@@ -872,7 +847,7 @@ async function rejectScreenshot(mapid, team)
 
 module.exports = {
     checkMap,  // Public
-    getTeamPlayers,
+    getPlayers,
     addPlayer, // Admins
     removePlayer,
     movePlayer,
