@@ -1,4 +1,5 @@
 const fetch = require('node-fetch');
+const parser = require('osu-parser');
 
 const osuapi = "https://osu.ppy.sh/api";
 const key = process.env.OSUKEY;
@@ -171,6 +172,15 @@ async function getBeatmap(mapid, mod)
     return beatmap;
 }
 
+async function beatmapObject(mapid)
+{
+    let response = await fetch(`https://osu.ppy.sh/osu/${mapid}`);
+    let data = await response.text();
+    if (!data)
+        return null;
+    return parser.parseContent(data);
+}
+
 module.exports = {
     MODS,
     parseMod,
@@ -181,5 +191,6 @@ module.exports = {
     mapLink,
     convertSeconds,
     getPlayer,
-    getBeatmap
+    getBeatmap,
+    beatmapObject
 }
