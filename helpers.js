@@ -1,5 +1,6 @@
 const fetch = require('node-fetch');
-const parser = require('osu-parser');
+const ojsama = require('ojsama');
+const readline = require('readline');
 
 const osuapi = "https://osu.ppy.sh/api";
 const key = process.env.OSUKEY;
@@ -172,13 +173,102 @@ async function getBeatmap(mapid, mod)
     return beatmap;
 }
 
-async function beatmapObject(mapid)
+/**
+ * Gets a beatmap object which can be used to calculate sr or find hitobjects
+ * @param {number} mapid The beatmap id to get info for
+ * @param {number} mods The mods to use when parsing the map
+ * @returns {Promise<{
+ *  bid: number,
+ *  artist: string,
+ *  title: string,
+ *  version: string,
+ *  creator: string,
+ *  drain: number,
+ *  stars: number,
+ *  bpm: number,
+ *  mods: number,
+ *  data: {
+ *      total_length: number,
+ *      mode: number,
+ *      ar: number,
+ *      objects: osu.hitobject[]
+ *  }
+ * }>}
+ */
+function beatmapObject(mapid, mods = 0)
 {
-    let response = await fetch(`https://osu.ppy.sh/osu/${mapid}`);
-    let data = await response.text();
-    if (!data)
-        return null;
-    return parser.parseContent(data);
+    return new Promise(async (resolve, reject) => {
+        let response = await fetch(`https://osu.ppy.sh/osu/${mapid}`);
+        let parser = new ojsama.parser();
+        readline.createInterface({
+            input: response.body,
+            terminal: false
+        })
+        .on('line', parser.feed_line.bind(parser))
+        .on('close', () => {
+            if (parser.map.objects.length < 1)
+                return reject("Map doesn't exist");
+            // Make sure the map is for std, otherwise star calculation breaks
+            if (parser.map.mode !== 0)
+                return reject("Map is not a std map");
+            let map = {
+                bid: mapid,
+                artist: parser.map.artist_unicode,
+                title: parser.map.title_unicode,
+                version: parser.map.version,
+                creator: parser.map.creator,
+                data: {
+                    mode: parser.map.mode,
+                    ar: parser.map.ar,
+                    objects: parser.map.objects
+                }
+            };
+            // AR on old maps
+            if (map.data.ar === undefined)
+                map.data.ar = parser.map.od;
+            // Drain/total time
+            let last = map.data.objects[map.data.objects.length - 1];
+            let first = map.data.objects[0];
+            map.data.total_length = parseInt((last.time / 1000).toFixed(0));
+            map.drain = parseInt(((last.time - first.time) / 1000).toFixed(0));
+            // Stars
+            map.stars = new ojsama.diff().calc({ map: parser.map, mods }).total;
+            // BPM
+            let bpms = parser.map.timing_points.reduceRight((vals, point) => {
+                if (!point.change)
+                    return vals;
+                let bpm = 1 / point.ms_per_beat * 1000 * 60;
+                // Round bpm to three decimal places
+                bpm = bpm.toFixed(3);
+                let time = vals.last - point.time;
+                vals[bpm] = (vals[bpm] || 0) + time;
+                vals.last = point.time;
+                return vals;
+            }, { last: last.time });
+            console.log(`${mapid} has bpms:`);
+            console.log(bpms);
+            map.bpm = parseFloat(
+                Object.keys(bpms).reduce((p, c) => bpms[c] < bpms[p] ? p : c, 0)
+            );
+            // Update with dt/ht
+            if (mods & MODS.DT)
+            {
+                map.data.total_length = (map.data.total_length * (2.0 / 3.0)) | 0;
+                map.drain = (map.drain * (2.0 / 3.0)) | 0;
+                map.bpm = map.bpm * (3.0 / 2.0);
+            }
+            else if (mods & MODS.HT)
+            {
+                map.data.total_length = (map.data.total_length * (4.0 / 3.0)) | 0;
+                map.drain = (map.drain * (4.0 / 3.0)) | 0;
+                map.bpm = map.bpm * (3.0 / 4.0);
+            }
+            // Add mods to make it easier later
+            map.mods = mods;
+
+            resolve(map);
+        });
+    });
 }
 
 module.exports = {

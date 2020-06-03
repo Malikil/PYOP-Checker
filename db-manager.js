@@ -23,14 +23,7 @@ client.connect(err => {
 
     db = client.db('pyopdb');
 });
-
-/**
- * Gets everything from the database
- * @deprecated Avoid loading the entire database into memory.
- * Try using performAction(action) instead
- */
-const getDb = () => db.collection('teams').find().toArray();
-
+//#region ============================== Helpers/General ==============================
 /**
  * Performs the given action for each item in the database
  * @param {function(*) => Promise<*>} action 
@@ -46,7 +39,37 @@ async function performAction(action)
 }
 
 /**
- * Adds a player to a team
+ * Prepares a string to be used as the match in a regex match
+ * @param {String} str 
+ * @param {String} options
+ */
+function regexify(str, options)
+{
+    str = str.replace('_', "(?: |_)")
+        .replace('[', '\\[')
+        .replace(']', "\\]")
+        .replace('+', "\\+");
+    return new RegExp(`^${str}$`, options);
+}
+
+/**
+ * Convenience function for wrapping an id in an or check on osuid or discordid
+ * @param {string|number} id Player's osu or discord id
+ */
+function identify(id)
+{
+    return { $or: [
+        { osuid: id },
+        { discordid: id }
+    ]};
+}
+//#endregion
+//#region ============================== TEAMS ==============================
+
+//#endregion
+//#region ============================== SOLO ==============================
+/**
+ * Adds a player to the database
  * @param {object} p
  * 
  * @param {string} p.osuid The player's osu id
@@ -100,33 +123,7 @@ async function confirmPlayer(osuid, discordid)
 }
 
 /**
- * Prepares a string to be used as the match in a regex match
- * @param {String} str 
- * @param {String} options
- */
-function regexify(str, options)
-{
-    str = str.replace('_', "(?: |_)")
-        .replace('[', '\\[')
-        .replace(']', "\\]")
-        .replace('+', "\\+");
-    return new RegExp(`^${str}$`, options);
-}
-
-/**
- * Convenience function for wrapping an id in an or check on osuid or discordid
- * @param {string|number} id Player's osu or discord id
- */
-function identify(id)
-{
-    return { $or: [
-        { osuid: id },
-        { discordid: id }
-    ]};
-}
-
-/**
- * Removes a player from all teams they might be on
+ * Removes a player from the database
  * @param {string} playerid The player to remove. Should be either a discord id or osu id
  * @returns How many records were modified
  */
@@ -139,6 +136,7 @@ async function removePlayer(playerid)
     console.log(`Removed ${result.deletedCount} players`);
     return result.deletedCount;
 }
+//#endregion
 
 /**
  * Toggles whether the player wants to receive notifications of map updates
@@ -173,8 +171,8 @@ async function toggleNotification(discordid)
 }
 
 /**
- * Gets which team a player is on based on their osu id or discord id
- * @param {string|number} id The player's id, either discord or osu id
+ * Gets a player based on their osu id or discord id
+ * @param {string|number} id The player's id, either discord or osu id, or osu username
  * @returns {Promise<{
  *  osuid: number,
  *  osuname: string,
@@ -195,7 +193,7 @@ async function getPlayer(id)
             { osuname: id }
         ]
     });
-    console.log(util.inspect(team, { depth: 1 }));
+    console.log(util.inspect(player, { depth: 1 }));
     return player;
 }
 
@@ -224,8 +222,9 @@ async function addMap(playerid, map)
     console.log(`Adding map ${map.id} to ${team}'s ${map.pool} pool`);
     // let updateobj = { $push: {}};
     // updateobj.$push[`maps.${mod}`] = map;
+    let idobj = identify(playerid);
     let teamobj = await db.collection('teams').findOneAndUpdate(
-        identify(playerid),
+        idobj,
         { $push: { maps: map } },
         { returnOriginal: false }
     );
@@ -236,19 +235,17 @@ async function addMap(playerid, map)
     {
         // The first item should be removed.
         // First set a matching element to null, then remove nulls
+        idobj['maps.pool'] = map.pool;
         let result = await db.collection('teams').bulkWrite([
             {
                 updateOne: {
-                    filter: {
-                        name: team,
-                        'maps.pool': map.pool
-                    },
+                    filter: idobj,
                     update: { $unset: { 'maps.$': "" } }
                 }
             },
             {
                 updateOne: {
-                    filter: { name: team },
+                    filter: identify(playerid),
                     update: { $pull: { maps: null } }
                 }
             }
@@ -540,6 +537,5 @@ module.exports = {
     rejectMap,
     findMissingMaps,
     bulkReject,  // General management
-    getDb,
     performAction
 };

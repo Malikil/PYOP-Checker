@@ -6,6 +6,7 @@ called from elsewhere where maps are known and need to be checked.
 */
 const fetch = require('node-fetch');
 const { MODS, convertSeconds, modString } = require('./helpers');
+const ojsama = require('ojsama');
 
 const key = process.env.OSUKEY;
 const osuapi = process.env.OSUAPI;
@@ -149,6 +150,54 @@ function quickCheck(beatmap, userid = undefined, lowDiv = false)
 }
 
 /**
+ * Checks a map for basic items like star rating, drain length, and creator
+ * @param {osu.beatmap} map The map object to check
+ * @param {number} mods Bitwise mod number to use
+ * @param {"Open"|"15k"} division Which division the map should fall into
+ * @param {string} user The osu username of the person performing the check
+ * @returns {Promise<{
+ *  map?: {
+ *      artist: string,
+ *      title: string,
+ *      version: string,
+ *      creator: string,
+ *      drain: number,
+ *      stars: number
+ *  },
+ *  message?: string,
+ *  rejected: boolean
+ * }>} A map object with all needed basic info
+ */
+async function mapCheck(map, mods, division, user)
+{
+    // Prepare the map object for returning
+    let beatmap = {
+        artist: map.artist_unicode,
+        title: map.title_unicode,
+        version: map.version,
+        creator: map.creator
+    };
+    // Find drain
+    
+    // Find stars
+    let diff = new ojsama.diff().calc({ map, mods });
+    console.log(diff.total);
+    beatmap.stars = diff.total;
+    // Check gamemode
+    if (map.mode !== 0)
+        return {
+
+        }
+    // Check drain length
+    // Check total length
+    // Check stars
+    // Check map creator
+
+    // Items to check:
+    // 2b, circles appearing before spinner, unsnapped notes
+}
+
+/**
  * Checks a given map for leaderboard info.
  * Will get leaderboard from server, and check the number of scores, and
  * whether the user has a score.
@@ -192,5 +241,6 @@ async function leaderboardCheck(mapid, mod, userid)
 module.exports = {
     quickCheck,
     leaderboardCheck,
-    checkPool
+    checkPool,
+    mapCheck
 };

@@ -15,6 +15,7 @@
     "googleapis": "^43.0.0",
     "mongodb": "^3.5.2",
     "node-fetch": "^2.6.0",
+    "ojsama": "^1.2.5",
     "osu-parser": "^0.3.3"
   },
   "engines": {

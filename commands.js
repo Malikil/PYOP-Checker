@@ -350,22 +350,10 @@ async function addMap(mapid, {
     discordid,
     osuid
 }) {
-    // Get which team the player is on
-    let team;
-    if (discordid)
-        team = await db.getTeam(discordid);
-    else if (osuid)
-        team = await db.getTeam(osuid);
-    if (!team)
-        return {
-            error: "Couldn't find which team you're on",
-            added: false
-        };
     // Get osu id
+    
     if (!osuid)
         osuid = team.players.find(item => item.discordid == discordid).osuid;
-    if (!osuid)
-        console.warn("Team found but osu id was not");
 
     // Check beatmap approval
     console.log(`Looking for map with id ${mapid} and mod ${mods}`);
