@@ -3,6 +3,7 @@ This module should handle connecting to the database and all the CRUD operations
 */
 const { MongoClient, Db, ObjectID } = require('mongodb');
 const util = require('util');
+const { DbBeatmap, DbPlayer } = require('./types');
 
 const mongoUser = process.env.MONGO_USER;
 const mongoPass = process.env.MONGO_PASS;
@@ -26,14 +27,14 @@ client.connect(err => {
 //#region ============================== Helpers/General ==============================
 /**
  * Performs the given action for each item in the database
- * @param {function(*) => Promise<*>} action 
+ * @param {function(DbPlayer) => Promise<*>} action 
  * @returns {Promise<*[]>} An array containing return values from each function call
  */
 async function performAction(action)
 {
     let cursor = db.collection('teams').find();
     let results = [];
-    await cursor.forEach(item => results.push(action(item)));
+    await cursor.forEach(p => results.push(action(new DbPlayer(p))));
     results = await Promise.all(results);
     return results;
 }
@@ -173,15 +174,6 @@ async function toggleNotification(discordid)
 /**
  * Gets a player based on their osu id or discord id
  * @param {string|number} id The player's id, either discord or osu id, or osu username
- * @returns {Promise<{
- *  osuid: number,
- *  osuname: string,
- *  discordid: string,
- *  division: "Open"|"15k",
- *  utc: string,
- *  maps: *[],
- *  unconfirmed?: boolean
- * }>}
  */
 async function getPlayer(id)
 {
@@ -194,26 +186,14 @@ async function getPlayer(id)
         ]
     });
     console.log(util.inspect(player, { depth: 1 }));
-    return player;
+    return new DbPlayer(player);
 }
 
 /**
  * Adds a map to the given mod bracket. Removes the first map on the list if
  * two maps are already present.
  * @param {string|number} playerid The player identifier, either osuid or discordid
- * @param {{
- *  id: Number,
- *  status: String,
- *  drain: Number,
- *  stars: Number,
- *  bpm: Number,
- *  artist: String,
- *  title: String,
- *  version: String,
- *  creator: String,
- *  mods: Number,
- *  pool: String
- * }} map The map object to add
+ * @param {DbBeatmap} map The map object to add
  * @returns True if the map was added without issue, false if the map wasn't added,
  * and a map object if a map got replaced.
  */
@@ -225,7 +205,7 @@ async function addMap(playerid, map)
     let idobj = identify(playerid);
     let teamobj = await db.collection('teams').findOneAndUpdate(
         idobj,
-        { $push: { maps: map } },
+        { $push: { maps: map.toObject() } },
         { returnOriginal: false }
     );
     console.log(`Team ok: ${teamobj.ok}`);
@@ -252,7 +232,7 @@ async function addMap(playerid, map)
         ]);
         console.log(result);
         // Return the removed item
-        return teamobj.value.maps.find(m => m.pool === map.pool);
+        return new DbBeatmap(teamobj.value.maps.find(m => m.pool === map.pool));
     }
     return teamobj.ok;
 }
@@ -399,13 +379,13 @@ async function approveMap(mapid, mods)
     let result = await db.collection('teams').updateMany(
         { maps: { $elemMatch: {
             id: mapid,
-            mod: mods
+            mods
         } } },
         { $set: { 'maps.$[pendmap].status': "Accepted" } },
         { arrayFilters: [
             {
                 'pendmap.id': mapid,
-                'pendmap.mod': mods,
+                'pendmap.mods': mods,
                 //'pendmap.status': "Pending" don't worry about if a map is ssrequired
             }
         ] }

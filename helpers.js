@@ -14,9 +14,13 @@ const MODS = {
     HR: 1 << 4,
     DT: 1 << 6,
     HT: 1 << 8,
-    DIFFMODS: 0
+    NC: 1 << 9,
+    FL: 1 << 10,
+    DIFFMODS: 0,
+    ALLOWED:  0
 };
 MODS.DIFFMODS = MODS.HR | MODS.DT | MODS.HT;
+MODS.ALLOWED = MODS.EZ | MODS.HD | MODS.HR | MODS.DT | MODS.HT | MODS.NC | MODS.FL;
 
 /**
  * Converts a mod string into its number equivalent
@@ -189,9 +193,12 @@ async function getBeatmap(mapid, mod)
  *  mods: number,
  *  data: {
  *      total_length: number,
- *      mode: number,
- *      ar: number,
- *      objects: osu.hitobject[]
+ *      ar_delay: number,
+ *      objects: {
+ *          type: number,
+ *          time: number,
+ *          end?: number
+ *      }[]
  *  }
  * }>}
  */
@@ -217,22 +224,48 @@ function beatmapObject(mapid, mods = 0)
                 title: parser.map.title_unicode,
                 version: parser.map.version,
                 creator: parser.map.creator,
-                data: {
-                    mode: parser.map.mode,
-                    ar: parser.map.ar,
-                    objects: parser.map.objects
-                }
+                data: {}
             };
-            // AR on old maps
-            if (map.data.ar === undefined)
-                map.data.ar = parser.map.od;
+            // Convert hit objects
+            // Assume timing points are in order
+            let timingindex = 0;
+            let basems = 1;
+            let inherited = -100;
+            map.data.objects = parser.map.objects.map(hitobject => {
+                let obj = {
+                    type: hitobject.type,
+                    time: hitobject.time
+                };
+                if (hitobject.type & (1 << 1))
+                {
+                    while (parser.map.timing_points.length > timingindex &&
+                            hitobject.time >= parser.map.timing_points[timingindex].time)
+                    {
+                        // Update ms per beat values
+                        if (parser.map.timing_points[timingindex].change)
+                        {
+                            basems = parser.map.timing_points[timingindex].ms_per_beat;
+                            inherited = -100;
+                        }
+                        else
+                            inherited = parser.map.timing_points[timingindex].ms_per_beat;
+                        // Increment index
+                        timingindex++;
+                    }
+                    // Calculate the ms per beat
+                    let svms = basems / (-100 / inherited);
+                    let mslength = hitobject.data.distance / (parser.map.sv * 100) * svms * hitobject.data.repetitions;
+                    obj.end = hitobject.time + mslength;
+                }
+                return obj;
+            });
             // Drain/total time
             let last = map.data.objects[map.data.objects.length - 1];
             let first = map.data.objects[0];
             map.data.total_length = parseInt((last.time / 1000).toFixed(0));
             map.drain = parseInt(((last.time - first.time) / 1000).toFixed(0));
             // Stars
-            map.stars = new ojsama.diff().calc({ map: parser.map, mods }).total;
+            map.stars = parseFloat(new ojsama.diff().calc({ map: parser.map, mods }).total.toFixed(2));
             // BPM
             let bpms = parser.map.timing_points.reduceRight((vals, point) => {
                 if (!point.change)
@@ -250,18 +283,34 @@ function beatmapObject(mapid, mods = 0)
             map.bpm = parseFloat(
                 Object.keys(bpms).reduce((p, c) => bpms[c] < bpms[p] ? p : c, 0)
             );
+            // Find AR for ms delay
+            let ar = parser.map.ar || parser.map.od;
+            if (mods & MODS.HR)
+                ar = Math.min(ar * 1.4, 10);
+            else if (mods & MODS.EZ)
+                ar /= 2;
+            // Convert to ms
+            if (ar < 5)
+                map.data.ar_delay = 1200 + (600 * (5 - ar) / 5);
+            else if (ar > 5)
+                map.data.ar_delay = 1200 - (750 * (ar - 5) / 5);
+            else
+                map.data.ar_delay = 1200;
+
             // Update with dt/ht
             if (mods & MODS.DT)
             {
                 map.data.total_length = (map.data.total_length * (2.0 / 3.0)) | 0;
                 map.drain = (map.drain * (2.0 / 3.0)) | 0;
-                map.bpm = map.bpm * (3.0 / 2.0);
+                map.data.ar_delay *= (2.0 / 3.0);
+                map.bpm = parseFloat((map.bpm * (3.0 / 2.0)).toFixed(3));
             }
             else if (mods & MODS.HT)
             {
                 map.data.total_length = (map.data.total_length * (4.0 / 3.0)) | 0;
                 map.drain = (map.drain * (4.0 / 3.0)) | 0;
-                map.bpm = map.bpm * (3.0 / 4.0);
+                map.data.ar_delay *= (4.0 / 3.0);
+                map.bpm = parseFloat((map.bpm * (3.0 / 4.0)).toFixed(3));
             }
             // Add mods to make it easier later
             map.mods = mods;

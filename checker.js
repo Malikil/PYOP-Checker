@@ -26,6 +26,7 @@ const maxTotal = parseInt(process.env.MAX_TOTAL);       // Pool drain limit, per
 const overUnderMax = parseInt(process.env.OVER_UNDER_MAX);  // Number of maps allowed outside time range
 const drainBuffer = parseInt(process.env.DRAIN_BUFFER);     // How much time can drain be outside the limits
 const leaderboard = parseInt(process.env.LEADERBOARD);      // How many leaderboard scores are required for auto-approval
+const leaders15k = parseInt(process.env.FIFT_LEADERBOARD);
 // ==============================================================
 // ==============================================================
 
@@ -151,50 +152,104 @@ function quickCheck(beatmap, userid = undefined, lowDiv = false)
 
 /**
  * Checks a map for basic items like star rating, drain length, and creator
- * @param {osu.beatmap} map The map object to check
- * @param {number} mods Bitwise mod number to use
+ * @param {{
+ *  creator: string,
+ *  drain: number,
+ *  stars: number,
+ *  data: {
+ *      total_length: number,
+ *      ar_delay: number
+ *      objects: {
+ *          type: number,
+ *          time: number,
+ *          end?: number
+ *      }[]
+ *  }
+ * }} map The map object to check
  * @param {"Open"|"15k"} division Which division the map should fall into
  * @param {string} user The osu username of the person performing the check
  * @returns {Promise<{
- *  map?: {
- *      artist: string,
- *      title: string,
- *      version: string,
- *      creator: string,
- *      drain: number,
- *      stars: number
- *  },
- *  message?: string,
- *  rejected: boolean
+ *  rejected: boolean,
+ *  reject_on?: "Drain"|"Length"|"Stars"|"User"|"Data",
+ *  reject_type?: "High"|"Low",
+ *  message?: string
  * }>} A map object with all needed basic info
  */
-async function mapCheck(map, mods, division, user)
+async function mapCheck(map, division, user)
 {
-    // Prepare the map object for returning
-    let beatmap = {
-        artist: map.artist_unicode,
-        title: map.title_unicode,
-        version: map.version,
-        creator: map.creator
-    };
-    // Find drain
-    
-    // Find stars
-    let diff = new ojsama.diff().calc({ map, mods });
-    console.log(diff.total);
-    beatmap.stars = diff.total;
-    // Check gamemode
-    if (map.mode !== 0)
-        return {
-
-        }
     // Check drain length
+    if (map.drain - drainBuffer > maxLength)
+        return {
+            rejected: true,
+            reject_on: "Drain",
+            reject_type: "High"
+        };
+    else if (map.drain + drainBuffer < minLength)
+        return {
+            rejected: true,
+            reject_on: "Drain",
+            reject_type: "Low"
+        };
     // Check total length
+    if (map.data.total_length > absoluteMax)
+        return {
+            rejected: true,
+            reject_on: "Length"
+        };
     // Check stars
+    let min = minStar;
+    let max = maxStar;
+    if (division === "15k")
+    {
+        min = lowMin;
+        max = lowMax;
+    }
+    if (map.stars > max)
+        return {
+            rejected: true,
+            reject_on: "Stars",
+            reject_type: "High"
+        };
+    else if (map.stars < min)
+        return {
+            rejected: true,
+            reject_on: "Stars",
+            reject_type: "Low"
+        };
     // Check map creator
+    if (map.creator === user)
+        return {
+            rejected: true,
+            reject_on: "User"
+        };
+    // Check object data
+    // 2b and circles appearing before spinner
+    let last;
+    let message;
+    if (map.data.objects.some(obj => {
+        if (last)
+        {
+            // Check 2b circles
+            if (Math.abs(obj.time - last.time) <= 10)
+                return message = "Two objects at the same time";
+            // Check circles during slider
+            // It looks like the library I use for parsing beatmaps doesn't
+            // save spinner lengths >:(
+            // I'd like to avoid parsing manually if possible D:
+            // I'll see how well things go if I just leave it out
+            if ((last.type & (1 << 1)) && (obj.time < last.end)) // Slider
+                return message = "Circle during slider track";
+            else if ((last.type & (1 << 3)) && (obj.time - map.data.ar_delay < last.time - 330))
+                return message = "Object appears before earlier spinner";
+        }
+        last = obj;
+    })) return {
+            rejected: true,
+            reject_on: "Data",
+            message
+        };
 
-    // Items to check:
-    // 2b, circles appearing before spinner, unsnapped notes
+    return { rejected: false };
 }
 
 /**
@@ -203,10 +258,11 @@ async function mapCheck(map, mods, division, user)
  * whether the user has a score.
  * @param {Number} mapid The map id to get leaderboard info for
  * @param {Number} mod Bitwise representation of mods to check for
+ * @param {"15k"|"Open"} division Which division to check for
  * @param {Number} userid The user to check on the leaderboard for
  * @returns Whether the leaderboard would make the map accepted
  */
-async function leaderboardCheck(mapid, mod, userid)
+async function leaderboardCheck(mapid, mod, division, userid)
 {
     console.log(`Checking leaderboard for ${mapid} +${mod}`);
     let response = await fetch(`${osuapi}/get_scores?k=${key}&b=${mapid}&mods=${mod}`);
@@ -228,7 +284,7 @@ async function leaderboardCheck(mapid, mod, userid)
         / (parseInt(s.count50) + parseInt(s.count100) + parseInt(s.count300) + parseInt(s.countmiss))
         * 100
     }% ${s.rank} | Perfect: ${s.perfect}`);
-    if (scores.length >= leaderboard
+    if (scores.length >= (division === "15k" ? leaders15k : leaderboard)
             || scores[0].perfect == 1
             || scores.find(score => score.user_id == userid) !== undefined)
         return { passed: true };

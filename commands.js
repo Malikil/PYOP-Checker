@@ -11,6 +11,7 @@ const db = require('./db-manager');
 const util = require('util');
 const google = require('./gsheets');
 const helpers = require('./helpers');
+const { DbBeatmap } = require('./types');
 
 const MAP_COUNT = 10;
 
@@ -337,11 +338,17 @@ async function updatePlayerName(discordid)
  * @param {number} p1.osuid Optional
  * 
  * @returns {Promise<{
- *   error: string,
- *   map: Object,
+ *   error?: string,
+ *   check?: {
+ *      rejected: boolean,
+ *      reject_on?: "Drain"|"Length"|"Stars"|"User"|"Data",
+ *      reject_type?: "High"|"Low",
+ *      message?: string
+ *   },
+ *   map?: Object,
  *   added: boolean,
- *   replaced: Object,
- *   current: Object[]
+ *   replaced?: Object,
+ *   current?: Object[]
  * }>}
  */
 async function addMap(mapid, {
@@ -350,27 +357,29 @@ async function addMap(mapid, {
     discordid,
     osuid
 }) {
-    // Get osu id
-    
-    if (!osuid)
-        osuid = team.players.find(item => item.discordid == discordid).osuid;
+    var player = await db.getPlayer(osuid || discordid);
+    if (!player || player.unconfirmed)
+        return {
+            added: false,
+            error: "Player not found"
+        };
 
     // Check beatmap approval
     console.log(`Looking for map with id ${mapid} and mod ${mods}`);
-    let beatmap = await helpers.getBeatmap(mapid, mods);
-    let quick = checker.quickCheck(beatmap, osuid, team.division === "15k");
+    let beatmap = await helpers.beatmapObject(mapid, mods);
+    let quick = await checker.mapCheck(beatmap);
     let status;
-    if (quick)
+    if (quick.rejected)
         return {
-            error: quick,
+            check: quick,
             map: beatmap,
             added: false
         };
-    else if ((await checker.leaderboardCheck(mapid, mods, osuid)).passed)
-        if (beatmap.approved == 1 && beatmap.version !== "Aspire")
-            status = "Accepted";
+    else if ((await checker.leaderboardCheck(mapid, mods, division, player.osuid)).passed)
+        if (beatmap.version !== "Aspire")
+            status = "Accepted (Automatic)";
         else
-            status = "Pending"
+            status = "Pending";
     else
         status = "Screenshot Required";
     
@@ -380,7 +389,7 @@ async function addMap(mapid, {
     // Check if a map should be removed to make room for this one
     // We need the first rejected map, and a count of maps in the modpool
     let rejected;
-    let count = team.maps.reduce((n, m) => {
+    let count = player.maps.reduce((n, m) => {
         if (m.pool === modpool)
         {
             if (!rejected && m.status.startsWith("Rejected"))
@@ -390,36 +399,29 @@ async function addMap(mapid, {
         else return n;
     }, 0);
     if (rejected && count > 1)
-        await db.removeMap(team.name, rejected.id, rejected.pool, rejected.mod);
+        await db.removeMap(player.osuid, rejected.bid, rejected.pool, rejected.mods);
     else // We don't need to remove a map, because there's still an empty space
         rejected = undefined;
 
-    let mapitem = {
-        id: mapid,
-        status: status,
-        drain: beatmap.drain,
-        stars: beatmap.stars,
-        bpm: beatmap.bpm,
-        artist: beatmap.artist,
-        title: beatmap.title,
-        version: beatmap.version,
-        creator: beatmap.creator,
-        mod: mods,
+    let mapitem = new DbBeatmap({
+        ...beatmap,
+        status,
         pool: modpool
-    };
-    let result = await db.addMap(team.name, mapitem);
+    });
+    
+    let result = await db.addMap(player.osuid, mapitem);
     if (result)
     {
         // Prepare the current pool state
         let cur = [];
         let skipped = false; // Whether we've skipped a map yet
-        team.maps.forEach(m => {
-            if (m.mod === mods)
+        player.maps.forEach(m => {
+            if (m.mods === mods)
             {
                 // Make sure it's not the removed map
-                if (skipped || (m.id !== result.id)
+                if (skipped || (m.bid !== result.bid)
                     && (rejected
-                        ? m.id !== rejected.id
+                        ? m.bid !== rejected.bid
                         : true))
                     cur.push(m);
                 else
@@ -431,7 +433,7 @@ async function addMap(mapid, {
         
         // Send status and current pool info
         let replaced = rejected;
-        if (result.id)
+        if (result.bid)
             replaced = result;
         return {
             replaced,
