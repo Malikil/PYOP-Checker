@@ -2,6 +2,9 @@ const Discord = require('discord.js');
 const helpers = require('./helpers');
 const Command = require('./commands');
 const { inspect } = require('util');
+const { checkVals } = require('./checker');
+
+
 /**
  * Splits a string into args
  * @param {string} str 
@@ -105,7 +108,45 @@ const commands = {
             division: args[2],
             discordid: msg.author.id
         });
-        return msg.channel.send(result.message);
+        if (result.passed)
+            return msg.channel.send("This map could be accepted automatically");
+        else if (result.error)
+            return msg.channel.send(result.error);
+        else if (result.check.rejected)
+        {
+            let min = checkVals.minStar;
+            let max = checkVals.maxStar;
+            if (result.division === "15k")
+            {
+                min = checkVals.lowMin;
+                max = checkVals.lowMax;
+            }
+            // Parse how the map got rejected
+            switch (result.check.reject_on)
+            {
+                case "Drain":
+                    if (result.check.reject_type === "High")
+                        return msg.channel.send(`The drain time is more than ${checkVals.drainBuffer} seconds above the ` +
+                            `${helpers.convertSeconds(checkVals.maxLength)} max (${helpers.convertSeconds(result.beatmap.drain)}).`);
+                    else
+                        return msg.channel.send(`The drain time is more than ${checkVals.drainBuffer} seconds below the ` +
+                            `${helpers.convertSeconds(checkVals.minLength)} min (${helpers.convertSeconds(result.beatmap.drain)}).`);
+                case "Length":
+                    return msg.channel.send(`The total map length is longer than the ${helpers.convertSeconds(checkVals.absoluteMax)}` +
+                        `limit (${helpers.convertSeconds(result.beatmap.data.total_length)})`);
+                case "Stars":
+                    if (result.check.reject_type === "High")
+                        return msg.channel.send(`The star rating is above the ${max} maximum (${result.beatmap.stars})`);
+                    else
+                        return msg.channel.send(`The star rating is below the ${min} minimum (${result.beatmap.stars})`);
+                case "Data":
+                    return msg.channel.send(`Some objects in the map have issues: ${result.check.message}`);
+                case "User":
+                    return msg.channel.send("You can't use your own maps");
+            }
+        }
+        else
+            return msg.channel.send("This map would need to be manually approved");
     },
 
     /**
@@ -325,8 +366,8 @@ const commands = {
                 });
                 if (result.error)
                     return msg.channel.send(result.error);
-                else if (result.count > 0)
-                    return msg.channel.send(`Removed ${result.count} maps`);
+                else if (result.removed.length > 0)
+                    return msg.channel.send(`Removed ${result.removed.length} maps`);
                 else
                     return msg.channel.send("No maps to remove.");
             }
@@ -357,7 +398,7 @@ const commands = {
         });
         if (result.error)
             return msg.channel.send(result.error);
-        else if (result.count === 0)
+        else if (result.removed.length === 0)
             return msg.channel.send("Map not found");
         else
         {
@@ -434,7 +475,7 @@ const commands = {
             {
                 let attach = msg.attachments.first();
                 let attachment = new Discord.Attachment(attach.url, attach.filename);
-                passChannel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${msg.author.username}; ${result.team.name}`,
+                passChannel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${msg.author.username}`,
                     attachment);
             }
             else
@@ -447,7 +488,10 @@ const commands = {
                 `Found ${passChannel} instead.\n` +
                 "This is not a good thing, please tell Malikil.");
         // Screenshot should be updated by this point
-        return msg.channel.send("Screenshot updated");
+        if (result.added)
+            return msg.channel.send("Screenshot added");
+        else
+            return msg.channel.send("Screenshot updated");
     },
     //#endregion
     //#region ============================== Approver ==============================

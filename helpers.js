@@ -112,6 +112,7 @@ const mapString = map => `${map.artist} - ${map.title} [${map.version}]`;
 const mapLink = map => `https://osu.ppy.sh/b/${map.id}`;
 
 /**
+ * Converts from integer seconds to mm:ss time format
  * @param {Number} length The length, in seconds, to convert to string time
  * @returns {String} The passed length, in mm:ss format
  */

@@ -7,6 +7,7 @@ called from elsewhere where maps are known and need to be checked.
 const fetch = require('node-fetch');
 const { MODS, convertSeconds, modString } = require('./helpers');
 const ojsama = require('ojsama');
+const { DbBeatmap } = require('./types');
 
 const key = process.env.OSUKEY;
 const osuapi = process.env.OSUAPI;
@@ -33,19 +34,11 @@ const leaders15k = parseInt(process.env.FIFT_LEADERBOARD);
 /**
  * Checks an entire pool, including things like duplicates or total drain time.
  * Doesn't really check the map things.
- * @param {*[]} maps An array of map objects to check.
+ * @param {DbBeatmap[]} maps An array of map objects to check.
  * @returns {Promise<{
  *     overUnder: Number,
  *     totalDrain: Number,
- *     duplicates: {
- *             id: Number,
- *             status: string,
- *             drain: Number,
- *             stars: Number,
- *             artist: string,
- *             title: string,
- *             version: string
- *         }[],
+ *     duplicates: DbBeatmap[],
  *     message: string[]
  * }
  * >} An array of objects containing the beatmap and pass status,
@@ -62,18 +55,17 @@ async function checkPool(maps)
     };
     maps.forEach(map => {
         // See if the map has been picked
-        if (checkedmaps.find(item => item == map.id))
+        if (checkedmaps.find(item => item === map.bid))
             results.duplicates.push(map);
         else
-            checkedmaps.push(map.id);
+            checkedmaps.push(map.bid);
 
         results.totalDrain += map.drain;
 
         // Count maps within the drain buffer range
         let overdrain = map.drain - maxLength;
         let underdrain = minLength - map.drain;
-        if ((overdrain > 0 && overdrain <= drainBuffer)
-                || (underdrain > 0 && underdrain <= drainBuffer))
+        if (overdrain > 0 || underdrain > 0)
             results.overUnder++;
     });
 
@@ -98,6 +90,7 @@ async function checkPool(maps)
  * @param {number} userid The osuid to check against the mapper
  * @param {boolean} lowDiv True if the low division should be used, otherwise open
  * @returns If the map fails, a message will be returned. Otherwise undefined.
+ * @deprecated Use mapCheck() instead
  */
 function quickCheck(beatmap, userid = undefined, lowDiv = false)
 {
@@ -167,7 +160,7 @@ function quickCheck(beatmap, userid = undefined, lowDiv = false)
  *  }
  * }} map The map object to check
  * @param {"Open"|"15k"} division Which division the map should fall into
- * @param {string} user The osu username of the person performing the check
+ * @param user The osu username of the person performing the check
  * @returns {Promise<{
  *  rejected: boolean,
  *  reject_on?: "Drain"|"Length"|"Stars"|"User"|"Data",
@@ -175,7 +168,7 @@ function quickCheck(beatmap, userid = undefined, lowDiv = false)
  *  message?: string
  * }>} A map object with all needed basic info
  */
-async function mapCheck(map, division, user)
+async function mapCheck(map, division = undefined, user = "")
 {
     // Check drain length
     if (map.drain - drainBuffer > maxLength)
@@ -260,7 +253,10 @@ async function mapCheck(map, division, user)
  * @param {Number} mod Bitwise representation of mods to check for
  * @param {"15k"|"Open"} division Which division to check for
  * @param {Number} userid The user to check on the leaderboard for
- * @returns Whether the leaderboard would make the map accepted
+ * @returns {Promise<{
+ *  passed: boolean,
+ *  message?: string
+ * }>} Whether the leaderboard would make the map accepted
  */
 async function leaderboardCheck(mapid, mod, division, userid)
 {
@@ -298,5 +294,17 @@ module.exports = {
     quickCheck,
     leaderboardCheck,
     checkPool,
-    mapCheck
+    mapCheck,
+    checkVals: {
+        minStar,
+        maxStar,
+        lowMin,
+        lowMax,
+        minLength,
+        maxLength,
+        absoluteMax,
+        drainBuffer,
+        leaderboard,
+        leaders15k
+    }
 };

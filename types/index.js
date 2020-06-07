@@ -1,7 +1,5 @@
-const DbBeatmap =  require('./dbbeatmap');
-const DbPlayer = require('./dbplayer');
-
 module.exports = {
-    DbBeatmap,
-    DbPlayer
+    DbBeatmap: require('./dbbeatmap'),
+    DbPlayer: require('./dbplayer'),
+    CheckableMap: require('./checkablemap')
 };

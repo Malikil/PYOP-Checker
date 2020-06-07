@@ -78,8 +78,16 @@ async function getConfirmation(msg, prompt = undefined, accept = ['y', 'yes'], r
  * Checks whether a given map would be accepted
  * @param {number|string} mapid The map id or link to map
  * @returns {Promise<{
- *  message: string,
- *  beatmap: *
+ *  passed: boolean,
+ *  error?: string,
+ *  check?: {
+ *      rejected: boolean,
+ *      reject_on?: "Drain" | "Length" | "Stars" | "User" | "Data",
+ *      reject_type?: "High" | "Low",
+ *      message?: string
+ *  },
+ *  beatmap?: *,
+ *  division?: "Open"|"15k"
  * }>} A message indicating whether the map would be accepted,
  * and the map object that got checked
  */
@@ -91,49 +99,55 @@ async function checkMap(mapid, {
 }) {
     if (!mapid || isNaN(mapid))
         return {
-            message: "Couldn't recognise beatmap id"
+            passed: false,
+            error: "Couldn't recognise beatmap id"
         };
     
     console.log(`Checking map ${mapid} with mods ${mods}`);
     // If division is included, use that. Otherwise try to
     // get the division based on who sent the message
-    let lowdiv = false;
-    if (division)
-        lowdiv = division.toLowerCase() === '15k';
-    else if (discordid || osuid)
+    let osuname;
+    if (!division && (discordid || osuid))
     {
         let player = await db.getPlayer(discordid || osuid);
-        if (player)
+        if (player.osuid)
         {
-            lowdiv = player.division === "15k";
-            osuid = player.osuid;
+            division = player.division;
+            osuname = player.osuname;
         }
     }
     
-    let beatmap = await helpers.getBeatmap(mapid, mods);
-    let quick = checker.quickCheck(beatmap, osuid, lowdiv);
+    let beatmap = await helpers.beatmapObject(mapid, mods);
+    let quick = await checker.mapCheck(beatmap, division, osuname);
     console.log(`Quick check returned: ${quick}`);
-    if (quick)
+    if (quick.rejected)
         return {
-            message: quick,
-            beatmap
+            passed: false,
+            check: quick,
+            beatmap,
+            division
         };
     
     let status = {
         passed: false,
         message: "Map isn't ranked"
     };
-    if (beatmap.approved == 1)
-        status = await checker.leaderboardCheck(mapid, mods, osuid);
+    status = await checker.leaderboardCheck(mapid, mods, osuid);
     if (status.passed)
         return {
-            message: "This map can be accepted automatically",
-            beatmap
+            passed: true,
+            beatmap,
+            division
         };
     else
         return {
-            message: `This map would need to be manually approved - ${status.message}`,
-            beatmap
+            passed: false,
+            check: {
+                rejected: false,
+                message: status.message
+            },
+            beatmap,
+            division
         };
 }
 
@@ -314,14 +328,13 @@ async function recheckMaps()
 async function updatePlayerName(discordid)
 {
     // Get the player's current info
-    let team = await db.getTeam(discordid);
-    if (!team)
-        return "Couldn't find which team you're on";
-    let player = team.players.find(p => p.discordid == discordid);
+    let player = await db.getPlayer(discordid);
+    if (!player.osuid)
+        return "Couldn't find player";
     // Get the player's new info from the server
     let newp = await helpers.getPlayer(player.osuid);
     // Update in the database
-    let result = await db.updatePlayer(discordid, newp.username);
+    let result = await db.updatePlayer(discordid, { osuname: newp.username });
     if (result)
         return `Updated name from ${player.osuname} to ${newp.username}`;
     else
@@ -358,7 +371,7 @@ async function addMap(mapid, {
     osuid
 }) {
     var player = await db.getPlayer(osuid || discordid);
-    if (!player || player.unconfirmed)
+    if (!player.osuid || player.unconfirmed)
         return {
             added: false,
             error: "Player not found"
@@ -472,49 +485,32 @@ async function addBulk(maps, {
     osuid
 }) {
     // Get the user's team
-    let team = await db.getTeam(discordid || osuid);
-    if (!team)
+    let player = await db.getPlayer(discordid || osuid);
+    if (!player.osuid)
         return {
-            error: "Couldn't find which team you're on",
+            error: "Player not found",
             added: 0
         };
-    console.log(`Found team ${team.name}`);
-    if (!osuid)
-        osuid = team.players.find(p => p.discordid === discordid).osuid;
-    console.log(`Found osuid ${osuid}`);
+    console.log(`Found player ${player.osuname}`);
     let added = await maps.reduce(async (count, map) => {
         console.log(`Checking map ${map.mapid} +${map.mods}${map.cm ? " CM" : ""}`);
         // Get the map
-        let beatmap = await helpers.getBeatmap(map.mapid, map.mods);
-        let quick = checker.quickCheck(beatmap, osuid, team.division === "15k");
-        if (quick)
+        let beatmap = await helpers.beatmapObject(map.mapid, map.mods);
+        let quick = await checker.mapCheck(beatmap, player.division, player.osuname);
+        if (quick.rejected)
             return count;
         let status;
-        if ((await checker.leaderboardCheck(map.mapid, map.mods, osuid)).passed)
-            if (beatmap.approved == 1 && beatmap.version !== "Aspire")
-                status = "Accepted";
+        if ((await checker.leaderboardCheck(map.mapid, map.mods, player.division, player.osuid)).passed)
+            if (beatmap.version !== "Aspire")
+                status = "Accepted (Automatic)";
             else
-                status = "Pending"
+                status = "Pending";
         else
             status = "Screenshot Required";
-        let pool;
-        if (map.cm)
-            pool = "cm";
-        else
-            pool = helpers.getModpool(map.mods);
-        let mapitem = {
-            id: map.mapid, status,
-            drain: beatmap.drain,
-            stars: beatmap.stars,
-            bpm: beatmap.bpm,
-            artist: beatmap.artist,
-            title: beatmap.title,
-            version: beatmap.version,
-            creator: beatmap.creator,
-            mod: map.mods, pool
-        };
+        let pool = map.cm ? "cm" : helpers.getModpool(map.mods);
+        let mapitem = new DbBeatmap({ ...beatmap, status, pool });
         // Add map
-        let added = await db.addMap(team.name, mapitem);
+        let added = await db.addMap(player.osuid, mapitem);
         if (added)
             return (await count) + 1;
         else
@@ -531,29 +527,23 @@ async function addBulk(maps, {
  * @param {string} discordid 
  * 
  * @returns {Promise<{
- *  error: string,
- *  team: *
+ *  added: boolean,
+ *  error?: string
  * }>}
  */
 async function addPass(mapid, discordid)
 {
     // Get which team the player is on
-    let team = await db.getTeam(discordid);
-    if (!team)
+    let player = await db.getPlayer(discordid);
+    if (!player.osuid)
         return {
-            error: "Couldn't find which team you're on"
+            added: false,
+            error: "Couldn't find player"
         };
 
     // Update the status
     let result = await db.pendingMap(team.name, mapid, true);
-    if (result)
-        return {
-            team: result
-        };
-    else
-        return {
-            error: "Couldn't update screenshot"
-        };
+    return { added: !!result };
 }
 
 /**
@@ -566,9 +556,8 @@ async function addPass(mapid, discordid)
  * @param {number} p1.osuid
  * 
  * @returns {Promise<{
- *  error: string,
- *  count: number,
- *  removed: *[]
+ *  error?: string,
+ *  removed: DbBeatmap[]
  * }>}
  */
 async function removeMap(mapid, {
@@ -578,51 +567,33 @@ async function removeMap(mapid, {
     osuid
 }) {
     // Get which team the player is on
-    let team = await db.getTeam(discordid || osuid);
-    if (!team)
+    let player = await db.getPlayer(discordid || osuid);
+    if (!player.osuid)
         return {
-            error: "Couldn't find which team you're on",
-            count: 0,
+            error: "Couldn't find player",
             removed: []
         };
     // Special case for removing all maps
     if (mapid === "all")
     {
-        await db.removeAllMaps(team.name)
-        return {
-            count: team.maps.length,
-            removed: team.maps
-        };
+        await db.removeAllMaps(player.osuid)
+        return { removed: player.maps };
     }
     let modpool = (cm ? "cm" : undefined);
     console.log(`Removing mapid ${mapid} from ${modpool}`);
-    let result = await db.removeMap(team.name, mapid, modpool, mods);
+    let result = await db.removeMap(player.osuid, mapid, modpool, mods);
     if (result)
     {
         // Find the map info for this id, for user friendliness' sake
-        let map = team.maps.find(item => {
-            if (item.id == mapid)
-            {
-                if (modpool !== undefined)
-                    if (item.pool !== modpool)
-                        return false;
-                if (mods !== undefined)
-                    if (item.mod !== mods)
-                        return false;
-                return true;
-            }
-            return false;
-        });
-        return {
-            count: 1,
-            removed: [ map ]
-        };
+        let map = player.maps.find(item => 
+            item.bid === mapid &&
+            item.pool === modpool &&
+            item.mods === mods
+        );
+        return { removed: [ map ] };
     }
     else
-        return {
-            count: 0,
-            removed: []
-        };
+        return { removed: [] };
 }
 
 /**
@@ -631,18 +602,16 @@ async function removeMap(mapid, {
  * @param {("nm"|"hd"|"hr"|"dt"|"cm")[]} mods
  * 
  * @returns {Promise<{
- *  error: string,
- *  poolstr: string
+ *  error?: string,
+ *  poolstr?: string
  * }>}
  */
 async function viewPool(discordid, mods)
 {
     // Get which team the player is on
-    let team = await db.getTeam(discordid);
-    if (!team)
-        return {
-            error: "Couldn't find which team you're on"
-        };
+    let player = await db.getPlayer(discordid);
+    if (!player.osuid)
+        return { error: "Couldn't find player" };
 
     // Add all mods if not otherwise requested
     if (!mods || mods.length === 0)
@@ -659,14 +628,14 @@ async function viewPool(discordid, mods)
     };
     // Loop over all the maps, add them to the proper output string,
     // and add them to the pool for checking.
-    team.maps.forEach(map => {
+    player.maps.forEach(map => {
         if (mods.includes(map.pool))
         {
             // If the mod hasn't been seen yet, add it to the output
             if (!strs[map.pool])
                 strs[map.pool] = modNames[map.pool];
             // Add the map's info to the proper string
-            strs[map.pool] += `${helpers.mapString(map)} ${map.pool === 'cm' ? `+${helpers.modString(map.mod)} ` : ""}<${helpers.mapLink(map)}>\n`;
+            strs[map.pool] += `${helpers.mapString(map)} ${map.pool === 'cm' ? `+${helpers.modString(map.mods)} ` : ""}<${helpers.mapLink(map)}>\n`;
             strs[map.pool] += `\tDrain: ${helpers.convertSeconds(map.drain)}, Stars: ${map.stars}, Status: ${map.status}\n`;
 
             pool.push(map);
@@ -693,12 +662,8 @@ async function viewPool(discordid, mods)
         result.duplicates.forEach(dupe => str += `\n\t${helpers.mapString(dupe)}`);
     }
 
-    if (str === "")
-        return {
-            poolstr: "Nothing to display"
-        };
     return {
-        poolstr: str
+        poolstr: str || "Nothing to display"
     };
 }
 

@@ -336,18 +336,15 @@ async function findMissingMaps()
  * Changes a map between "Screenshot Required" and "Pending" statuses
  * @param {String} discordid The player to update
  * @param {Number} mapid The map id to update
- * @returns The team that got updated, or null if no team/map matched
+ * @returns The number of modified players
  */
 async function pendingMap(discordid, mapid)
 {
-    let fromstatus = "Screenshot Required";
-    let tostatus = "Pending";
-    console.log(`Updating from ${fromstatus} to ${tostatus}`);
     // We don't care about mod at this point, they're not supposed to have
     // the same map more than once anyways.
     // There is a check for current status though, no point in resetting an
     // approved status back to pending just by submitting a screenshot
-    let result = await db.collection('teams').findOneAndUpdate(
+    let result = await db.collection('teams').updateOne(
         {
             discordid,
             maps: { $elemMatch: {
@@ -364,7 +361,7 @@ async function pendingMap(discordid, mapid)
         ] }
     );
     console.log(result);
-    return result.value;
+    return result.modifiedCount;
 }
 
 /**

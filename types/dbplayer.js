@@ -35,7 +35,7 @@ module.exports = class DbPlayer {
      *  division: "15k"|"Open",
      *  utc: string,
      *  maps: {
-     *      mapid: number,
+     *      bid: number,
      *      status: string,
      *      drain: number,
      *      stars: number,
@@ -45,7 +45,7 @@ module.exports = class DbPlayer {
      *      version: string,
      *      creator: string,
      *      mods: number,
-     *      pool: "NM"|"HD"|"HR"|"DT"|"CM"
+     *      pool: "nm"|"hd"|"hr"|"dt"|"cm"
      *  }[],
      *  unconfirmed?: boolean
      * }}
