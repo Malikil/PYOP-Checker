@@ -11,7 +11,7 @@ const db = require('./db-manager');
 const util = require('util');
 const google = require('./gsheets');
 const helpers = require('./helpers');
-const { DbBeatmap } = require('./types');
+const { DbBeatmap, CheckableMap } = require('./types');
 
 const MAP_COUNT = 10;
 
@@ -408,7 +408,7 @@ async function updatePlayerName(playerid)
  *      reject_type?: "High"|"Low",
  *      message?: string
  *   },
- *   beatmap?: *,
+ *   beatmap?: DbBeatmap|CheckableMap,
  *   added: boolean,
  *   replaced?: DbBeatmap,
  *   current?: DbBeatmap[]

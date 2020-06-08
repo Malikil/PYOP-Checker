@@ -1,6 +1,7 @@
 const fetch = require('node-fetch');
 const ojsama = require('ojsama');
 const readline = require('readline');
+const { CheckableMap } = require('./types');
 
 const osuapi = "https://osu.ppy.sh/api";
 const key = process.env.OSUKEY;
@@ -182,26 +183,7 @@ async function getBeatmap(mapid, mod)
  * Gets a beatmap object which can be used to calculate sr or find hitobjects
  * @param {number} mapid The beatmap id to get info for
  * @param {number} mods The mods to use when parsing the map
- * @returns {Promise<{
- *  bid: number,
- *  artist: string,
- *  title: string,
- *  version: string,
- *  creator: string,
- *  drain: number,
- *  stars: number,
- *  bpm: number,
- *  mods: number,
- *  data: {
- *      total_length: number,
- *      ar_delay: number,
- *      objects: {
- *          type: number,
- *          time: number,
- *          end?: number
- *      }[]
- *  }
- * }>}
+ * @returns {Promise<CheckableMap>}
  */
 function beatmapObject(mapid, mods = 0)
 {
@@ -219,14 +201,14 @@ function beatmapObject(mapid, mods = 0)
             // Make sure the map is for std, otherwise star calculation breaks
             if (parser.map.mode !== 0)
                 return reject("Map is not a std map");
-            let map = {
+            let map = new CheckableMap({
                 bid: mapid,
                 artist: parser.map.artist,
                 title: parser.map.title,
                 version: parser.map.version,
                 creator: parser.map.creator,
                 data: {}
-            };
+            });
             // Convert hit objects
             // Assume timing points are in order
             let timingindex = 0;

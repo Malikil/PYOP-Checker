@@ -7,7 +7,7 @@ called from elsewhere where maps are known and need to be checked.
 const fetch = require('node-fetch');
 const { MODS, convertSeconds, modString } = require('./helpers');
 const ojsama = require('ojsama');
-const { DbBeatmap } = require('./types');
+const { DbBeatmap, CheckableMap } = require('./types');
 
 const key = process.env.OSUKEY;
 const osuapi = process.env.OSUAPI;
@@ -145,20 +145,7 @@ function quickCheck(beatmap, userid = undefined, lowDiv = false)
 
 /**
  * Checks a map for basic items like star rating, drain length, and creator
- * @param {{
- *  creator: string,
- *  drain: number,
- *  stars: number,
- *  data: {
- *      total_length: number,
- *      ar_delay: number
- *      objects: {
- *          type: number,
- *          time: number,
- *          end?: number
- *      }[]
- *  }
- * }} map The map object to check
+ * @param {CheckableMap} map The map object to check
  * @param {"Open"|"15k"} division Which division the map should fall into
  * @param user The osu username of the person performing the check
  * @returns {Promise<{
