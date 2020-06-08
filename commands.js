@@ -87,7 +87,7 @@ async function getConfirmation(msg, prompt = undefined, accept = ['y', 'yes'], r
  *      message?: string
  *  },
  *  beatmap?: *,
- *  division?: "Open"|"15k"
+ *  division?: "open"|"15k"
  * }>} A message indicating whether the map would be accepted,
  * and the map object that got checked
  */
@@ -110,7 +110,7 @@ async function checkMap(mapid, {
     if (!division && (discordid || osuid))
     {
         let player = await db.getPlayer(discordid || osuid);
-        if (player.osuid)
+        if (player)
         {
             division = player.division;
             osuname = player.osuname;
@@ -153,6 +153,10 @@ async function checkMap(mapid, {
 
 /**
  * Get a list of all players in either division
+ * @returns {Promise<{
+ *  open: string[],
+ *  fift: string[]
+ * }>} Lists of player names for each division
  */
 async function getPlayers()
 {
@@ -160,9 +164,9 @@ async function getPlayers()
     var open = [];
     var fift = [];
     await db.performAction(async function(player) {
-        if (player.division === "15k")
+        if (player.division === "15k" && !player.unconfirmed)
             fift.push(player.osuname);
-        else
+        else if (!player.unconfirmed)
             open.push(player.osuname);
     });
 
@@ -171,44 +175,59 @@ async function getPlayers()
         fift
     }
 }
+
+/**
+ * Adds a player in an unconfirmed state
+ * @param {string|number} osuid The player's osu id or osu username
+ * @param {string} discordid The player's discord id
+ * @param {string} utc The player's utc timezone
+ * @param {"open"|"15k"} division Which division to add the team to
+ * @returns {Promise<{
+ *  added: boolean,
+ *  confirmed?: boolean
+ * }>} How many players got added/updated
+ */
+async function addPlayer(osuid, discordid, utc, division)
+{
+    // If the player already exists, update their division
+    let player = await db.getPlayer(discordid || osuid);
+    if (player)
+    {
+        player.division = division;
+        db.updatePlayer(player);
+        return {
+            added: false,
+            confirmed: !player.unconfirmed
+        };
+    }
+    else
+    {
+        // Get the player info
+        let player = await helpers.getPlayer(osuid);
+        if (player)
+        {
+            // Add the player's info to the db
+            let pobj = {
+                osuid: player.user_id,
+                osuname: player.username,
+                discordid, utc, division
+            };
+            let result = await db.updatePlayer(pobj);
+            return {
+                added: !!result,
+                confirmed: false
+            };
+        }
+        return {
+            added: false
+        };
+    }
+}
 //#endregion
 //#region Admin Commands
 // ============================================================================
 // ========================== Admin Functions =================================
 // ============================================================================
-
-/**
- * Adds a player in an unconfirmed state
- * @param {string|number} osuid The player's osu id
- * @param {string} discordid The player's discord id
- * @param {string} utc The player's utc timezone
- * @param {string} division Which division to add the team to
- * @returns {Promise<number>} How many players got added/moved
- */
-async function addPlayer(osuid, discordid, utc, division = "Open")
-{
-    // If the player already exists, update their division
-    //let player = await db.getPlayer(playerid.discordid);
-    /*if (player)
-    {
-        player.division = division;
-        db.updatePlayer(player)
-    }*/
-    // Get the player info
-    let player = await helpers.getPlayer(osuid);
-    if (player)
-    {
-        // Add the player's info to db
-        let pobj = {
-            osuid = player.user_id,
-            osuname = player.username,
-            discordid, utc, division
-        };
-        return db.updatePlayer(pobj);
-    }
-    return 0;
-}
-
 /**
  * Removes a player from all the teams they're on
  * @param {string} osuid
@@ -217,17 +236,6 @@ async function removePlayer(osuname)
 {
     console.log(`Removing ${osuname}`);
     return db.removePlayer(osuname);
-}
-
-/**
- * Moves an existing player to a different team
- * @param {string|number} osuname Osu username or id
- * @param {string} team
- * @returns How many teams got changed, or -1 if no player was found
- */
-async function movePlayer(osuname, team)
-{
-    return db.movePlayer(team, osuname);
 }
 
 /**
@@ -311,7 +319,7 @@ async function recheckMaps()
     // Don't bother updating if there are no maps needed to update
     let updateCount = 0;
     if (openrejects.length > 0)
-        updateCount += await db.bulkReject(openrejects, "Map is below the new week's star range", "Open");
+        updateCount += await db.bulkReject(openrejects, "Map is below the new week's star range", "open");
     if (fiftrejects.length > 0)
         updateCount += await db.bulkReject(fiftrejects, "Map is below the new week's star range", "15k");
     return updateCount;
@@ -322,6 +330,46 @@ async function recheckMaps()
 // ========================== Player Commands =================================
 // ============================================================================
 /**
+ * If the given discordid matches a player in the database, finish their registration
+ * @param {number} osuid 
+ * @param {string} discordid 
+ * @returns {Promise<{
+ *  confirmed: boolean,
+ *  updated: boolean
+ * }>} Confirmed indicates the confirmed status of the player,
+ * updated indicates if the player should have been updated
+ */
+async function confirmRegistration(osuname, discordid)
+{
+    let player = await db.getPlayer(osuname);
+    if (player && player.discordid === discordid)
+        if (player.unconfirmed)
+        {
+            let result = await db.confirmPlayer(player.osuid, discordid);
+            if (result)
+                return {
+                    confirmed: true,
+                    updated: true
+                };
+            else
+                return {
+                    confirmed: false,
+                    updated: true
+                };
+        }
+        else
+            return {
+                confirmed: true,
+                updated: false
+            };
+    else
+        return {
+            confirmed: false,
+            updated: false
+        };
+}
+
+/**
  * Updates the osu name of a given player
  * @param {string} discordid
  */
@@ -329,7 +377,7 @@ async function updatePlayerName(discordid)
 {
     // Get the player's current info
     let player = await db.getPlayer(discordid);
-    if (!player.osuid)
+    if (!player)
         return "Couldn't find player";
     // Get the player's new info from the server
     let newp = await helpers.getPlayer(player.osuid);
@@ -371,7 +419,7 @@ async function addMap(mapid, {
     osuid
 }) {
     var player = await db.getPlayer(osuid || discordid);
-    if (!player.osuid || player.unconfirmed)
+    if (!player || player.unconfirmed)
         return {
             added: false,
             error: "Player not found"
@@ -486,7 +534,7 @@ async function addBulk(maps, {
 }) {
     // Get the user's team
     let player = await db.getPlayer(discordid || osuid);
-    if (!player.osuid)
+    if (!player)
         return {
             error: "Player not found",
             added: 0
@@ -535,7 +583,7 @@ async function addPass(mapid, discordid)
 {
     // Get which team the player is on
     let player = await db.getPlayer(discordid);
-    if (!player.osuid)
+    if (!player)
         return {
             added: false,
             error: "Couldn't find player"
@@ -568,7 +616,7 @@ async function removeMap(mapid, {
 }) {
     // Get which team the player is on
     let player = await db.getPlayer(discordid || osuid);
-    if (!player.osuid)
+    if (!player)
         return {
             error: "Couldn't find player",
             removed: []
@@ -610,7 +658,7 @@ async function viewPool(discordid, mods)
 {
     // Get which team the player is on
     let player = await db.getPlayer(discordid);
-    if (!player.osuid)
+    if (!player)
         return { error: "Couldn't find player" };
 
     // Add all mods if not otherwise requested
@@ -651,7 +699,7 @@ async function viewPool(discordid, mods)
         str += `\nTotal drain: ${helpers.convertSeconds(result.totalDrain)}`;
         str += `\n${result.overUnder} maps are within 15 seconds of drain time limit`;
         // Show pool problems
-        str += `\nThere are ${MAP_COUNT - team.maps.length} unfilled slots\n`;
+        str += `\nThere are ${MAP_COUNT - player.maps.length} unfilled slots\n`;
         if (result.message.length > 0)
             result.message.forEach(item => str += `\n${item}`);
     }
@@ -733,7 +781,7 @@ async function viewMissingMaps()
     let missing = await db.findMissingMaps();
 
     var counts = {
-        "Open": { nm: 0, hd: 0, hr: 0, dt: 0, cm: 0 },
+        "open": { nm: 0, hd: 0, hr: 0, dt: 0, cm: 0 },
         "15k": { nm: 0, hd: 0, hr: 0, dt: 0, cm: 0 }
     };
     missing.forEach(team => {
@@ -805,11 +853,11 @@ module.exports = {
     getPlayers,
     addPlayer, // Admins
     removePlayer,
-    movePlayer,
     exportMaps,
     recheckMaps,
     toggleNotif,    // Players
     updatePlayerName,
+    confirmRegistration,
     addMap,         // Maps
     addPass,
     removeMap,

@@ -155,34 +155,28 @@ const commands = {
      */
     async requirements(msg)
     {
-        
-        const minStar = process.env.MIN_STAR;   // Minimum star rating
-        const maxStar = process.env.MAX_STAR;   // Maximum star rating
-        const lowMin = process.env.FIFT_MIN;
-        const lowMax = process.env.FIFT_MAX;
-        const minLength = parseInt(process.env.MIN_LENGTH); // Minimum drain time
-        const maxLength = parseInt(process.env.MAX_LENGTH); // Maximum drain time
-        const absoluteMax = parseInt(process.env.ABSOLUTE_MAX); // Maximum length limit
         const minTotal = parseInt(process.env.MIN_TOTAL);       // Pool drain limit, per map
         const maxTotal = parseInt(process.env.MAX_TOTAL);       // Pool drain limit, per map
         const poolCount = 10; // 10 maps per pool
         let minPool = minTotal * poolCount;
         let maxPool = maxTotal * poolCount;
-        const leaderboard = parseInt(process.env.LEADERBOARD);      // How many leaderboard scores are required for auto-approval
 
         return msg.channel.send("Requirements for this week:\n" +
             `Star rating:\n` +
-            `    Open: ${minStar} - ${maxStar}\n` +
-            `    15K: ${lowMin} - ${lowMax}\n` +
-            `Drain length: ${helpers.convertSeconds(minLength)}` +
-            ` - ${helpers.convertSeconds(maxLength)}\n` +
-            `   Total length must be less than ${helpers.convertSeconds(absoluteMax)}\n` +
+            `    Open: ${checkVals.minStar} - ${checkVals.maxStar}\n` +
+            `    15K: ${checkVals.lowMin} - ${checkaVals.lowMax}\n` +
+            `Drain length: ${helpers.convertSeconds(checkVals.minLength)}` +
+            ` - ${helpers.convertSeconds(checkVals.maxLength)}\n` +
+            `   Total length must be less than ${helpers.convertSeconds(checkVals.absoluteMax)}\n` +
             `Total pool drain time must be ${helpers.convertSeconds(minPool)}` +
             ` - ${helpers.convertSeconds(maxPool)}\n\n` +
-            `Maps with less than ${leaderboard} scores with the selected ` +
+            `Maps with less than a certain number of scores with the selected ` +
             `mod on the leaderboard will need to be submitted with a ` +
-            `screenshot of one of the players on your team passing the map.\n` +
-            `Maps without a leaderboard will always need a screenshot.`);
+            `screenshot of a pass on the map. ` +
+            `Maps without a leaderboard will always need a screenshot.\n` +
+            `Auto accepted leaderboard scores:\n` +
+            `    Open: ${checkVals.leaderboard}\n` +
+            `    15k: ${checkVals.leaders15k}`);
     },
 
     /**
@@ -198,17 +192,63 @@ const commands = {
         if (args.length > 1 || (div && div !== "open" && div !== "15k"))
             return;
         
-        let result = await Command.getTeamPlayers();
+        let result = await Command.getPlayers();
 
         if (div === "open")
-            return msg.channel.send(`**Open division:**${result.openstr}\`\`\``);
+            return msg.channel.send(`**Open division:** ${result.open.reduce(
+                    (p, c) => `${p}, ${c}`
+                , '').slice(2)}`);
         else if (div === "15k")
-            return msg.channel.send(`**15k division:**${result.fiftstr}\`\`\``);
+            return msg.channel.send(`**15k division:** ${result.fift.reduce(
+                    (p, c) => `${p}, ${c}`
+                , '').slice(2)}`);
         else
             return Promise.all([
-                msg.channel.send(`**Open division:**${result.openstr}\`\`\``),
-                msg.channel.send(`**15k division:**${result.fiftstr}\`\`\``)
+                msg.channel.send(`**Open division:** ${result.open.reduce(
+                    (p, c) => `${p}, ${c}`
+                , '').slice(2)}`),
+                msg.channel.send(`**15k division:** ${result.fift.reduce(
+                    (p, c) => `${p}, ${c}`
+                , '').slice(2)}`)
             ]);
+    },
+
+    /**
+     * Allows a player to register in the tournament through discord
+     * @param {Discord.Message} msg 
+     * @param {string[]} args 
+     */
+    async register(msg, args) {
+        // Args: osu profile, utc, [division]
+        if (args.length < 2 || args.length > 3)
+            return;
+        let linkargs = args[0].split('/');
+        let osuid = linkargs.pop();
+        if (['osu', 'mania', 'taiko', 'fruits'].includes(osuid))
+            osuid = linkargs.pop();
+        let division = (args[2] || '').toLowerCase();
+        if (division)
+        {
+            if (division !== "open" && division !== "15k")
+                return msg.channel.send("Please enter either 'Open' or '15k' for division");
+        }
+        else
+            division = "open";
+        
+        let result = await Command.addPlayer(osuid, msg.author.id, args[1], division);
+        if (!result.added)
+            if (result.confirmed === undefined)
+                return msg.channel.send("Couldn't find player info from osu server");
+            else if (result.confirmed)
+                return msg.channel.send("You've already registered!");
+            else
+                return msg.channel.send("You've already registered! Please message Malikil " +
+                    "in game to complete your registration\n" +
+                    `\`\`\`\n!confirm ${msg.author.id}\n\`\`\``);
+        else
+            return msg.channel.send("Registration received, please now message Malikil " +
+                "in-game with the following message:\n" +
+                `\`\`\`\n!confirm ${msg.author.id}\n\`\`\``);
     },
     //#endregion
     //#region ============================== Player ==============================
@@ -757,7 +797,6 @@ commands.commands = commands.help;
 commands.checkmap = commands.check;
 commands.map = commands.check;
 commands.req = commands.requirements;
-commands.teams = commands.players;
 // ========== Player ==========
 commands.addmap = commands.add;
 commands.bulkadd = commands.addbulk;
@@ -787,11 +826,15 @@ commands.check.help = "Usage: !check <map> [mod] [division]\n" +
 commands.requirements.help = "Usage: !requirements\n" +
     "Displays the star rating and length requirements for " +
     "the current week\n" +
-    "Aliases: !req"
-commands.players.help = "Usage: !teams [open|15k]\n" +
+    "Aliases: !req";
+commands.players.help = "Usage: !players [open|15k]\n" +
     "Optionally limit to a division by specifying 'open' or '15k'\n" +
-    "Shows the currently registered teams and players on those teams\n" +
-    "Aliases: !players"
+    "Shows the currently registered teams and players on those teams\n";
+commands.register.help = "Usage: !register <osu profile link|username> <UTC time> [division]\n" +
+    "UTC time: Should be some sort of offset from utc, eg UTC-7 or just -7\n" +
+    "(Optional) Division: Open or 15k. If left out open is assumed.\n" +
+    "Register for the tournament, after registering you will get a code that you need to send " +
+    "to Malikil in-game to finish your registration.\n";
 // ============================== Player ==============================
 commands.osuname.help = "Usage: !osuname\n" +
     "Updates your osu username if you've changed it";

@@ -6,7 +6,7 @@ const util = require('util');
 class Logger
 {
     static log(str) {
-        console.log(`\x1b[95mBancho Log:\x1b[0m ${str}`);
+        console.log(`\x1b[95mBancho:\x1b[0m ${str}`);
     }
 
     static warn(str) {
@@ -123,17 +123,39 @@ const commands = {
         else
             return msg.user.sendMessage(`[https://osu.ppy.sh/b/${result.map.id} ${helpers.mapString(result.map)}] +${helpers.modString(result.map.mod)}` +
                 ` added to ${result.map.pool.toUpperCase()} pool`);
+    },
+
+    /**
+     * Confirms registration of a player
+     * @param {Banchojs.PrivateMessage} msg 
+     */
+    async confirm(msg) {
+        let args = msg.message.split(' ');
+        if (args.length !== 2)
+            return;
+        
+        let username = msg.user.ircUsername;
+        let result = await Command.confirmRegistration(username, args[1]);
+        let res = "You're already registered!"
+        if (result.updated)
+            if (result.confirmed)
+                res = "Confirmed registration";
+            else
+                res = "Something went wrong when updating, please poke me on the server";
+        else if (!result.confirmed) // updated == false
+            res = "A matching confirmation code was not found, please register in the server";
+
+        msg.user.sendMessage(res);
     }
 }
 const comnames = Object.keys(commands);
 //#region Aliases
 commands.with = commands.check;
 //#endregion
-//#region 
 //#region Help Messages
 commands.help.help = "Shows a list of available commands";
 commands.ACTION.help = "u sneaky :3";
-commands.with.help = "Use !check <mods> where mods is some combination of NM|HD|HR|DT|EZ|HT. Alias: !with";
+commands.check.help = "Use !check <mods> where mods is some combination of NM|HD|HR|DT|EZ|HT. Alias: !with";
 commands.add.help = "Use !add [mods] where mods is some combination of NM|HD|HR|DT|EZ|HT, " +
     "if left out it will use the last mods from !check or /np";
 //#endregion

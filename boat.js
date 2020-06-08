@@ -22,7 +22,8 @@ module.exports = class OsuClient
     {
         this.client = new Banchojs.BanchoClient({
             username,
-            password
+            password,
+            apiKey: process.env.OSUKEY//*/
         });
 
         this.client.on("PM", async msg => {

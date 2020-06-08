@@ -6,7 +6,7 @@ module.exports = class DbPlayer {
      * @param {number} o.osuid
      * @param {string} o.osuname
      * @param {string} o.discordid
-     * @param {"15k"|"Open"} o.division
+     * @param {"15k"|"open"} o.division
      * @param {string} o.utc
      * @param {DbBeatmap[]|*[]} o.maps
      * @param {boolean} o.unconfirmed
@@ -32,7 +32,7 @@ module.exports = class DbPlayer {
      *  osuid: number,
      *  osuname: string,
      *  discordid: string,
-     *  division: "15k"|"Open",
+     *  division: "15k"|"open",
      *  utc: string,
      *  maps: {
      *      bid: number,

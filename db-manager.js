@@ -76,15 +76,13 @@ function identify(id)
  * @param {string} p.osuid The player's osu id
  * @param {string} p.osuname The player's osu username
  * @param {string} p.discordid The player's discord id
- * @param {string} p.division Which division to add the player to
+ * @param {"open"|"15k"} p.division Which division to add the player to
  * @param {string} p.utc The player's utc time modifier
  * @returns How many records were modified
  */
 async function updatePlayer({osuid, osuname, discordid, division, utc})
 {
     console.log(`Adding ${osuname}`);
-    // If the team doesn't exist, add it first
-
     let result = await db.collection('teams').updateOne(
         { $or: [
             { osuid },
@@ -120,7 +118,7 @@ async function confirmPlayer(osuid, discordid)
         { $unset: { unconfirmed: "" } }
     );
 
-    return result.result;
+    return result.modifiedCount;
 }
 
 /**
@@ -186,7 +184,8 @@ async function getPlayer(id)
         ]
     });
     console.log(util.inspect(player, { depth: 1 }));
-    return new DbPlayer(player);
+    if (player)
+        return new DbPlayer(player);
 }
 
 /**
@@ -472,7 +471,7 @@ async function rejectMap(mapid, mods, message)
  *  }
  * ]} maps An array of maps to reject
  * @param {String} message The reject message to use
- * @param {"Open"|"15k"} division Which division to update
+ * @param {"open"|"15k"} division Which division to update
  */
 async function bulkReject(maps, message, division)
 {
