@@ -9,10 +9,11 @@ module.exports = class DbPlayer {
      * @param {"15k"|"open"} o.division
      * @param {string} o.utc
      * @param {DbBeatmap[]|*[]} o.maps
-     * @param {boolean} o.unconfirmed
+     * @param {boolean} o.unconfirmed True or undefined
+     * @param {boolean} o.notif True or undefined
      */
     constructor({
-        osuid, osuname, discordid, division, utc, maps, unconfirmed
+        osuid, osuname, discordid, division, utc, maps, unconfirmed, notif
     }) {
         this.osuid = osuid;
         this.osuname = osuname;
@@ -20,6 +21,7 @@ module.exports = class DbPlayer {
         this.division = division;
         this.utc = utc;
         this.unconfirmed = unconfirmed;
+        this.notif = notif;
         if (maps[0] instanceof DbBeatmap)
             /** @type {DbBeatmap[]} */
             this.maps = maps;
@@ -58,9 +60,11 @@ module.exports = class DbPlayer {
             division: this.division,
             utc: this.utc,
             maps: this.maps.map(b => b.toObject())
-        }
+        };
         if (this.unconfirmed)
             obj.unconfirmed = this.unconfirmed;
+        if (this.notif)
+            obj.notif = this.notif;
         
         return obj;
     }

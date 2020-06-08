@@ -371,22 +371,24 @@ async function confirmRegistration(osuname, discordid)
 
 /**
  * Updates the osu name of a given player
- * @param {string} discordid
+ * @param {string} playerid Discord id or osuname
  */
-async function updatePlayerName(discordid)
+async function updatePlayerName(playerid)
 {
     // Get the player's current info
-    let player = await db.getPlayer(discordid);
+    let player = await db.getPlayer(playerid);
     if (!player)
         return "Couldn't find player";
+    let oldname = player.osuname;
     // Get the player's new info from the server
     let newp = await helpers.getPlayer(player.osuid);
+    player.osuname = newp.username;
     // Update in the database
-    let result = await db.updatePlayer(discordid, { osuname: newp.username });
+    let result = await db.updatePlayer(player);
     if (result)
-        return `Updated name from ${player.osuname} to ${newp.username}`;
+        return `Updated name from ${oldname} to ${player.osuname}`;
     else
-        return `No updates made, found username: ${newp.username}`;
+        return `No updates made, found username: ${player.osuname}`;
 }
 
 /**
@@ -729,11 +731,11 @@ async function toggleNotif(discordid, toggle = true)
     if (toggle)
         return db.toggleNotification(discordid);
     
-    let team = await db.getTeam(discordid);
-    if (!team)
+    let player = await db.getPlayer(discordid);
+    if (!player)
         return;
 
-    let status = team.players.find(p => p.discordid === discordid).notif;
+    let status = player.notif;
     return !!status;
 }
 //#endregion

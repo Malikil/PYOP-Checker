@@ -284,7 +284,7 @@ const commands = {
         {
             let status = await Command.toggleNotif(msg.author.id, false);
             if (status === undefined)
-                return msg.channel.send("Couldn't find which team you're on");
+                return msg.channel.send("Couldn't find player");
             else
                 return msg.channel.send(`Notifications currently set to: ${!!status}`);
         }

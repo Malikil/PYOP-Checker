@@ -156,7 +156,7 @@ async function toggleNotification(discordid)
             { $unset: { notif: "" } }
         );
         if (result.modifiedCount)
-            return true;
+            return false;
     }
     else
     {
@@ -165,7 +165,7 @@ async function toggleNotification(discordid)
             { $set: { notif: true } }
         );
         if (result.modifiedCount)
-            return false;
+            return true;
     }
 }
 
