@@ -198,7 +198,7 @@ async function getPlayer(id)
  */
 async function addMap(playerid, map)
 {
-    console.log(`Adding map ${map.id} to ${team}'s ${map.pool} pool`);
+    console.log(`Adding map ${map.bid} to ${playerid}'s ${map.pool} pool`);
     // let updateobj = { $push: {}};
     // updateobj.$push[`maps.${mod}`] = map;
     let idobj = identify(playerid);
@@ -250,7 +250,7 @@ async function removeMap(playerid, mapid, modpool, mods)
     // I can't guarantee there will only be one matching map
     // Set one matching map to null, then pull nulls
     let filter = identify(playerid);
-    filter.maps = { $elemMatch: { id: mapid } };
+    filter.maps = { $elemMatch: { bid: mapid } };
     if (modpool !== undefined)
         filter.maps.$elemMatch.pool = modpool;
     if (mods !== undefined)

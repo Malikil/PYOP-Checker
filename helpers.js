@@ -221,8 +221,8 @@ function beatmapObject(mapid, mods = 0)
                 return reject("Map is not a std map");
             let map = {
                 bid: mapid,
-                artist: parser.map.artist_unicode,
-                title: parser.map.title_unicode,
+                artist: parser.map.artist,
+                title: parser.map.title,
                 version: parser.map.version,
                 creator: parser.map.creator,
                 data: {}

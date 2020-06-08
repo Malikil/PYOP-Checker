@@ -163,8 +163,8 @@ const commands = {
 
         return msg.channel.send("Requirements for this week:\n" +
             `Star rating:\n` +
-            `    Open: ${checkVals.minStar} - ${checkVals.maxStar}\n` +
-            `    15K: ${checkVals.lowMin} - ${checkaVals.lowMax}\n` +
+            `    Open: ${checkVals.minStar.toFixed(2)} - ${checkVals.maxStar.toFixed(2)}\n` +
+            `    15K: ${checkVals.lowMin.toFixed(2)} - ${checkVals.lowMax.toFixed(2)}\n` +
             `Drain length: ${helpers.convertSeconds(checkVals.minLength)}` +
             ` - ${helpers.convertSeconds(checkVals.maxLength)}\n` +
             `   Total length must be less than ${helpers.convertSeconds(checkVals.absoluteMax)}\n` +
@@ -329,18 +329,57 @@ const commands = {
         // Show the results of adding the map
         if (result.added)
             return msg.channel.send((result.replaced ? `Replaced ${helpers.mapString(result.replaced)}\n` : "") +
-                `Added ${helpers.mapString(result.map)} to ${result.map.pool.toUpperCase()} mod pool.\n` +
-                `Map approval status: ${result.map.status}\n` +
-                `Current __${result.map.pool.toUpperCase()}__ maps:` +
+                `Added ${helpers.mapString(result.beatmap)} to ${result.beatmap.pool.toUpperCase()} mod pool.\n` +
+                `Map approval status: ${result.beatmap.status}\n` +
+                `Current __${helpers.modString(result.beatmap.mods)}__ maps:` +
                 result.current.reduce((str, map) =>
-                    `${str}\n${helpers.mapString(map)}${map.pool === "cm" ? "CM" : ""}`
+                    `${str}\n${helpers.mapString(map)} ${map.pool === "cm" ? "CM" : ""}`
                 , '')
             );
-        else
+        else if (result.error)
             return msg.channel.send(
-                `Couldn't add ${result.map ? helpers.mapString(result.map) : "map"}\n` +
+                `Couldn't add ${result.beatmap ? helpers.mapString(result.beatmap) : "map"}\n` +
                 `Message: ${result.error}`
             );
+        else
+        {
+            // Why wasn't the map added?
+            let min = checkVals.minStar;
+            let max = checkVals.maxStar;
+            if (result.division === "15k")
+            {
+                min = checkVals.lowMin;
+                max = checkVals.lowMax;
+            }
+            // Parse how the map got rejected
+            let str;
+            switch (result.check.reject_on)
+            {
+                case "Drain":
+                    if (result.check.reject_type === "High")
+                        str = `The drain time is more than ${checkVals.drainBuffer} seconds above the ` +
+                            `${helpers.convertSeconds(checkVals.maxLength)} max (${helpers.convertSeconds(result.beatmap.drain)}).`;
+                    else
+                        str = `The drain time is more than ${checkVals.drainBuffer} seconds below the ` +
+                            `${helpers.convertSeconds(checkVals.minLength)} min (${helpers.convertSeconds(result.beatmap.drain)}).`;
+                    break;
+                case "Length":
+                    str = `The total map length is longer than the ${helpers.convertSeconds(checkVals.absoluteMax)}` +
+                        `limit (${helpers.convertSeconds(result.beatmap.data.total_length)})`;
+                    break;
+                case "Stars":
+                    if (result.check.reject_type === "High")
+                        str = `The star rating is above the ${max} maximum (${result.beatmap.stars})`;
+                    else
+                        str = `The star rating is below the ${min} minimum (${result.beatmap.stars})`;
+                    break;
+                case "Data":
+                    str = `Some objects in the map have issues: ${result.check.message}`;
+                case "User":
+                    str = "You can't use your own maps";
+            }
+            return msg.channel.send(`Rejected ${helpers.mapString(result.beatmap)}:\n${str}`);
+        }
     },
 
     /**
@@ -445,7 +484,7 @@ const commands = {
             let map = result.removed[0];
             return msg.channel.send(`Removed ${helpers.mapString(map)}${
                 map.pool === "cm"
-                ? ` +${helpers.modString(map.mod)}`
+                ? ` +${helpers.modString(map.mods)}`
                 : ""
             } from ${map.pool.toUpperCase()} pool`);
         }

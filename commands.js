@@ -406,10 +406,10 @@ async function updatePlayerName(discordid)
  *      reject_type?: "High"|"Low",
  *      message?: string
  *   },
- *   map?: Object,
+ *   beatmap?: *,
  *   added: boolean,
- *   replaced?: Object,
- *   current?: Object[]
+ *   replaced?: DbBeatmap,
+ *   current?: DbBeatmap[]
  * }>}
  */
 async function addMap(mapid, {
@@ -428,15 +428,15 @@ async function addMap(mapid, {
     // Check beatmap approval
     console.log(`Looking for map with id ${mapid} and mod ${mods}`);
     let beatmap = await helpers.beatmapObject(mapid, mods);
-    let quick = await checker.mapCheck(beatmap);
+    let quick = await checker.mapCheck(beatmap, player.division, player.osuname);
     let status;
     if (quick.rejected)
         return {
             check: quick,
-            map: beatmap,
+            beatmap,
             added: false
         };
-    else if ((await checker.leaderboardCheck(mapid, mods, division, player.osuid)).passed)
+    else if ((await checker.leaderboardCheck(mapid, mods, player.division, player.osuid)).passed)
         if (beatmap.version !== "Aspire")
             status = "Accepted (Automatic)";
         else
@@ -477,6 +477,7 @@ async function addMap(mapid, {
         let cur = [];
         let skipped = false; // Whether we've skipped a map yet
         player.maps.forEach(m => {
+            // Get maps with matching mods
             if (m.mods === mods)
             {
                 // Make sure it's not the removed map
@@ -499,7 +500,7 @@ async function addMap(mapid, {
         return {
             replaced,
             added: true,
-            map: mapitem,
+            beatmap: mapitem,
             current: cur
         };
     }
@@ -507,7 +508,7 @@ async function addMap(mapid, {
         return {
             added: false,
             error: "Add map failed.",
-            map: beatmap
+            beatmap
         };
 }
 
@@ -635,8 +636,8 @@ async function removeMap(mapid, {
         // Find the map info for this id, for user friendliness' sake
         let map = player.maps.find(item => 
             item.bid === mapid &&
-            item.pool === modpool &&
-            item.mods === mods
+            (!modpool || item.pool === modpool) &&
+            (!mods || item.mods === mods)
         );
         return { removed: [ map ] };
     }
