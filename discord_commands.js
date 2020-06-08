@@ -870,6 +870,7 @@ commands.players.help = "Usage: !players [open|15k]\n" +
     "Optionally limit to a division by specifying 'open' or '15k'\n" +
     "Shows the currently registered teams and players on those teams\n";
 commands.register.help = "Usage: !register <osu profile link|username> <UTC time> [division]\n" +
+    "Use either link to your profile -OR- username" +
     "UTC time: Should be some sort of offset from utc, eg UTC-7 or just -7\n" +
     "(Optional) Division: Open or 15k. If left out open is assumed.\n" +
     "Register for the tournament, after registering you will get a code that you need to send " +

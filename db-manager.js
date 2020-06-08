@@ -180,7 +180,7 @@ async function getPlayer(id)
         $or: [
             { discordid: id },
             { osuid: id },
-            { osuname: id }
+            { osuname: regexify(id, 'i') }
         ]
     });
     console.log(util.inspect(player, { depth: 1 }));
