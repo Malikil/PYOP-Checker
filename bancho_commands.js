@@ -94,7 +94,7 @@ const commands = {
             currentMap[uid].mods = helpers.parseMod(args[1]);
         // Check the map
         let map = currentMap[uid];
-        let result = await Command.checkMap(map.bid, { mods: map.mods, osuid: msg.user.id });
+        let result = await Command.checkMap(map.bid, { mods: map.mods, osuid: msg.user.ircUsername });
         return msg.user.sendMessage(`[https://osu.ppy.sh/b/${map.bid} ${helpers.mapString(result.beatmap)}] +${helpers.modString(map.mods)}: ${result.message}`);
     },
 

@@ -114,6 +114,7 @@ async function checkMap(mapid, {
         {
             division = player.division;
             osuname = player.osuname;
+            osuid = player.osuid;
         }
     }
     
