@@ -117,39 +117,52 @@ async function checkMap(mapid, {
             osuid = player.osuid;
         }
     }
-    
-    let beatmap = await helpers.beatmapObject(mapid, mods);
-    let quick = await checker.mapCheck(beatmap, division, osuname);
-    console.log(`Quick check returned: ${quick}`);
-    if (quick.rejected)
-        return {
+    try
+    {
+        let beatmap = await helpers.beatmapObject(mapid, mods);
+        let quick = await checker.mapCheck(beatmap, division, osuname);
+        console.log(`Quick check returned: ${quick}`);
+        if (quick.rejected)
+            return {
+                passed: false,
+                check: quick,
+                beatmap,
+                division
+            };
+        
+        let status = {
             passed: false,
-            check: quick,
-            beatmap,
-            division
+            message: "Map isn't ranked"
         };
-    
-    let status = {
-        passed: false,
-        message: "Map isn't ranked"
-    };
-    status = await checker.leaderboardCheck(mapid, mods, osuid);
-    if (status.passed)
-        return {
-            passed: true,
-            beatmap,
-            division
-        };
-    else
+        status = await checker.leaderboardCheck(mapid, mods, osuid);
+        if (status.passed)
+            return {
+                passed: true,
+                beatmap,
+                division
+            };
+        else
+            return {
+                passed: false,
+                check: {
+                    rejected: false,
+                    message: status.message
+                },
+                beatmap,
+                division
+            };
+    }
+    catch (err)
+    {
         return {
             passed: false,
             check: {
                 rejected: false,
-                message: status.message
+                message: err
             },
-            beatmap,
             division
         };
+    }
 }
 
 /**

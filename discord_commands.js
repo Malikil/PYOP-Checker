@@ -378,6 +378,7 @@ const commands = {
                     break;
                 case "Data":
                     str = `Some objects in the map have issues: ${result.check.message}`;
+                    break;
                 case "User":
                     str = "You can't use your own maps";
             }
