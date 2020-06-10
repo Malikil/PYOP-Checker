@@ -25,7 +25,7 @@ MODS.ALLOWED = MODS.EZ | MODS.HD | MODS.HR | MODS.DT | MODS.HT | MODS.NC | MODS.
 
 /**
  * Converts a mod string into its number equivalent
- * @param {"NM"|"HD"|"HR"|"DT"|"EZ"|"HT"} modstr Mods in string form. Case insensitive
+ * @param {"NM"|"HD"|"HR"|"DT"|"EZ"|"HT"|"FL"} modstr Mods in string form. Case insensitive
  * @returns The bitwise number representation of the selected mods
  */
 function parseMod(modstr)
@@ -36,11 +36,13 @@ function parseMod(modstr)
     let mod = 0;
     modstr = modstr.toUpperCase();
     // Parse mods
-    if (modstr.includes('HD')) mod = mod | MODS.HD;
-    if (modstr.includes('HR')) mod = mod | MODS.HR;
-    else if (modstr.includes('EZ')) mod = mod | MODS.EZ;
-    if (modstr.includes('DT')) mod = mod | MODS.DT;
-    else if (modstr.includes('HT')) mod = mod | MODS.HT;
+    if (modstr.includes('HD'))      mod |= MODS.HD;
+    if (modstr.includes('HR'))      mod |= MODS.HR;
+    else if (modstr.includes('EZ')) mod |= MODS.EZ;
+    if (modstr.includes('DT'))      mod |= MODS.DT;
+    else if (modstr.includes('NC')) mod |= MODS.NC;
+    else if (modstr.includes('HT')) mod |= MODS.HT;
+    if (modstr.includes('FL'))      mod |= MODS.FL;
     
     return mod;
 }
@@ -67,14 +69,14 @@ function getModpool(bitwise)
  */
 function modString(mod)
 {
-    let _dt = false;
     let str = '';
     if (mod & MODS.HD)      str += 'HD';
-    if (mod & MODS.DT)      _dt = true;
+    if (mod & MODS.NC)      str += 'NC';
+    else if (mod & MODS.DT) str += 'DT';
     else if (mod & MODS.HT) str += 'HT';
     if (mod & MODS.HR)      str += 'HR';
     else if (mod & MODS.EZ) str = 'EZ' + str;
-    if (_dt)                str += 'DT';
+    if (mod & MODS.FL)      str += 'FL';
     if (str == '')          str = 'NoMod';
     return str;
 }
@@ -110,7 +112,7 @@ function parseMapId(mapString = '')
  * Converts a map object to the artist - title [version] format
  */
 const mapString = map => `${map.artist} - ${map.title} [${map.version}]`;
-const mapLink = map => `https://osu.ppy.sh/b/${map.id}`;
+const mapLink = map => `https://osu.ppy.sh/b/${map.bid}`;
 
 /**
  * Converts from integer seconds to mm:ss time format
@@ -147,6 +149,7 @@ async function getPlayer(osuid)
  * @param {Number} mod The bitwise value of the selected mods
  * @returns {Promise} A promise which will resolve to a beatmap object, or undefined if
  *     no beatmap was found
+ * @deprecated Try to use beatmapObject instead
  */
 async function getBeatmap(mapid, mod)
 {

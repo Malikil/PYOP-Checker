@@ -65,10 +65,7 @@ function identify(id)
     ]};
 }
 //#endregion
-//#region ============================== TEAMS ==============================
-
-//#endregion
-//#region ============================== SOLO ==============================
+//#region ============================== Manage Players ==============================
 /**
  * Adds a player to the database
  * @param {object} p
@@ -187,7 +184,8 @@ async function getPlayer(id)
     if (player)
         return new DbPlayer(player);
 }
-
+//#endregion
+//#region ============================== Manage Maps ==============================
 /**
  * Adds a map to the given mod bracket. Removes the first map on the list if
  * two maps are already present.
@@ -288,8 +286,17 @@ async function removeAllMaps(playerid)
 }
 
 /**
- * Finds all maps with a pending status
+ * Finds all maps with a given status, grouped by their mods
  * @param {string} status What status the map should have
+ * @returns {Promise<{
+ *  _id: number,
+ *  maps: {
+ *      bid: number,
+ *      artist: string,
+ *      title: string,
+ *      version: string
+ *  }[]
+ * }[]>}
  */
 async function findMapsWithStatus(status)
 {
@@ -298,9 +305,9 @@ async function findMapsWithStatus(status)
         { $unwind: "$maps" },
         { $match: { 'maps.status': status } },
         { $group: {
-            _id: "$maps.mod",
+            _id: "$maps.mods",
             maps: { $addToSet: {
-                id: "$maps.id",
+                bid: "$maps.bid",
                 artist: "$maps.artist",
                 title: "$maps.title",
                 version: "$maps.version"
@@ -347,7 +354,7 @@ async function pendingMap(discordid, mapid)
         {
             discordid,
             maps: { $elemMatch: {
-                id: mapid,
+                bid: mapid,
                 status: "Screenshot Required"
             } }
         },
@@ -355,12 +362,15 @@ async function pendingMap(discordid, mapid)
         { arrayFilters: [
             {
                 'pendmap.status': "Screenshot Required",
-                'pendmap.id': mapid
+                'pendmap.bid': mapid
             }
         ] }
     );
-    console.log(result);
-    return result.modifiedCount;
+    //console.log(result);
+    return {
+        added: result.modifiedCount,
+        matched: result.matchedCount
+    };
 }
 
 /**
@@ -374,13 +384,13 @@ async function approveMap(mapid, mods)
     // Search for maps with the given mod
     let result = await db.collection('teams').updateMany(
         { maps: { $elemMatch: {
-            id: mapid,
+            bid: mapid,
             mods
         } } },
         { $set: { 'maps.$[pendmap].status': "Accepted" } },
         { arrayFilters: [
             {
-                'pendmap.id': mapid,
+                'pendmap.bid': mapid,
                 'pendmap.mods': mods,
                 //'pendmap.status': "Pending" don't worry about if a map is ssrequired
             }
@@ -431,7 +441,7 @@ async function rejectMap(mapid, mods, message)
     console.log(players);*/
     let playerNotif = await db.collection('teams').find({
         maps: { $elemMatch: {
-            id: mapid,
+            bid: mapid,
             mods,
             status: { $not: /^Rejected/ }
         } },
@@ -443,13 +453,13 @@ async function rejectMap(mapid, mods, message)
     // for one team should be rejected for all teams
     let result = await db.collection('teams').updateMany(
         { maps: { $elemMatch: {
-            id: mapid,
+            bid: mapid,
             mods
         } } },
         { $set: { 'maps.$[map].status': "Rejected - " + message } },
         { arrayFilters: [
             {
-                'map.id': mapid,
+                'map.bid': mapid,
                 'map.mods': mods,
                 'map.status': { $not: /^Rejected/ }
             }
@@ -480,14 +490,14 @@ async function bulkReject(maps, message, division)
     // arrayFilters
     let filters = maps.map(item => {
         return {
-            'badmap.id': item.id,
+            'badmap.bid': item.id,
             'badmap.mods': item.mods
         };
     });
 
     // Reject all maps matching the criteria
     let result = await db.collection('teams').updateMany(
-        { division: division },
+        { division },
         { $set: { 'maps.$[badmap].status': message } },
         { arrayFilters: [
             { $or: filters }

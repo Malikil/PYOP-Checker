@@ -184,7 +184,8 @@ async function getPlayers()
  * @param {"open"|"15k"} division Which division to add the team to
  * @returns {Promise<{
  *  added: boolean,
- *  confirmed?: boolean
+ *  confirmed?: boolean,
+ *  reject?: boolean
  * }>} How many players got added/updated
  */
 async function addPlayer(osuid, discordid, utc, division)
@@ -206,6 +207,13 @@ async function addPlayer(osuid, discordid, utc, division)
         let player = await helpers.getPlayer(osuid);
         if (player)
         {
+            // Make sure the player is in the correct rank range
+            if (division === '15k' && player.pp_rank >= 15000)
+                return {
+                    added: false,
+                    reject: true
+                };
+                
             // Add the player's info to the db
             let pobj = {
                 osuid: player.user_id,
@@ -398,7 +406,7 @@ async function updatePlayerName(playerid)
  * @param {number} p1.mods
  * @param {boolean} p1.cm
  * @param {string} p1.discordid Optional
- * @param {number} p1.osuid Optional
+ * @param {number|string} p1.osuid Optional, osu id or osu username
  * 
  * @returns {Promise<{
  *   error?: string,
@@ -409,6 +417,7 @@ async function updatePlayerName(playerid)
  *      message?: string
  *   },
  *   beatmap?: DbBeatmap|CheckableMap,
+ *   division?: "open"|"15k",
  *   added: boolean,
  *   replaced?: DbBeatmap,
  *   current?: DbBeatmap[]
@@ -436,6 +445,7 @@ async function addMap(mapid, {
         return {
             check: quick,
             beatmap,
+            division: player.division,
             added: false
         };
     else if ((await checker.leaderboardCheck(mapid, mods, player.division, player.osuid)).passed)
@@ -593,8 +603,13 @@ async function addPass(mapid, discordid)
         };
 
     // Update the status
-    let result = await db.pendingMap(team.name, mapid, true);
-    return { added: !!result };
+    let result = await db.pendingMap(player.discordid, mapid);
+    if (!result.matched)
+        return {
+            added: false,
+            error: "Couldn't find map"
+        };
+    return { added: !!result.added };
 }
 
 /**
@@ -746,6 +761,15 @@ async function toggleNotif(discordid, toggle = true)
 /**
  * Displays a list of all pending maps
  * @param {("nm"|"hd"|"hr"|"dt"|"cm")[]} mods
+ * @returns {Promise<{
+ *  pool: "nm"|"hd"|"hr"|"dt"|"cm",
+ *  maps: {
+ *      bid: number,
+ *      artist: string,
+ *      title: string,
+ *      version: string
+ *  }[]
+ * }[]>}
  */
 async function viewPending(mods)
 {
@@ -757,23 +781,15 @@ async function viewPending(mods)
     if (!mods || mods.length === 0)
         mods = ['nm', 'hd', 'hr', 'dt', 'cm'];
         
-    
-    let str = "";
+    let result = [];
     maplist.forEach(mod => {
-        // Make sure this mod should be displayed
-        if (!mods.includes(helpers.getModpool(mod._id)))
-            return;
-        str += `**__${helpers.modString(mod._id)}:__**\n`;
-        mod.maps.forEach(map => {
-            if (str.length < 1800)
-                str += `<${helpers.mapLink(map)}> ${helpers.mapString(map)}\n`;
-        });
+        if (mods.includes(helpers.getModpool(mod._id)))
+            result.push({
+                pool: helpers.getModpool(mod._id),
+                maps: mod.maps
+            });
     });
-    if (str.length >= 1800)
-        str += "Message too long, some maps skipped...";
-    else if (str === "")
-        str = "No pending maps";
-    return str;
+    return result;
 }
 
 /**

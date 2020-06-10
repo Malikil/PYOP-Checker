@@ -64,13 +64,14 @@ const commands = {
                     case "DoubleTime": mods |= helpers.MODS.DT; break;
                     case "Easy":       mods |= helpers.MODS.EZ; break;
                     case "HalfTime":   mods |= helpers.MODS.HT; break;
+                    case "Flashlight": mods |= helpers.MODS.FL; break;
                 }
             });
         }
         Logger.log(`mods: ${mods}`);
         if (bid)
         {
-            currentMap[msg.user.id] = { bid, mods };
+            currentMap[msg.user.ircUsername] = { bid, mods };
             return msg.user.sendMessage(`Set map to ${bid} +${helpers.modString(mods)}`);
         }
     },
@@ -82,7 +83,7 @@ const commands = {
      */
     async check(msg)
     {
-        let uid = msg.user.id;
+        let uid = msg.user.ircUsername;
         // Get their current map
         if (!currentMap[uid])
             return msg.user.sendMessage("No recent map found, please use /np to add one");
@@ -107,7 +108,7 @@ const commands = {
         if (args.length > 2)
             return;
         
-        let uid = msg.user.id;
+        let uid = msg.user.ircUsername;
         // Get the current map
         if (!currentMap[uid])
             return msg.user.sendMessage("No recent map found, please use /np to add one");
@@ -118,11 +119,50 @@ const commands = {
         let result = await Command.addMap(currentMap[uid].bid, {
             mods: currentMap[uid].mods, osuid: uid
         });
-        if (result.error)
-            return msg.user.sendMessage(result.error);
-        else
+        if (result.added)
             return msg.user.sendMessage(`[https://osu.ppy.sh/b/${result.map.id} ${helpers.mapString(result.map)}] +${helpers.modString(result.map.mod)}` +
                 ` added to ${result.map.pool.toUpperCase()} pool`);
+        else if (result.error)
+            return msg.user.sendMessage(result.error);
+        else
+        {
+            // Why wasn't the map added?
+            let min = checkVals.minStar;
+            let max = checkVals.maxStar;
+            if (result.division === "15k")
+            {
+                min = checkVals.lowMin;
+                max = checkVals.lowMax;
+            }
+            // Parse how the map got rejected
+            let str;
+            switch (result.check.reject_on)
+            {
+                case "Drain":
+                    if (result.check.reject_type === "High")
+                        str = `The drain time is more than ${checkVals.drainBuffer} seconds above the ` +
+                            `${helpers.convertSeconds(checkVals.maxLength)} max (${helpers.convertSeconds(result.beatmap.drain)}).`;
+                    else
+                        str = `The drain time is more than ${checkVals.drainBuffer} seconds below the ` +
+                            `${helpers.convertSeconds(checkVals.minLength)} min (${helpers.convertSeconds(result.beatmap.drain)}).`;
+                    break;
+                case "Length":
+                    str = `The total map length is longer than the ${helpers.convertSeconds(checkVals.absoluteMax)}` +
+                        `limit (${helpers.convertSeconds(result.beatmap.data.total_length)})`;
+                    break;
+                case "Stars":
+                    if (result.check.reject_type === "High")
+                        str = `The star rating is above the ${max} maximum (${result.beatmap.stars})`;
+                    else
+                        str = `The star rating is below the ${min} minimum (${result.beatmap.stars})`;
+                    break;
+                case "Data":
+                    str = `Some objects in the map have issues: ${result.check.message}`;
+                case "User":
+                    str = "You can't use your own maps";
+            }
+            return msg.user.sendMessage(`Rejected ${helpers.mapString(result.beatmap)}:\n${str}`);
+        }
     },
 
     /**

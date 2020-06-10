@@ -238,7 +238,10 @@ const commands = {
         let result = await Command.addPlayer(osuid, msg.author.id, args[1], division);
         if (!result.added)
             if (result.confirmed === undefined)
-                return msg.channel.send("Couldn't find player info from osu server");
+                if (result.reject)
+                    return msg.channel.send("Your rank is too high for 15k division");
+                else
+                    return msg.channel.send("Couldn't find player info from osu server");
             else if (result.confirmed)
                 return msg.channel.send("You've already registered!");
             else
@@ -541,7 +544,7 @@ const commands = {
         if (!mapid)
             return msg.channel.send(`Couldn't recognise beatmap id`);
 
-        // Attempt to update the map status, this also gets the team name
+        // Attempt to update the map status
         let result = await Command.addPass(mapid, msg.author.id);
         if (result.error)
             return msg.channel.send(result.error);
@@ -559,7 +562,7 @@ const commands = {
             }
             else
                 // Copy the link/image to the screenshots channel
-                passChannel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${team.name}\n` +
+                passChannel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${msg.author.username}\n` +
                     args[1]);
         }
         else
@@ -654,8 +657,20 @@ const commands = {
             }, []);
         }
 
-        let pendstr = await Command.viewPending(mods);
-        return msg.channel.send(pendstr);
+        let maps = await Command.viewPending(mods);
+        let str = "";
+        maps.forEach(modpool => {
+            str += `**__${modpool.pool.toUpperCase()}:__**\n`;
+            modpool.maps.forEach(map => {
+                if (str.length < 1800)
+                    str += `<${helpers.mapLink(map)}> ${helpers.mapString(map)}\n`;
+            });
+        });
+        if (str.length >= 1800)
+            str += "Message too long, some maps skipped...";
+        else if (str === "")
+            str = "No pending maps";
+        return msg.channel.send(str);
     },
 
     /**
