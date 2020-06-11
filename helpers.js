@@ -215,7 +215,7 @@ function beatmapObject(mapid, mods = 0)
             // Convert hit objects
             // Assume timing points are in order
             let timingindex = 0;
-            let basems = 1;
+            let basems = parser.map.timing_points[0].ms_per_beat;
             let inherited = -100;
             map.data.objects = parser.map.objects.map(hitobject => {
                 let obj = {
@@ -234,7 +234,7 @@ function beatmapObject(mapid, mods = 0)
                             inherited = -100;
                         }
                         else
-                            inherited = parser.map.timing_points[timingindex].ms_per_beat;
+                            inherited = Math.max(parser.map.timing_points[timingindex].ms_per_beat, -1000);
                         // Increment index
                         timingindex++;
                     }
