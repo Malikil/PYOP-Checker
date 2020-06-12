@@ -25,7 +25,7 @@ var loaded = doc.useServiceAccountAuth(
 ).catch(
     err => console.error(err)
 );
-
+//#region Old googleapis functions, kept for reference
 /**
  * Puts the maps from a single team into an array
  * which can be pushed to google sheets
@@ -51,7 +51,7 @@ var loaded = doc.useServiceAccountAuth(
  *  }
  * }} team A team to get the maps from
  */
-async function getSheetData(team)
+/*async function getSheetData(team)
 {
     
     let rowdata = [];
@@ -93,13 +93,13 @@ async function getSheetData(team)
         ]})
     );
     return rowdata;
-}
+}*/
 
 /**
  * Pushes an array of maps to a new tab in the sheet
  * @param {*[]} maplist Array of teams in format from database
  */
-async function pushMaps(rowdata)
+/*async function pushMaps(rowdata)
 {
     let doc = await sheets.spreadsheets.get({
         auth, spreadsheetId
@@ -148,8 +148,8 @@ async function pushMaps(rowdata)
             ]
         }
     });
-}
-
+}*/
+//#endregion
 /**
  * Adds a player to google sheets
  * @param {DbPlayer} player 
@@ -173,8 +173,107 @@ async function addPlayer(player) {
     return sheet.saveUpdatedCells();
 }
 
+/**
+ * Adds the maps from all players to the sheet
+ * @param {DbPlayer[]} players 
+ */
+async function pushMaps(players) {
+    let sheet = doc.sheetsByIndex.find(s => s.title === "Exported");
+    if (!sheet)
+        sheet = await doc.addSheet({
+            title: "Exported"
+        });
+    // Not sure if this will load the sheet,
+    // but if I can both load and clear in a single step that's great
+    await sheet.clear();
+    // Parse players into the sheet
+    // Insert into two sets of columns
+    var openRow = 0;
+    var fiftRow = 0;
+    players.forEach(player => {
+        let baseCol = 0;
+        let row = openRow;
+        if (player.division === '15k')
+        {
+            baseCol = 8;
+            row = fiftRow;
+        }
+        // Player's name and division
+        sheet.getCell(row, baseCol).value = player.osuname;
+        sheet.getCell(row, baseCol + 2).value = player.division;
+        // Sort the maps by mod and add them to sheet
+        player.maps.sort((a, b) => a.mods - b.mods).forEach((map, i) => {
+            sheet.getCell(row + 1 + i, baseCol).value = helpers.modString(map.mods);
+            sheet.getCell(row + 1 + i, baseCol + 1).value = map.creator;
+            sheet.getCell(row + 1 + i, baseCol + 2).value = helpers.mapString(map);
+            sheet.getCell(row + 1 + i, baseCol + 3).value = map.stars;
+            sheet.getCell(row + 1 + i, baseCol + 4).value = helpers.convertSeconds(map.drain);
+            sheet.getCell(row + 1 + i, baseCol + 5).value = map.bpm;
+            sheet.getCell(row + 1 + i, baseCol + 6).value = map.bid;
+        });
+        // Update the current row
+        if (player.division === '15k')
+            fiftRow += player.maps.length + 1;
+        else
+            openRow += player.maps.length + 1;
+    });
+    // Save the sheet values
+    return sheet.saveUpdatedCells();
+}
+
+async function createExportInterface() {
+    let sheet = doc.sheetsByIndex.find(s => s.title === "Exported");
+    if (!sheet)
+        sheet = await doc.addSheet({
+            title: "Exported"
+        });
+    // Not sure if this will load the sheet,
+    // but if I can both load and clear in a single step that's great
+    await sheet.clear();
+    // Insert into two sets of columns
+    // Track the rows for each
+    var openRow = 0;
+    var fiftRow = 0;
+    return {
+        /**
+         * @param {DbPlayer} player
+         */
+        parsePlayer: player => {
+            let baseCol = 0;
+            let row = openRow;
+            if (player.division === '15k')
+            {
+                baseCol = 8;
+                row = fiftRow;
+            }
+            // Player's name and division
+            sheet.getCell(row, baseCol).value = player.osuname;
+            sheet.getCell(row, baseCol + 2).value = player.division;
+            // Sort the maps by mod and add them to sheet
+            player.maps.sort((a, b) => a.mods - b.mods).forEach((map, i) => {
+                sheet.getCell(row + 1 + i, baseCol).value = helpers.modString(map.mods);
+                sheet.getCell(row + 1 + i, baseCol + 1).value = map.creator;
+                sheet.getCell(row + 1 + i, baseCol + 2).formula =
+                    `=HYPERLINK("${helpers.mapLink(map)}","${helpers.mapString(map).replace('"', '"&CHAR(34)&"')}")`;
+                sheet.getCell(row + 1 + i, baseCol + 3).value = map.stars;
+                sheet.getCell(row + 1 + i, baseCol + 4).value = helpers.convertSeconds(map.drain);
+                sheet.getCell(row + 1 + i, baseCol + 5).value = map.bpm;
+                sheet.getCell(row + 1 + i, baseCol + 6).value = map.bid;
+            });
+            // Update the current row
+            if (player.division === '15k')
+                fiftRow += player.maps.length + 1;
+            else
+                openRow += player.maps.length + 1;
+        },
+        commitChanges: async () => sheet.saveUpdatedCells()
+    }
+}
+
 module.exports = {
-    getSheetData,
+    //getSheetData,
+    //pushMaps,
+    createExportInterface,
     pushMaps,
     addPlayer
 }

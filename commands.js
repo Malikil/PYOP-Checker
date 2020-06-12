@@ -267,23 +267,23 @@ async function removePlayer(osuname)
  */
 async function exportMaps()
 {
-    let mapdata = await db.performAction(google.getSheetData);
-    let rowdata = [];
-    // Unwind team-specific rows into a big set of rows
-    mapdata.forEach(item => 
-        item.forEach(row => rowdata.push(row))
-    );
-    let response = await google.pushMaps(rowdata);
-    // console.log(response);
-    if (response.status === 200)
-        return {
-            ok: true
-        };
-    else
+    try
+    {
+        let sheetfuncs = await google.createExportInterface();
+
+        await db.performAction(sheetfuncs.parsePlayer);
+        let response = await sheetfuncs.commitChanges();
+        console.log(response);
+        return { ok: true }
+    }
+    catch (err)
+    {
+        console.error(err);
         return {
             ok: false,
-            message: util.inspect(response, { depth: 4 })
+            message: err
         };
+    }
 }
 
 /**
