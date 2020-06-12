@@ -219,7 +219,7 @@ async function addPlayer(osuid, discordid, utc, division)
         if (player)
         {
             // Make sure the player is in the correct rank range
-            if (division === '15k' && player.pp_rank >= 15000)
+            if (division === '15k' && player.pp_rank < 15000)
                 return {
                     added: false,
                     reject: true
