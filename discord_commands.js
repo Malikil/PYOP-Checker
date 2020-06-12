@@ -564,6 +564,30 @@ const commands = {
     //#endregion
     //#region ============================== Approver ==============================
     /**
+     * Manually add a map to someone's pool, used if the star rating/drain
+     * time is being a big pain
+     * @param {Discord.Message} msg 
+     * @param {string[]} args 
+     */
+    async manualadd(msg, args) {
+        // Args: userid, map, [mods]
+        if (args.length > 3 || args.length < 2)
+            return;
+        let matches = args[0].match(/[0-9]+/);
+        let playerid = args[0];
+        if (matches)
+            playerid = matches.pop();
+        let mapid = helpers.parseMapId(args[1]);
+        let mods = helpers.parseMod(args[2] || 'NM');
+        let cm = (args[2] || '').toUpperCase().includes("CM");
+
+        if (!mapid)
+            return msg.channel.send("Couldn't find beatmap id");
+
+        return msg.channel.send(await Command.manualAddMap(playerid, mapid, mods, cm));
+    },
+    
+    /**
      * Approves a map/mod combination
      * @param {Discord.Message} msg 
      * @param {string[]} args 
@@ -823,6 +847,7 @@ commands.pending.permissions = "approver";
 commands.missing.permissions = "approver";
 commands.reject.permissions = "approver";
 commands.clearss.permissions = "approver";
+commands.manualadd.permissions = "approver";
 
 commands.addplayer.permissions = "admin";
 commands.removeplayer.permissions = "admin";
@@ -944,6 +969,10 @@ commands.clearss.help = "Usage: !clearss <map> <team>\n" +
 commands.missing.help = "Usage: !missing\n" +
     "Shows how many map slots need to be filled for each mod " +
     "in either division.";
+commands.manualadd.help = "Usage: !manualadd <player> <map> [mods]\n" +
+    "Adds the map to the player's pool, bypassing map checks and automatically " +
+    "approving it. This should only be used for cases such as the bot is " +
+    "calculating a different star rating from what's shown in-game.";
 // ============================== Admin ==============================
 commands.addplayer.help = "Adds a player to a team. If the team " +
     "doesn't already exist it is created.\n" +

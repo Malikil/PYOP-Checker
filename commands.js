@@ -834,6 +834,39 @@ async function viewMissingMaps()
 }
 
 /**
+ * Adds a map to a player's pool without checking it first
+ * @param {string|number} player The discordid or osuname of the player who gets the map
+ * @param {number} mapid The id of the map
+ * @param {number} mods Bitwise mod number
+ * @param {custom} boolean Should be added to cm?
+ * @returns {Promise<string>} A short message describing results
+ */
+async function manualAddMap(playerid, mapid, mods, custom) {
+    let player = await db.getPlayer(playerid);
+    if (!player)
+        return "No player found";
+
+    let map = await helpers.apiBeatmap(mapid, mods);
+    if (!map)
+        return "No beatmap found";
+    
+    let result = await db.addMap(player.discordid, new DbBeatmap({
+        ...map,
+        pool: custom ? "cm" : helpers.getModpool(mods),
+        status: "Accepted"
+    }));
+    if (result)
+    {
+        if (result instanceof DbBeatmap)
+            return "Replaced " + helpers.mapString(result);
+        else
+            return "Added map";
+    }
+    else
+        return "Couldn't add map";
+}
+
+/**
  * Approves a map
  * @param {number} mapid
  * @param {number} mods
@@ -897,5 +930,6 @@ module.exports = {
     approveMap,
     rejectMap,
     rejectScreenshot,
-    viewMissingMaps
+    viewMissingMaps,
+    manualAddMap
 };
