@@ -206,6 +206,7 @@ async function addPlayer(osuid, discordid, utc, division)
     if (player)
     {
         player.division = division;
+        player.utc = utc;
         db.updatePlayer(player);
         return {
             added: false,

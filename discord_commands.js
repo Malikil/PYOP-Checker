@@ -265,13 +265,13 @@ const commands = {
                 else
                     return msg.channel.send("Couldn't find player info from osu server");
             else if (result.confirmed)
-                return msg.channel.send("You've already registered!");
+                return msg.channel.send("You've already registered! Your information has been updated");
             else
                 return msg.channel.send("You've already registered! Please message Malikil " +
                     "in game to complete your registration\n" +
                     `\`\`\`\n!confirm ${msg.author.id}\n\`\`\``);
         else
-            return msg.channel.send("Registration received, please now message Malikil " +
+            return msg.channel.send("Registration received, please message Malikil " +
                 "in-game with the following message:\n" +
                 `\`\`\`\n!confirm ${msg.author.id}\n\`\`\``);
     },
