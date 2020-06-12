@@ -4,6 +4,59 @@ const Command = require('./commands');
 const { inspect } = require('util');
 const { checkVals } = require('./checker');
 
+//#region Helper functions
+/**
+ * Assumes passed is false and rejected is true
+ * @param {{
+ *  check?: {
+ *      rejected: boolean,
+ *      reject_on?: "Drain" | "Length" | "Stars" | "User" | "Data"
+ *      reject_type?: "High" | "Low"
+ *      issues?: ("2b" | "slider2b" | "spinner" | "position" | "leaderboard")[]
+ *  },
+ *  beatmap?: any,
+ *  division?: "15k" | "open"
+ * }} checkResult 
+ */
+function createRejectString(checkResult)
+{
+    // checkResult.check.rejected == true implicitly
+    let min = checkVals.minStar;
+    let max = checkVals.maxStar;
+    if (checkResult.division === "15k")
+    {
+        min = checkVals.lowMin;
+        max = checkVals.lowMax;
+    }
+    // Parse how the map got rejected
+    switch (checkResult.check.reject_on)
+    {
+        case "Drain":
+            if (checkResult.check.reject_type === "High")
+                return `The drain time is more than ${checkVals.drainBuffer} seconds above the ` +
+                    `${helpers.convertSeconds(checkVals.maxLength)} max (${helpers.convertSeconds(checkResult.beatmap.drain)}).`;
+            else
+                return `The drain time is more than ${checkVals.drainBuffer} seconds below the ` +
+                    `${helpers.convertSeconds(checkVals.minLength)} min (${helpers.convertSeconds(checkResult.beatmap.drain)}).`;
+        case "Length":
+            return `The total map length is longer than the ${helpers.convertSeconds(checkVals.absoluteMax)}` +
+                `limit (${helpers.convertSeconds(checkResult.beatmap.data.total_length)})`;
+        case "Stars":
+            if (checkResult.check.reject_type === "High")
+                return `The star rating is above the ${max} maximum (${checkResult.beatmap.stars})`;
+            else
+                return `The star rating is below the ${min} minimum (${checkResult.beatmap.stars})`;
+        case "Data":
+            // Will be either 2b or slider2b, the other data issues don't reject
+            let e = "Circle during slider track";
+            if (checkResult.check.issues.includes("2b"))
+                e = "Two circles are at the same time";
+            return "Some objects in the map have issues: " + e;
+        case "User":
+            return "You can't use your own maps";
+    }
+}
+//#endregion
 
 /**
  * Splits a string into args
@@ -109,44 +162,13 @@ const commands = {
             discordid: msg.author.id
         });
         if (result.passed)
-            return msg.channel.send("This map could be accepted automatically");
+            return msg.channel.send("This map could be automatically approved");
         else if (result.error)
             return msg.channel.send(result.error);
         else if (result.check.rejected)
-        {
-            let min = checkVals.minStar;
-            let max = checkVals.maxStar;
-            if (result.division === "15k")
-            {
-                min = checkVals.lowMin;
-                max = checkVals.lowMax;
-            }
-            // Parse how the map got rejected
-            switch (result.check.reject_on)
-            {
-                case "Drain":
-                    if (result.check.reject_type === "High")
-                        return msg.channel.send(`The drain time is more than ${checkVals.drainBuffer} seconds above the ` +
-                            `${helpers.convertSeconds(checkVals.maxLength)} max (${helpers.convertSeconds(result.beatmap.drain)}).`);
-                    else
-                        return msg.channel.send(`The drain time is more than ${checkVals.drainBuffer} seconds below the ` +
-                            `${helpers.convertSeconds(checkVals.minLength)} min (${helpers.convertSeconds(result.beatmap.drain)}).`);
-                case "Length":
-                    return msg.channel.send(`The total map length is longer than the ${helpers.convertSeconds(checkVals.absoluteMax)}` +
-                        `limit (${helpers.convertSeconds(result.beatmap.data.total_length)})`);
-                case "Stars":
-                    if (result.check.reject_type === "High")
-                        return msg.channel.send(`The star rating is above the ${max} maximum (${result.beatmap.stars})`);
-                    else
-                        return msg.channel.send(`The star rating is below the ${min} minimum (${result.beatmap.stars})`);
-                case "Data":
-                    return msg.channel.send(`Some objects in the map have issues: ${result.check.message}`);
-                case "User":
-                    return msg.channel.send("You can't use your own maps");
-            }
-        }
+            return msg.channel.send(createRejectString(result));
         else
-            return msg.channel.send("This map would need to be manually approved");
+            return msg.channel.send("This map would need to be manually checked");
     },
 
     /**
@@ -345,45 +367,8 @@ const commands = {
                 `Message: ${result.error}`
             );
         else
-        {
-            // Why wasn't the map added?
-            let min = checkVals.minStar;
-            let max = checkVals.maxStar;
-            if (result.division === "15k")
-            {
-                min = checkVals.lowMin;
-                max = checkVals.lowMax;
-            }
-            // Parse how the map got rejected
-            let str;
-            switch (result.check.reject_on)
-            {
-                case "Drain":
-                    if (result.check.reject_type === "High")
-                        str = `The drain time is more than ${checkVals.drainBuffer} seconds above the ` +
-                            `${helpers.convertSeconds(checkVals.maxLength)} max (${helpers.convertSeconds(result.beatmap.drain)}).`;
-                    else
-                        str = `The drain time is more than ${checkVals.drainBuffer} seconds below the ` +
-                            `${helpers.convertSeconds(checkVals.minLength)} min (${helpers.convertSeconds(result.beatmap.drain)}).`;
-                    break;
-                case "Length":
-                    str = `The total map length is longer than the ${helpers.convertSeconds(checkVals.absoluteMax)}` +
-                        `limit (${helpers.convertSeconds(result.beatmap.data.total_length)})`;
-                    break;
-                case "Stars":
-                    if (result.check.reject_type === "High")
-                        str = `The star rating is above the ${max} maximum (${result.beatmap.stars})`;
-                    else
-                        str = `The star rating is below the ${min} minimum (${result.beatmap.stars})`;
-                    break;
-                case "Data":
-                    str = `Some objects in the map have issues: ${result.check.message}`;
-                    break;
-                case "User":
-                    str = "You can't use your own maps";
-            }
-            return msg.channel.send(`Rejected ${helpers.mapString(result.beatmap)}:\n${str}`);
-        }
+            return msg.channel.send(`Rejected ${helpers.mapString(result.beatmap)}:\n` +
+                createRejectString(result));
     },
 
     /**

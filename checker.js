@@ -152,7 +152,7 @@ function quickCheck(beatmap, userid = undefined, lowDiv = false)
  *  rejected: boolean,
  *  reject_on?: "Drain"|"Length"|"Stars"|"User"|"Data",
  *  reject_type?: "High"|"Low",
- *  message?: string
+ *  issues?: ("2b"|"slider2b"|"spinner"|"position")[]
  * }>} A map object with all needed basic info
  */
 async function mapCheck(map, division = undefined, user = "")
@@ -205,28 +205,38 @@ async function mapCheck(map, division = undefined, user = "")
     // Check object data
     // 2b and circles appearing before spinner
     let last;
-    let message;
-    if (map.data.objects.some(obj => {
+    /** @type {("2b"|"slider2b"|"spinner"|"position")[]} */
+    let issues = [];
+    map.data.objects.forEach(obj => {
         if (last)
         {
             // Check 2b circles
             if (Math.abs(obj.time - last.time) <= 10)
-                return message = "Two objects at the same time";
+                issues.push("2b");
             // Check circles during slider
             // It looks like the library I use for parsing beatmaps doesn't
             // save spinner lengths >:(
             // I'd like to avoid parsing manually if possible D:
             // I'll see how well things go if I just leave it out
-            if ((last.type & (1 << 1)) && (obj.time < last.end)) // Slider
-                return message = "Circle during slider track";
+            else if ((last.type & (1 << 1)) && (obj.time < last.end)) // Slider
+                issues.push("slider2b");
             else if ((last.type & (1 << 3)) && (obj.time - map.data.ar_delay < last.time - 330))
-                return message = "Object appears before earlier spinner";
+                issues.push("spinner");
+            
+            // How big is the playfield?
+            // 512 x 384
+            if (obj.pos && (
+                    obj.pos.x > 512 || obj.pos.x < 0 ||
+                    obj.pos.y > 384 || obj.pos.y < 0
+            )) issues.push("position");
         }
         last = obj;
-    })) return {
-            rejected: true,
+    });
+    if (issues.length > 0)
+        return {
+            rejected: issues.includes("slider2b") || issues.includes("2b"),
             reject_on: "Data",
-            message
+            issues
         };
 
     return { rejected: false };

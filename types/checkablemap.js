@@ -16,7 +16,8 @@ module.exports = class CheckableMap {
      *  objects: {
      *      type: number,
      *      time: number,
-     *      end?: number
+     *      end?: number,
+     *      pos?: {x:number, y:number}
      *  }[]
      * }} o.data
      */

@@ -84,7 +84,7 @@ async function getConfirmation(msg, prompt = undefined, accept = ['y', 'yes'], r
  *      rejected: boolean,
  *      reject_on?: "Drain" | "Length" | "Stars" | "User" | "Data",
  *      reject_type?: "High" | "Low",
- *      message?: string
+ *      issues?: ("2b"|"slider2b"|"spinner"|"position"|"leaderboard")[]
  *  },
  *  beatmap?: *,
  *  division?: "open"|"15k"
@@ -122,7 +122,7 @@ async function checkMap(mapid, {
         let beatmap = await helpers.beatmapObject(mapid, mods);
         let quick = await checker.mapCheck(beatmap, division, osuname);
         console.log(`Quick check returned: ${quick}`);
-        if (quick.rejected)
+        if (quick.rejected || quick.issues)
             return {
                 passed: false,
                 check: quick,
@@ -132,7 +132,7 @@ async function checkMap(mapid, {
         
         let status = {
             passed: false,
-            message: "Map isn't ranked"
+            message: "Map has no leaderboard"
         };
         status = await checker.leaderboardCheck(mapid, mods, osuid);
         if (status.passed)
@@ -146,7 +146,7 @@ async function checkMap(mapid, {
                 passed: false,
                 check: {
                     rejected: false,
-                    message: status.message
+                    issues: ["leaderboard"]
                 },
                 beatmap,
                 division
@@ -156,10 +156,7 @@ async function checkMap(mapid, {
     {
         return {
             passed: false,
-            check: {
-                rejected: false,
-                message: err
-            },
+            error: err,
             division
         };
     }
@@ -423,16 +420,16 @@ async function updatePlayerName(playerid)
  * @param {number|string} p1.osuid Optional, osu id or osu username
  * 
  * @returns {Promise<{
+ *   added: boolean,
  *   error?: string,
  *   check?: {
  *      rejected: boolean,
  *      reject_on?: "Drain"|"Length"|"Stars"|"User"|"Data",
  *      reject_type?: "High"|"Low",
- *      message?: string
+ *      issues?: ("2b"|"slider2b"|"spinner"|"position"|"leaderboard")[]
  *   },
  *   beatmap?: DbBeatmap|CheckableMap,
  *   division?: "open"|"15k",
- *   added: boolean,
  *   replaced?: DbBeatmap,
  *   current?: DbBeatmap[]
  * }>}
@@ -463,7 +460,7 @@ async function addMap(mapid, {
             added: false
         };
     else if ((await checker.leaderboardCheck(mapid, mods, player.division, player.osuid)).passed)
-        if (beatmap.version !== "Aspire")
+        if (beatmap.version !== "Aspire" && (!quick.issues || quick.issues.length === 0))
             status = "Accepted (Automatic)";
         else
             status = "Pending";

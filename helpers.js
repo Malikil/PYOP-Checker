@@ -199,109 +199,123 @@ function beatmapObject(mapid, mods = 0)
         })
         .on('line', parser.feed_line.bind(parser))
         .on('close', () => {
-            if (parser.map.objects.length < 1)
-                return reject("Map doesn't exist");
-            // Make sure the map is for std, otherwise star calculation breaks
-            if (parser.map.mode !== 0)
-                return reject("Map is not a std map");
-            let map = new CheckableMap({
-                bid: mapid,
-                artist: parser.map.artist,
-                title: parser.map.title,
-                version: parser.map.version,
-                creator: parser.map.creator,
-                data: {}
-            });
-            // Convert hit objects
-            // Assume timing points are in order
-            let timingindex = 0;
-            let basems = parser.map.timing_points[0].ms_per_beat;
-            let inherited = -100;
-            map.data.objects = parser.map.objects.map(hitobject => {
-                let obj = {
-                    type: hitobject.type,
-                    time: hitobject.time
-                };
-                if (hitobject.type & (1 << 1))
-                {
-                    while (parser.map.timing_points.length > timingindex &&
-                            hitobject.time >= parser.map.timing_points[timingindex].time)
+            try
+            {
+                if (parser.map.objects.length < 1)
+                    return reject("Map doesn't exist");
+                // Make sure the map is for std, otherwise star calculation breaks
+                if (parser.map.mode !== 0)
+                    return reject("Map is not a std map");
+                let map = new CheckableMap({
+                    bid: mapid,
+                    artist: parser.map.artist,
+                    title: parser.map.title,
+                    version: parser.map.version,
+                    creator: parser.map.creator,
+                    data: {}
+                });
+                // Convert hit objects
+                // Assume timing points are in order
+                let timingindex = 0;
+                let basems = parser.map.timing_points[0].ms_per_beat;
+                let inherited = -100;
+                map.data.objects = parser.map.objects.map(hitobject => {
+                    let obj = {
+                        type: hitobject.type,
+                        time: hitobject.time
+                    };
+                    if (hitobject.type & (1 << 1))
                     {
-                        // Update ms per beat values
-                        if (parser.map.timing_points[timingindex].change)
+                        while (parser.map.timing_points.length > timingindex &&
+                                hitobject.time >= parser.map.timing_points[timingindex].time)
                         {
-                            basems = parser.map.timing_points[timingindex].ms_per_beat;
-                            inherited = -100;
+                            // Update ms per beat values
+                            if (parser.map.timing_points[timingindex].change)
+                            {
+                                basems = parser.map.timing_points[timingindex].ms_per_beat;
+                                inherited = -100;
+                            }
+                            else
+                                inherited = Math.max(parser.map.timing_points[timingindex].ms_per_beat, -1000);
+                            // Increment index
+                            timingindex++;
                         }
-                        else
-                            inherited = Math.max(parser.map.timing_points[timingindex].ms_per_beat, -1000);
-                        // Increment index
-                        timingindex++;
+                        // Calculate the ms per beat
+                        let svms = basems / (-100 / inherited);
+                        let mslength = hitobject.data.distance / (parser.map.sv * 100) * svms * hitobject.data.repetitions;
+                        obj.end = hitobject.time + mslength;
                     }
-                    // Calculate the ms per beat
-                    let svms = basems / (-100 / inherited);
-                    let mslength = hitobject.data.distance / (parser.map.sv * 100) * svms * hitobject.data.repetitions;
-                    obj.end = hitobject.time + mslength;
-                }
-                return obj;
-            });
-            // Drain/total time
-            let last = map.data.objects[map.data.objects.length - 1];
-            let first = map.data.objects[0];
-            map.data.total_length = parseInt((last.time / 1000).toFixed(0));
-            map.drain = parseInt(((last.time - first.time) / 1000).toFixed(0));
-            // Stars
-            map.stars = parseFloat(new ojsama.diff().calc({ map: parser.map, mods }).total.toFixed(2));
-            // BPM
-            let bpms = parser.map.timing_points.reduceRight((vals, point) => {
-                if (!point.change)
+                    // If the object has extended data, add the position
+                    else if (hitobject.data)
+                        obj.pos = {
+                            x: hitobject.data.pos[0],
+                            y: hitobject.data.pos[1]
+                        };
+                    return obj;
+                });
+                // Drain/total time
+                let last = map.data.objects[map.data.objects.length - 1];
+                let first = map.data.objects[0];
+                map.data.total_length = parseInt((last.time / 1000).toFixed(0));
+                map.drain = parseInt(((last.time - first.time) / 1000).toFixed(0));
+                // Stars
+                map.stars = parseFloat(new ojsama.diff().calc({ map: parser.map, mods }).total.toFixed(2));
+                // BPM
+                let bpms = parser.map.timing_points.reduceRight((vals, point) => {
+                    if (!point.change)
+                        return vals;
+                    let bpm = 1 / point.ms_per_beat * 1000 * 60;
+                    // Round bpm to three decimal places
+                    bpm = bpm.toFixed(3);
+                    let time = vals.last - point.time;
+                    vals[bpm] = (vals[bpm] || 0) + time;
+                    vals.last = point.time;
                     return vals;
-                let bpm = 1 / point.ms_per_beat * 1000 * 60;
-                // Round bpm to three decimal places
-                bpm = bpm.toFixed(3);
-                let time = vals.last - point.time;
-                vals[bpm] = (vals[bpm] || 0) + time;
-                vals.last = point.time;
-                return vals;
-            }, { last: last.time });
-            console.log(`${mapid} has bpms:`);
-            console.log(bpms);
-            map.bpm = parseFloat(
-                Object.keys(bpms).reduce((p, c) => bpms[c] < bpms[p] ? p : c, 0)
-            );
-            // Find AR for ms delay
-            let ar = parser.map.ar || parser.map.od;
-            if (mods & MODS.HR)
-                ar = Math.min(ar * 1.4, 10);
-            else if (mods & MODS.EZ)
-                ar /= 2;
-            // Convert to ms
-            if (ar < 5)
-                map.data.ar_delay = 1200 + (600 * (5 - ar) / 5);
-            else if (ar > 5)
-                map.data.ar_delay = 1200 - (750 * (ar - 5) / 5);
-            else
-                map.data.ar_delay = 1200;
+                }, { last: last.time });
+                console.log(`${mapid} has bpms:`);
+                console.log(bpms);
+                map.bpm = parseFloat(
+                    Object.keys(bpms).reduce((p, c) => bpms[c] < bpms[p] ? p : c, 0)
+                );
+                // Find AR for ms delay
+                let ar = parser.map.ar || parser.map.od;
+                if (mods & MODS.HR)
+                    ar = Math.min(ar * 1.4, 10);
+                else if (mods & MODS.EZ)
+                    ar /= 2;
+                // Convert to ms
+                if (ar < 5)
+                    map.data.ar_delay = 1200 + (600 * (5 - ar) / 5);
+                else if (ar > 5)
+                    map.data.ar_delay = 1200 - (750 * (ar - 5) / 5);
+                else
+                    map.data.ar_delay = 1200;
 
-            // Update with dt/ht
-            if (mods & MODS.DT)
-            {
-                map.data.total_length = (map.data.total_length * (2.0 / 3.0)) | 0;
-                map.drain = (map.drain * (2.0 / 3.0)) | 0;
-                map.data.ar_delay *= (2.0 / 3.0);
-                map.bpm = parseFloat((map.bpm * (3.0 / 2.0)).toFixed(3));
-            }
-            else if (mods & MODS.HT)
-            {
-                map.data.total_length = (map.data.total_length * (4.0 / 3.0)) | 0;
-                map.drain = (map.drain * (4.0 / 3.0)) | 0;
-                map.data.ar_delay *= (4.0 / 3.0);
-                map.bpm = parseFloat((map.bpm * (3.0 / 4.0)).toFixed(3));
-            }
-            // Add mods to make it easier later
-            map.mods = mods;
+                // Update with dt/ht
+                if (mods & MODS.DT)
+                {
+                    map.data.total_length = (map.data.total_length * (2.0 / 3.0)) | 0;
+                    map.drain = (map.drain * (2.0 / 3.0)) | 0;
+                    map.data.ar_delay *= (2.0 / 3.0);
+                    map.bpm = parseFloat((map.bpm * (3.0 / 2.0)).toFixed(3));
+                }
+                else if (mods & MODS.HT)
+                {
+                    map.data.total_length = (map.data.total_length * (4.0 / 3.0)) | 0;
+                    map.drain = (map.drain * (4.0 / 3.0)) | 0;
+                    map.data.ar_delay *= (4.0 / 3.0);
+                    map.bpm = parseFloat((map.bpm * (3.0 / 4.0)).toFixed(3));
+                }
+                // Add mods to make it easier later
+                map.mods = mods;
 
-            resolve(map);
+                resolve(map);
+            }
+            catch (err)
+            {
+                console.error(err);
+                reject(err);
+            }
         });
     });
 }
