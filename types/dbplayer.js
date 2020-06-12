@@ -22,11 +22,12 @@ module.exports = class DbPlayer {
         this.utc = utc;
         this.unconfirmed = unconfirmed;
         this.notif = notif;
-        if (maps[0] instanceof DbBeatmap)
-            /** @type {DbBeatmap[]} */
-            this.maps = maps;
-        else
-            this.maps = maps.map(m => new DbBeatmap(m));
+        if (maps)
+            if (maps[0] instanceof DbBeatmap)
+                /** @type {DbBeatmap[]} */
+                this.maps = maps;
+            else
+                this.maps = maps.map(m => new DbBeatmap(m));
     }
 
     /**

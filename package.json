@@ -12,11 +12,10 @@
   "dependencies": {
     "bancho.js": "^0.9.6",
     "discord.js": "^11.5.1",
-    "googleapis": "^43.0.0",
+    "google-spreadsheet": "^3.0.11",
     "mongodb": "^3.5.2",
     "node-fetch": "^2.6.0",
-    "ojsama": "^1.2.5",
-    "osu-parser": "^0.3.3"
+    "ojsama": "^1.2.5"
   },
   "engines": {
     "node": "11.x"

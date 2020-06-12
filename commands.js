@@ -367,10 +367,13 @@ async function confirmRegistration(osuname, discordid)
         {
             let result = await db.confirmPlayer(player.osuid, discordid);
             if (result)
+            {
+                google.addPlayer(player);
                 return {
                     confirmed: true,
                     updated: true
                 };
+            }
             else
                 return {
                     confirmed: false,

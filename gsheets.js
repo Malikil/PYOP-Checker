@@ -1,25 +1,10 @@
-const {google} = require('googleapis');
+const { GoogleSpreadsheet } = require('google-spreadsheet');
 //const util = require('util');
-const sheets = google.sheets('v4');
-const spreadsheetId = process.env.SPREADSHEET_ID;
-const { modString, convertSeconds } = require('./helpers');
+const doc = new GoogleSpreadsheet(process.env.SPREADSHEET_ID);
+const helpers = require('./helpers');
+const { DbPlayer } = require('./types');
 
-// Copied from commands.js (import didn't seem to work)
-const mapString = map => `${map.artist} - ${map.title} [${map.version}]`;
-const mapLink = map => `https://osu.ppy.sh/b/${map.id}`;
-/*function modString(mod)
-{
-    let str = '';
-    if (mod & MODS.HD)      str += 'HD';
-    if (mod & MODS.HR)      str += 'HR';
-    else if (mod & MODS.EZ) str += 'EZ';
-    if (mod & MODS.DT)      str += 'DT';
-    else if (mod & MODS.HT) str += 'HT';
-    if (str == '')                  str = 'NM';
-    return str;
-}*/
-
-const authFactory = new google.auth.GoogleAuth({
+/*const authFactory = new google.auth.GoogleAuth({
     scopes: ['https://www.googleapis.com/auth/spreadsheets']
 });
 const auth = authFactory.fromJSON(
@@ -30,7 +15,16 @@ auth.authorize((err, cred) => {
         console.error(err);
     else
         console.log("Connected to google api");
-});
+});*/
+var loaded = doc.useServiceAccountAuth(
+    JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS)
+).then(
+    () => doc.loadInfo()
+).then(
+    () => console.log(`Connected to sheet: ${doc.title}`)
+).catch(
+    err => console.error(err)
+);
 
 /**
  * Puts the maps from a single team into an array
@@ -156,7 +150,31 @@ async function pushMaps(rowdata)
     });
 }
 
+/**
+ * Adds a player to google sheets
+ * @param {DbPlayer} player 
+ */
+async function addPlayer(player) {
+    await loaded;
+    let sheet = doc.sheetsByIndex.find(s => s.title === "PlayerList");
+    console.log(sheet);
+    await sheet.loadCells();
+    // Player output range in cells 2,14 to n,16
+    // Find which row to add the player to
+    let playerRow = 2;
+    let playerIdCell;
+    // Increment playerRow until an empty row is found (value == '')
+    while ((playerIdCell = sheet.getCell(playerRow, 14)).value) playerRow++;
+    // Set cell contents
+    playerIdCell.value = player.osuid;
+    sheet.getCell(playerRow, 15).value = player.utc;
+    sheet.getCell(playerRow, 16).value = player.division;
+    // Save changes
+    return sheet.saveUpdatedCells();
+}
+
 module.exports = {
     getSheetData,
-    pushMaps
+    pushMaps,
+    addPlayer
 }
