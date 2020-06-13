@@ -45,7 +45,7 @@ async function performAction(action)
  */
 function regexify(str, options)
 {
-    str = str.replace('_', "(?: |_)")
+    str = str.replace(/_/g, "(?: |_)")
         .replace('[', '\\[')
         .replace(']', "\\]")
         .replace('+', "\\+");
