@@ -159,7 +159,7 @@ async function apiBeatmap(mapid, mod)
     if (!beatmap)
         return undefined;
     let map = new CheckableMap({
-        bid: beatmap.beatmap_id,
+        bid: parseInt(beatmap.beatmap_id),
         artist: beatmap.artist,
         title: beatmap.title,
         version: beatmap.version,

@@ -222,14 +222,13 @@ async function pushMaps(players) {
 }
 
 async function createExportInterface() {
-    let sheet = doc.sheetsByIndex.find(s => s.title === "Exported");
+    var sheet = doc.sheetsByIndex.find(s => s.title === "Exported");
     if (!sheet)
         sheet = await doc.addSheet({
             title: "Exported"
         });
-    // Not sure if this will load the sheet,
-    // but if I can both load and clear in a single step that's great
-    await sheet.clear();
+    // Load the cells
+    await sheet.loadCells();
     // Insert into two sets of columns
     // Track the rows for each
     var openRow = 0;
@@ -239,35 +238,39 @@ async function createExportInterface() {
          * @param {DbPlayer} player
          */
         parsePlayer: player => {
-            let baseCol = 0;
-            let row = openRow;
-            if (player.division === '15k')
+            try
             {
-                baseCol = 8;
-                row = fiftRow;
+                let baseCol = 0;
+                let row = openRow;
+                if (player.division === '15k')
+                {
+                    baseCol = 8;
+                    row = fiftRow;
+                }
+                // Player's name and division
+                sheet.getCell(row, baseCol).value = player.osuname;
+                sheet.getCell(row, baseCol + 2).value = player.division;
+                // Sort the maps by mod and add them to sheet
+                player.maps.sort((a, b) => a.mods - b.mods).forEach((map, i) => {
+                    sheet.getCell(row + 1 + i, baseCol).value = helpers.modString(map.mods);
+                    sheet.getCell(row + 1 + i, baseCol + 1).value = map.creator;
+                    sheet.getCell(row + 1 + i, baseCol + 2).formula =
+                        `=HYPERLINK("${helpers.mapLink(map)}","${helpers.mapString(map).replace(/"/g, '"&CHAR(34)&"')}")`;
+                    sheet.getCell(row + 1 + i, baseCol + 3).value = map.stars;
+                    sheet.getCell(row + 1 + i, baseCol + 4).value = helpers.convertSeconds(map.drain);
+                    sheet.getCell(row + 1 + i, baseCol + 5).value = map.bpm;
+                    sheet.getCell(row + 1 + i, baseCol + 6).value = map.bid;
+                });
+                // Update the current row
+                if (player.division === '15k')
+                    fiftRow += player.maps.length + 1;
+                else
+                    openRow += player.maps.length + 1;
             }
-            // Player's name and division
-            sheet.getCell(row, baseCol).value = player.osuname;
-            sheet.getCell(row, baseCol + 2).value = player.division;
-            // Sort the maps by mod and add them to sheet
-            player.maps.sort((a, b) => a.mods - b.mods).forEach((map, i) => {
-                sheet.getCell(row + 1 + i, baseCol).value = helpers.modString(map.mods);
-                sheet.getCell(row + 1 + i, baseCol + 1).value = map.creator;
-                sheet.getCell(row + 1 + i, baseCol + 2).formula =
-                    `=HYPERLINK("${helpers.mapLink(map)}","${helpers.mapString(map).replace('"', '"&CHAR(34)&"')}")`;
-                sheet.getCell(row + 1 + i, baseCol + 3).value = map.stars;
-                sheet.getCell(row + 1 + i, baseCol + 4).value = helpers.convertSeconds(map.drain);
-                sheet.getCell(row + 1 + i, baseCol + 5).value = map.bpm;
-                sheet.getCell(row + 1 + i, baseCol + 6).value = map.bid;
-            });
-            // Update the current row
-            if (player.division === '15k')
-                fiftRow += player.maps.length + 1;
-            else
-                openRow += player.maps.length + 1;
+            catch (err) { return Promise.reject(err); }
         },
         commitChanges: async () => sheet.saveUpdatedCells()
-    }
+    };
 }
 
 module.exports = {

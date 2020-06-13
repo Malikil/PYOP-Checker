@@ -271,7 +271,7 @@ async function exportMaps()
     {
         let sheetfuncs = await google.createExportInterface();
 
-        await db.performAction(sheetfuncs.parsePlayer);
+        console.log(await db.performAction(sheetfuncs.parsePlayer));
         let response = await sheetfuncs.commitChanges();
         console.log(response);
         return { ok: true }
@@ -448,7 +448,7 @@ async function addMap(mapid, {
     if (!player || player.unconfirmed)
         return {
             added: false,
-            error: "Player not found"
+            error: "Player not found or registration not completed"
         };
 
     // Check beatmap approval
