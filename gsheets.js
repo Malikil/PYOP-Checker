@@ -157,7 +157,7 @@ var loaded = doc.useServiceAccountAuth(
 async function addPlayer(player) {
     await loaded;
     let sheet = doc.sheetsByIndex.find(s => s.title === "PlayerList");
-    console.log(sheet);
+    console.log(sheet.title);
     await sheet.loadCells();
     // Player output range in cells 2,14 to n,16
     // Find which row to add the player to

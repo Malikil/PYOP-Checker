@@ -56,7 +56,6 @@ function createRejectString(checkResult)
             return "You can't use your own maps";
     }
 }
-//#endregion
 
 /**
  * Splits a string into args
@@ -110,6 +109,7 @@ async function getConfirmation(msg, prompt = undefined, accept = ['y', 'yes'], r
         err
     };
 }
+//#endregion
 
 const commands = {
     //#region ============================== Public ==============================
@@ -136,7 +136,8 @@ const commands = {
                     return prev;
                 return `${prev}\nAvailable **${key}** commands:\n` +
                     sorted[key].reduce((p, c) => `${p}, !${c}`, '').slice(2);
-            }, '')
+            }, '') +
+            "\nUse ? after a command to get more information about it, eg `!check ?`"
         );
     },
 
