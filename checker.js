@@ -220,7 +220,7 @@ async function mapCheck(map, division = undefined, user = "")
             // I'll see how well things go if I just leave it out
             else if ((last.type & (1 << 1)) && (obj.time < last.end)) // Slider
                 issues.push("slider2b");
-            else if ((last.type & (1 << 3)) && (obj.time - map.data.ar_delay < last.time - 330))
+            else if ((last.type & (1 << 3)) && (obj.time - map.data.ar_delay) < (last.time - 330))
                 issues.push("spinner");
             
             // How big is the playfield?

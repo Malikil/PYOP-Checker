@@ -455,6 +455,7 @@ async function addMap(mapid, {
     console.log(`Looking for map with id ${mapid} and mod ${mods}`);
     let beatmap = await helpers.beatmapObject(mapid, mods);
     let quick = await checker.mapCheck(beatmap, player.division, player.osuname);
+    console.log(quick);
     let status;
     if (quick.rejected)
         return {

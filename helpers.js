@@ -286,12 +286,15 @@ function beatmapObject(mapid, mods = 0)
                     Object.keys(bpms).reduce((p, c) => bpms[c] < bpms[p] ? p : c, 0)
                 );
                 // Find AR for ms delay
-                let ar = parser.map.ar || parser.map.od;
+                let ar = parser.map.ar;
+                if (ar === undefined)
+                    ar = parser.map.od;
                 if (mods & MODS.HR)
                     ar = Math.min(ar * 1.4, 10);
                 else if (mods & MODS.EZ)
                     ar /= 2;
                 // Convert to ms
+                console.log(`Approach Rate: ${ar}`);
                 if (ar < 5)
                     map.data.ar_delay = 1200 + (600 * (5 - ar) / 5);
                 else if (ar > 5)
