@@ -364,7 +364,7 @@ const commands = {
             );
         else if (result.error)
             return msg.channel.send(
-                `Couldn't add ${result.beatmap ? helpers.mapString(result.beatmap) : "map"}\n` +
+                `Couldn't add ${result.beatmap ? helpers.mapString(result.beatmap) : "unknown beatmap"}\n` +
                 `Message: ${result.error}`
             );
         else

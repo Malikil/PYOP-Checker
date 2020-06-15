@@ -210,10 +210,7 @@ function beatmapObject(mapid, mods = 0)
             try
             {
                 if (parser.map.objects.length < 1)
-                    return reject("Map doesn't exist");
-                // Make sure the map is for std, otherwise star calculation breaks
-                if (parser.map.mode !== 0)
-                    return reject("Map is not a std map");
+                    return reject({ error: "Map doesn't exist" });
                 let map = new CheckableMap({
                     bid: mapid,
                     artist: parser.map.artist,
@@ -222,6 +219,12 @@ function beatmapObject(mapid, mods = 0)
                     creator: parser.map.creator,
                     data: {}
                 });
+                // Make sure the map is for std, otherwise star calculation breaks
+                if (parser.map.mode !== 0)
+                    return reject({
+                        error: "Map is not a std map",
+                        map
+                    });
                 // Convert hit objects
                 // Assume timing points are in order
                 let timingindex = 0;

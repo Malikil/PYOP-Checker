@@ -156,7 +156,8 @@ async function checkMap(mapid, {
     {
         return {
             passed: false,
-            error: err,
+            error: err.error || err,
+            beatmap: err.map,
             division
         };
     }
@@ -453,91 +454,102 @@ async function addMap(mapid, {
 
     // Check beatmap approval
     console.log(`Looking for map with id ${mapid} and mod ${mods}`);
-    let beatmap = await helpers.beatmapObject(mapid, mods);
-    let quick = await checker.mapCheck(beatmap, player.division, player.osuname);
-    console.log(quick);
-    let status;
-    if (quick.rejected)
-        return {
-            check: quick,
-            beatmap,
-            division: player.division,
-            added: false
-        };
-    else if ((await checker.leaderboardCheck(mapid, mods, player.division, player.osuid)).passed)
-        if (beatmap.version !== "Aspire" && (!quick.issues || quick.issues.length === 0))
-            status = "Accepted (Automatic)";
-        else
-            status = "Pending";
-    else
-        status = "Screenshot Required";
-    
-    // Get the mod pool this map is being added to
-    let modpool = cm ? "cm" : helpers.getModpool(mods);
-
-    // Check if a map should be removed to make room for this one
-    // We need the first rejected map, and a count of maps in the modpool
-    let rejected;
-    let count = player.maps.reduce((n, m) => {
-        if (m.pool === modpool)
-        {
-            if (!rejected && m.status.startsWith("Rejected"))
-                rejected = m;
-            return n + 1;
-        }
-        else return n;
-    }, 0);
-    if (rejected && count > 1)
-        await db.removeMap(player.osuid, rejected.bid, rejected.pool, rejected.mods);
-    else // We don't need to remove a map, because there's still an empty space
-        rejected = undefined;
-
-    let mapitem = new DbBeatmap({
-        ...beatmap,
-        status,
-        pool: modpool
-    });
-    
-    let result = await db.addMap(player.osuid, mapitem);
-    if (result)
+    try
     {
-        // Prepare the current pool state
-        let cur = [];
-        let skipped = false; // Whether we've skipped a map yet
-        player.maps.forEach(m => {
-            // Get maps with matching mods
-            if (m.mods === mods)
-            {
-                // Make sure it's not the removed map
-                if (skipped || (m.bid !== result.bid)
-                    && (rejected
-                        ? m.bid !== rejected.bid
-                        : true))
-                    cur.push(m);
-                else
-                    skipped = true;
-            }
-        });
-        // Add the newly added map
-        cur.push(mapitem);
+        let beatmap = await helpers.beatmapObject(mapid, mods);
+        let quick = await checker.mapCheck(beatmap, player.division, player.osuname);
+        console.log(quick);
+        let status;
+        if (quick.rejected)
+            return {
+                check: quick,
+                beatmap,
+                division: player.division,
+                added: false
+            };
+        else if ((await checker.leaderboardCheck(mapid, mods, player.division, player.osuid)).passed)
+            if (beatmap.version !== "Aspire" && (!quick.issues || quick.issues.length === 0))
+                status = "Accepted (Automatic)";
+            else
+                status = "Pending";
+        else
+            status = "Screenshot Required";
         
-        // Send status and current pool info
-        let replaced = rejected;
-        if (result.bid)
-            replaced = result;
-        return {
-            replaced,
-            added: true,
-            beatmap: mapitem,
-            current: cur
-        };
+        // Get the mod pool this map is being added to
+        let modpool = cm ? "cm" : helpers.getModpool(mods);
+
+        // Check if a map should be removed to make room for this one
+        // We need the first rejected map, and a count of maps in the modpool
+        let rejected;
+        let count = player.maps.reduce((n, m) => {
+            if (m.pool === modpool)
+            {
+                if (!rejected && m.status.startsWith("Rejected"))
+                    rejected = m;
+                return n + 1;
+            }
+            else return n;
+        }, 0);
+        if (rejected && count > 1)
+            await db.removeMap(player.osuid, rejected.bid, rejected.pool, rejected.mods);
+        else // We don't need to remove a map, because there's still an empty space
+            rejected = undefined;
+
+        let mapitem = new DbBeatmap({
+            ...beatmap,
+            status,
+            pool: modpool
+        });
+        
+        let result = await db.addMap(player.osuid, mapitem);
+        if (result)
+        {
+            // Prepare the current pool state
+            let cur = [];
+            let skipped = false; // Whether we've skipped a map yet
+            player.maps.forEach(m => {
+                // Get maps with matching mods
+                if (m.mods === mods)
+                {
+                    // Make sure it's not the removed map
+                    if (skipped || (m.bid !== result.bid)
+                        && (rejected
+                            ? m.bid !== rejected.bid
+                            : true))
+                        cur.push(m);
+                    else
+                        skipped = true;
+                }
+            });
+            // Add the newly added map
+            cur.push(mapitem);
+            
+            // Send status and current pool info
+            let replaced = rejected;
+            if (result.bid)
+                replaced = result;
+            return {
+                replaced,
+                added: true,
+                beatmap: mapitem,
+                current: cur
+            };
+        }
+        else
+            return {
+                added: false,
+                error: "Add map failed.",
+                beatmap
+            };
     }
-    else
+    catch (err)
+    {
         return {
             added: false,
-            error: "Add map failed.",
-            beatmap
-        };
+            error: err.error || err,
+            beatmap: err.map
+        }
+    }
 }
 
 /**
