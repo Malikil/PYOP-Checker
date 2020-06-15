@@ -39,6 +39,15 @@ TODO
 ## Environment Variables
 The bot uses the following environment variables. Heroku will load these from .env when running locally, or from the app's settings when running online.  
 A lot of these are planned to eventually be phased out when I get a better system for doing divisions and generating rules, possibly through the bot on discord
+
+The .env file is just a bunch of key/value pairs, it will look something like this:  
+```
+OSUAPI=https://osu.ppy.sh/api
+OSUKEY=1234567890ABCDEF
+MIN_STAR=5.0
+MAX_STAR=6.0
+...
+```
 * `OSUAPI` Just set to `https://osu.ppy.sh/api`, I'll remove the need for this eventually.  
     Or otherwise make it actually useful, possibly for alternate server support. I haven't looked at how api access to alternate servers works
 * `OSUKEY` This is your osu api key
