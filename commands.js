@@ -819,7 +819,7 @@ async function viewPending(mods, status = "Pending")
     maplist.forEach(mod => {
         if (mods.includes(helpers.getModpool(mod._id)))
             result.push({
-                pool: helpers.getModpool(mod._id),
+                pool: helpers.modString(mod._id),
                 maps: mod.maps
             });
     });

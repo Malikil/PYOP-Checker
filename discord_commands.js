@@ -910,6 +910,7 @@ commands.removemap = commands.remove;
 commands.rem = commands.remove;
 commands.view = commands.viewpool;
 commands.list = commands.viewpool;
+commands.pool = commands.viewpool;
 commands.pass = commands.addpass;
 // ========== Approver ==========
 commands.accept = commands.approve;
@@ -972,10 +973,10 @@ commands.remove.help = "Usage: !remove <map> [mod]\n" +
     "Aliases: !rem, !removemap\n\n"// +
     //"If you make a mistake you can use !undo within 10 seconds to " +
     //"return your maps to how they were before.";
-commands.viewpool.help = "Usage: !view [mod]\n" +
+commands.viewpool.help = "Usage: !viewpool [mod]\n" +
     "View maps in your pool and their statuses. " +
     "Optionally limit to a specific set of mods from NM|HD|HR|DT|CM\n" +
-    "Aliases: !viewpool, !list";
+    "Aliases: !view, !list, !pool";
 commands.addpass.help = "Usage: !addpass <map> [screenshot]\n" +
     "map: A map link or beatmap id\n" +
     "screenshot: A link to a screenshot of your pass on the map\n" +
