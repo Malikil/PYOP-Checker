@@ -10,9 +10,9 @@ const { checkVals } = require('./checker');
  * @param {{
  *  check?: {
  *      rejected: boolean,
- *      reject_on?: "Drain" | "Length" | "Stars" | "User" | "Data"
+ *      reject_on?: "Drain" | "Length" | "Stars" | "Data"
  *      reject_type?: "High" | "Low"
- *      issues?: ("2b" | "slider2b" | "spinner" | "position" | "leaderboard")[]
+ *      issues?: ("2b" | "slider2b" | "spinner" | "position" | "leaderboard"|"user")[]
  *  },
  *  beatmap?: any,
  *  division?: "15k" | "open"
@@ -51,9 +51,9 @@ function createRejectString(checkResult)
             let e = "Circle during slider track";
             if (checkResult.check.issues.includes("2b"))
                 e = "Two circles are at the same time";
+            else if (checkResult.check.issues.includes("user"))
+                return "You can't use your own maps unless they're ranked";
             return "Some objects in the map have issues: " + e;
-        case "User":
-            return "You can't use your own maps";
     }
 }
 
@@ -165,6 +165,7 @@ const commands = {
             division: args[2],
             discordid: msg.author.id
         });
+        console.log(result);
         if (result.passed)
             return msg.channel.send("This map could be automatically approved");
         else if (result.error)

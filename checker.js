@@ -150,9 +150,9 @@ function quickCheck(beatmap, userid = undefined, lowDiv = false)
  * @param user The osu username of the person performing the check
  * @returns {Promise<{
  *  rejected: boolean,
- *  reject_on?: "Drain"|"Length"|"Stars"|"User"|"Data",
+ *  reject_on?: "Drain"|"Length"|"Stars"|"Data",
  *  reject_type?: "High"|"Low",
- *  issues?: ("2b"|"slider2b"|"spinner"|"position")[]
+ *  issues?: ("2b"|"slider2b"|"spinner"|"position"|"user")[]
  * }>} A map object with all needed basic info
  */
 async function mapCheck(map, division = undefined, user = "")
@@ -174,7 +174,8 @@ async function mapCheck(map, division = undefined, user = "")
     if (map.data.total_length > absoluteMax)
         return {
             rejected: true,
-            reject_on: "Length"
+            reject_on: "Length",
+            reject_type: "High"
         };
     // Check stars
     let min = minStar;
@@ -197,16 +198,13 @@ async function mapCheck(map, division = undefined, user = "")
             reject_type: "Low"
         };
     // Check map creator
+    /** @type {("2b"|"slider2b"|"spinner"|"position"|"user")[]} */
+    let issues = [];
     if (map.creator === user)
-        return {
-            rejected: true,
-            reject_on: "User"
-        };
+        issues.push("user");
     // Check object data
     // 2b and circles appearing before spinner
     let last;
-    /** @type {("2b"|"slider2b"|"spinner"|"position")[]} */
-    let issues = [];
     map.data.objects.forEach(obj => {
         if (last)
         {
@@ -238,8 +236,8 @@ async function mapCheck(map, division = undefined, user = "")
             reject_on: "Data",
             issues
         };
-
-    return { rejected: false };
+    else
+        return { rejected: false };
 }
 
 /**

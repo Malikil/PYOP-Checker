@@ -1,9 +1,6 @@
 /*
-This module should contain all the basic commands to be called after args have been
-split up.
-
-Permissions should also be checked here. Ie if trying to add a team this module
-needs to make sure the user has the proper permissions to do that.
+This module should contain all the basic commands to be called from either
+bancho or discord
 */
 const Discord = require('discord.js');
 const checker = require('./checker');
@@ -121,8 +118,11 @@ async function checkMap(mapid, {
     {
         let beatmap = await helpers.beatmapObject(mapid, mods);
         let quick = await checker.mapCheck(beatmap, division, osuname);
-        console.log(`Quick check returned: ${quick}`);
-        if (quick.rejected || quick.issues)
+        console.log(`Quick check returned: ${util.inspect(quick)}`);
+        if (quick.rejected ||
+                    (quick.issues &&
+                        (quick.issues[0] !== "user"
+                        || quick.issues.length > 1)))
             return {
                 passed: false,
                 check: quick,
@@ -130,11 +130,8 @@ async function checkMap(mapid, {
                 division
             };
         
-        let status = {
-            passed: false,
-            message: "Map has no leaderboard"
-        };
-        status = await checker.leaderboardCheck(mapid, mods, osuid);
+        let status = await checker.leaderboardCheck(mapid, mods, osuid);
+        console.log(status);
         if (status.passed)
             return {
                 passed: true,
@@ -145,8 +142,9 @@ async function checkMap(mapid, {
             return {
                 passed: false,
                 check: {
-                    rejected: false,
-                    issues: ["leaderboard"]
+                    rejected: !!quick.issues,
+                    reject_on: "Data",
+                    issues: ["leaderboard"].concat(quick.issues)
                 },
                 beatmap,
                 division
