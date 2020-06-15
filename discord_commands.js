@@ -127,8 +127,11 @@ const commands = {
             admin: []
         }
         comnames.forEach(name => sorted[commands[name].permissions || 'public'].push(name));
-        let approver = msg.member.roles.has(process.env.ROLE_MAP_APPROVER);
-        let admin = msg.member.roles.has(process.env.ROLE_ADMIN);
+        if (msg.member) // Only check roles if this came from the server
+        {
+            var approver = msg.member.roles.has(process.env.ROLE_MAP_APPROVER);
+            var admin = msg.member.roles.has(process.env.ROLE_ADMIN);
+        }
         msg.channel.send(
             Object.keys(sorted).reduce((prev, key) => {
                 if ((!approver && key === 'approver')
@@ -137,7 +140,7 @@ const commands = {
                 return `${prev}\nAvailable **${key}** commands:\n` +
                     sorted[key].reduce((p, c) => `${p}, !${c}`, '').slice(2);
             }, '') +
-            "\nUse ? after a command to get more information about it, eg `!check ?`"
+            "\n\nUse ? after a command to get more information about it, eg `!check ?`"
         );
     },
 
@@ -544,12 +547,12 @@ const commands = {
             {
                 let attach = msg.attachments.first();
                 let attachment = new Discord.Attachment(attach.url, attach.filename);
-                passChannel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${msg.author.username}`,
+                passChannel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${result.player}`,
                     attachment);
             }
             else
                 // Copy the link/image to the screenshots channel
-                passChannel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${msg.author.username}\n` +
+                passChannel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${result.player}\n` +
                     args[1]);
         }
         else
@@ -681,6 +684,43 @@ const commands = {
             str += "Message too long, some maps skipped...";
         else if (str === "")
             str = "No pending maps";
+        return msg.channel.send(str);
+    },
+
+    /**
+     * Views maps that got automatically approved
+     * @param {Discord.Message} msg 
+     * @param {string[]} args 
+     */
+    async autoapproved(msg, args)
+    {
+        if (args.length > 1)
+            return;
+
+        let mods;
+        if (args[0])
+        {
+            let modstr = args[0].toLowerCase();
+            mods = ['nm', 'hd', 'hr', 'dt', 'cm'].reduce((arr, mod) => {
+                if (modstr.includes(mod))
+                    arr.push(mod);
+                return arr;
+            }, []);
+        }
+
+        let maps = await Command.viewPending(mods, "Accepted (Automatic)");
+        let str = "";
+        maps.forEach(modpool => {
+            str += `**__${modpool.pool.toUpperCase()}:__**\n`;
+            modpool.maps.forEach(map => {
+                if (str.length < 1800)
+                    str += `<${helpers.mapLink(map)}> ${helpers.mapString(map)}\n`;
+            });
+        });
+        if (str.length >= 1800)
+            str += "Message too long, some maps skipped...";
+        else if (str === "")
+            str = "No auto approved maps";
         return msg.channel.send(str);
     },
 

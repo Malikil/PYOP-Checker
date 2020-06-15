@@ -617,7 +617,8 @@ async function addBulk(maps, {
  * 
  * @returns {Promise<{
  *  added: boolean,
- *  error?: string
+ *  error?: string,
+ *  player?: string
  * }>}
  */
 async function addPass(mapid, discordid)
@@ -635,9 +636,13 @@ async function addPass(mapid, discordid)
     if (!result.matched)
         return {
             added: false,
-            error: "Couldn't find map"
+            error: "Couldn't find map",
+            player: player.osuname
         };
-    return { added: !!result.added };
+    return {
+        added: !!result.added,
+        player: player.osuname
+    };
 }
 
 /**
@@ -787,8 +792,9 @@ async function toggleNotif(discordid, toggle = true)
 // ======================== Approver Commands =================================
 // ============================================================================
 /**
- * Displays a list of all pending maps
+ * Gets a list of maps with a given status
  * @param {("nm"|"hd"|"hr"|"dt"|"cm")[]} mods
+ * @param {string} status
  * @returns {Promise<{
  *  pool: "nm"|"hd"|"hr"|"dt"|"cm",
  *  maps: {
@@ -799,10 +805,10 @@ async function toggleNotif(discordid, toggle = true)
  *  }[]
  * }[]>}
  */
-async function viewPending(mods)
+async function viewPending(mods, status = "Pending")
 {
     console.log("Finding pending maps");
-    let maplist = await db.findMapsWithStatus("Pending");
+    let maplist = await db.findMapsWithStatus(status);
     console.log(maplist);
     
     // Add all mods if not otherwise requested
