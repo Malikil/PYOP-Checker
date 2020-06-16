@@ -393,13 +393,13 @@ const commands = {
             if (mapid)
             {
                 mods = helpers.parseMod(lineargs[1]);
-                cm = lineargs[1].toUpperCase().includes("CM");
+                cm = (lineargs[1] || '').toUpperCase().includes("CM");
             }
             else
             {
                 mapid = helpers.parseMapId(lineargs[1]);
                 mods = helpers.parseMod(lineargs[0]);
-                cm = lineargs[0].toUpperCase().includes("CM");
+                cm = (lineargs[0] || '').toUpperCase().includes("CM");
             }
             if (mapid)
                 arr.push({

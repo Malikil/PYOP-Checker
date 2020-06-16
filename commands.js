@@ -470,8 +470,15 @@ async function addMap(mapid, {
                 status = "Accepted (Automatic)";
             else
                 status = "Pending";
-        else
+        else if (!quick.issues || !quick.issues.includes("user"))
             status = "Screenshot Required";
+        else // The map had a user issue and no leaderboard
+            return {
+                check: quick,
+                beatmap,
+                division: player.division,
+                added: false
+            };
         
         // Get the mod pool this map is being added to
         let modpool = cm ? "cm" : helpers.getModpool(mods);
@@ -592,8 +599,10 @@ async function addBulk(maps, {
                 status = "Accepted (Automatic)";
             else
                 status = "Pending";
-        else
+        else if (!quick.issues || !quick.issues.includes("user"))
             status = "Screenshot Required";
+        else // The map had a user issue and no leaderboard
+            return count;
         let pool = map.cm ? "cm" : helpers.getModpool(map.mods);
         let mapitem = new DbBeatmap({ ...beatmap, status, pool });
         // Add map
