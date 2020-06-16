@@ -4,8 +4,8 @@
   "description": "Check maps for PYOP, send rejections to discord",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "echo \"Don't use npm to start\""
+    "test": "nodemon --exec \"heroku local -f Procfile.test\" -e js",
+    "start": "echo \"Don't use npm to start. Use 'heroku local' instead\""
   },
   "author": "Eric",
   "license": "ISC",
@@ -19,5 +19,8 @@
   },
   "engines": {
     "node": "11.x"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.4"
   }
 }

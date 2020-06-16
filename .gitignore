@@ -1,6 +1,9 @@
 # Custom ignores
 # Google login info
 gsheet-credentials.json
+# Local test files for heroku
+test.js
+Procfile.test
 
 # Generated ignores
 # Logs
