@@ -17,10 +17,11 @@ The bot isn't server smart, so using it will require you to set up a discord bot
 
 ### Setting up Mongodb
 1. Go to https://cloud.mongodb.com/user#/atlas/login and make an account
-2. I haven't done this in a while, you'll need to make an organization <-- TODO fix this
+2. Make an organization, and a project in that org
 3. Create a cluster for your org.
     * US East from AWS should theoretically give the best performance when hosting on Heroku
     * Sandbox (M0) should be enough to store the player/map info
+    * Choose a name for the cluster
 4. Go to `Database Access` to create access credentials for the bot
     * Make sure your passwords are secure. Don't be an idiot. You don't even need to remember this to use to log in.
 5. Go to `Network Access` to set what IP addresses will be allowed to try to access the database.  
@@ -65,8 +66,8 @@ MAX_STAR=6.0
 * `LEADERBOARD` How many scores with the selected mod are needed on the leaderboard for a map to be accepted automatically, for open division
 * `FIFT_LEADERBOARD` How many scores on the leaderboard for 15k division
 * `MONGO_USER` The username to use for mongodb
-* `MONGO_PASS` The password for mongodb
-* `MONGO_URI` The service account link for mongodb (I'll find where I use this in code eventually and how to generate it)
+* `MONGO_PASS` The password for mongodb. There's a button on the access management page to copy the password for a created user
+* `MONGO_URI` The service account link for mongodb. Click 'connect' on the cluser's summary and pick 'Connect your application'. The next page will have a connection string, the part after the @ sign goes here. Replace &lt;dbname&gt; with the name of the database
 * `DISCORD_TOKEN` This is the token from the bot tab on the application's developer page. It's not shown on the page by default, you click a button to copy it. After you copy it should look something like `xxxxxxxxxxxxxxxxxxxxxxxx.xxxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxx`
 * `DISCORD_GUILD` This is the discord server's ID that you're adding the bot to. Right click on the server and click "Copy ID"
 * `ROLE_MAP_APPROVER` This is the role ID for who's going to be checking maps and approving them. Right click the role in the role management page for the server or from the roles of someone who has it and pick Copy ID.
