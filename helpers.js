@@ -146,46 +146,56 @@ async function getPlayer(osuid)
 /**
  * Gets a single beatmap from the server, and verifies all values are proper
  * @param {Number} mapid The map id to get info for
- * @param {Number} mod The bitwise value of the selected mods
+ * @param {Number} mods The bitwise value of the selected mods
  * @returns {Promise<CheckableMap>} A promise which will resolve to a beatmap object, or undefined if
  *     no beatmap was found
- * @deprecated Try to use beatmapObject instead
  */
-async function apiBeatmap(mapid, mod)
+async function getBeatmap(mapid, mods)
 {
-    let response = await fetch(`${osuapi}/get_beatmaps?k=${key}&b=${mapid}&mods=${mod & MODS.DIFFMODS}`);
+    console.log(`Getting map with id ${mapid} and mods ${mods}`);
+    let response = await fetch(`${osuapi}/get_beatmaps?k=${key}&b=${mapid}&m=0&mods=${mods & MODS.DIFFMODS}`);
     let data = await response.json();
     let beatmap = data[0];
     if (!beatmap)
-        return undefined;
+        return;
     let map = new CheckableMap({
         bid: parseInt(beatmap.beatmap_id),
         artist: beatmap.artist,
         title: beatmap.title,
         version: beatmap.version,
         creator: beatmap.creator,
-        mods: mod & MODS.ALLOWED,
+        mods: mods & MODS.ALLOWED,
         drain: parseInt(beatmap.hit_length),
         bpm: parseFloat(beatmap.bpm),
         stars: parseFloat(parseFloat(beatmap.difficultyrating).toFixed(2)),
         data: {
-            total_length: parseInt(beatmap.total_length),
-            ar_delay: -1,
-            objects: []
+            total_length: parseInt(beatmap.total_length)
         }
-    })
+    });
+    // Find the ms delay
+    let ar = beatmap.diff_approach;
+    if (mods & MODS.HR)
+        ar = Math.min(ar * 1.4, 10);
+    else if (mods & MODS.EZ)
+        ar /= 2;
+    let arscale = 750;
+    if (ar < 5)
+        arscale = 600;
+    map.data.ar_delay = 1200 + (arscale * (5 - ar) / 5);
     // Update length/bpm if DT/HT
-    if (mod & (MODS.DT | MODS.NC))
+    if (mods & (MODS.DT | MODS.NC))
     {
-        map.bpm = parseFloat((map.bpm * (3.0 / 2.0)).toFixed(3));
-        map.drain = (map.drain * (2.0 / 3.0)) | 0;
         map.data.total_length = (map.data.total_length * (2.0 / 3.0)) | 0;
+        map.drain = (map.drain * (2.0 / 3.0)) | 0;
+        map.data.ar_delay *= (2.0 / 3.0);
+        map.bpm = parseFloat((map.bpm * (3.0 / 2.0)).toFixed(3));
     }
-    else if (mod & MODS.HT)
+    else if (mods & MODS.HT)
     {
-        map.bpm = parseFloat((map.bpm * (3.0 / 4.0)).toFixed(3));
-        map.drain = (map.drain * (4.0 / 3.0)) | 0;
         map.data.total_length = (map.data.total_length * (4.0 / 3.0)) | 0;
+        map.drain = (map.drain * (4.0 / 3.0)) | 0;
+        map.data.ar_delay *= (4.0 / 3.0);
+        map.bpm = parseFloat((map.bpm * (3.0 / 4.0)).toFixed(3));
     }
     return map;
 }
@@ -195,6 +205,7 @@ async function apiBeatmap(mapid, mod)
  * @param {number} mapid The beatmap id to get info for
  * @param {number} mods The mods to use when parsing the map
  * @returns {Promise<CheckableMap>}
+ * @deprecated Go back to using getBeatmap
  */
 function beatmapObject(mapid, mods = 0)
 {
@@ -344,6 +355,6 @@ module.exports = {
     mapLink,
     convertSeconds,
     getPlayer,
-    apiBeatmap,
+    getBeatmap,
     beatmapObject
 }

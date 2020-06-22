@@ -116,7 +116,9 @@ async function checkMap(mapid, {
     }
     try
     {
-        let beatmap = await helpers.beatmapObject(mapid, mods);
+        let beatmap = await helpers.getBeatmap(mapid, mods);
+        if (!beatmap)
+            return { passed: false };
         let quick = await checker.mapCheck(beatmap, division, osuname);
         console.log(`Quick check returned: ${util.inspect(quick)}`);
         if (quick.rejected ||
@@ -454,7 +456,12 @@ async function addMap(mapid, {
     console.log(`Looking for map with id ${mapid} and mod ${mods}`);
     try
     {
-        let beatmap = await helpers.beatmapObject(mapid, mods);
+        let beatmap = await helpers.getBeatmap(mapid, mods);
+        if (!beatmap)
+            return {
+                added: false,
+                error: "Beatmap doesn't exist"
+            };
         let quick = await checker.mapCheck(beatmap, player.division, player.osuname);
         console.log(quick);
         let status;
@@ -589,7 +596,7 @@ async function addBulk(maps, {
     let added = await maps.reduce(async (count, map) => {
         console.log(`Checking map ${map.mapid} +${map.mods}${map.cm ? " CM" : ""}`);
         // Get the map
-        let beatmap = await helpers.beatmapObject(map.mapid, map.mods);
+        let beatmap = await helpers.getBeatmap(map.mapid, map.mods);
         let quick = await checker.mapCheck(beatmap, player.division, player.osuname);
         if (quick.rejected)
             return count;
@@ -876,7 +883,7 @@ async function manualAddMap(playerid, mapid, mods, custom) {
     if (!player)
         return "No player found";
 
-    let map = await helpers.apiBeatmap(mapid, mods);
+    let map = await helpers.getBeatmap(mapid, mods);
     if (!map)
         return "No beatmap found";
     

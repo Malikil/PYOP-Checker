@@ -203,6 +203,9 @@ async function mapCheck(map, division = undefined, user = "")
     if (map.creator === user)
         issues.push("user");
     // Check object data
+    // Make sure the hit objects are loaded
+    if (!map.data.objects)
+        await map.fillHitObjects();
     // 2b and circles appearing before spinner
     let last;
     map.data.objects.forEach(obj => {

@@ -165,11 +165,14 @@ const commands = {
             division: args[2],
             discordid: msg.author.id
         });
+        console.log("Result of checkMap command:");
         console.log(result);
         if (result.passed)
             return msg.channel.send("This map could be automatically approved");
         else if (result.error)
-            return msg.channel.send(result.error);
+            throw result.error;
+        else if (!result.check)
+            return msg.channel.send("Couldn't check beatmap");
         else if (result.check.rejected)
             return msg.channel.send(createRejectString(result));
         else
