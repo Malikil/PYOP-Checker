@@ -77,7 +77,7 @@ function modString(mod)
     if (mod & MODS.HR)      str += 'HR';
     else if (mod & MODS.EZ) str = 'EZ' + str;
     if (mod & MODS.FL)      str += 'FL';
-    if (str == '')          str = 'NoMod';
+    if (str == '')          str = 'NM';
     return str;
 }
 
