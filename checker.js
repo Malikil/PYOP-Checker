@@ -152,7 +152,10 @@ function quickCheck(beatmap, userid = undefined, lowDiv = false)
  *  rejected: boolean,
  *  reject_on?: "Drain"|"Length"|"Stars"|"Data",
  *  reject_type?: "High"|"Low",
- *  issues?: ("2b"|"slider2b"|"spinner"|"position"|"user")[]
+ *  issues?: {
+ *      type: "2b"|"slider2b"|"spinner"|"position"|"user",
+ *      time?: number
+ *  }[]
  * }>} A map object with all needed basic info
  */
 async function mapCheck(map, division = undefined, user = "")
@@ -198,10 +201,13 @@ async function mapCheck(map, division = undefined, user = "")
             reject_type: "Low"
         };
     // Check map creator
-    /** @type {("2b"|"slider2b"|"spinner"|"position"|"user")[]} */
+    /** @type {{
+     *  type: "2b"|"slider2b"|"spinner"|"position"|"user",
+     *  time?: number
+     * }[]} */
     let issues = [];
     if (map.creator === user)
-        issues.push("user");
+        issues.push({ type: "user" });
     // Check object data
     // Make sure the hit objects are loaded
     if (!map.data.objects)
@@ -213,29 +219,41 @@ async function mapCheck(map, division = undefined, user = "")
         {
             // Check 2b circles
             if (Math.abs(obj.time - last.time) <= 10)
-                issues.push("2b");
+                issues.push({
+                    type: "2b",
+                    time: obj.time
+                });
             // Check circles during slider
             // It looks like the library I use for parsing beatmaps doesn't
             // save spinner lengths >:(
             // I'd like to avoid parsing manually if possible D:
             // I'll see how well things go if I just leave it out
             else if ((last.type & (1 << 1)) && (obj.time < last.end)) // Slider
-                issues.push("slider2b");
+                issues.push({
+                    type: "slider2b",
+                    time: obj.time
+                });
             else if ((last.type & (1 << 3)) && (obj.time - map.data.ar_delay) < (last.time - 330))
-                issues.push("spinner");
+                issues.push({
+                    type: "spinner",
+                    time: obj.time
+                });
             
             // How big is the playfield?
             // 512 x 384
             if (obj.pos && (
-                    obj.pos.x > 512 || obj.pos.x < 0 ||
-                    obj.pos.y > 384 || obj.pos.y < 0
-            )) issues.push("position");
+                    obj.pos.x > 513 || obj.pos.x < -1 ||
+                    obj.pos.y > 385 || obj.pos.y < -1
+            )) issues.push({
+                type: "position",
+                time: obj.time
+            });
         }
         last = obj;
     });
     if (issues.length > 0)
         return {
-            rejected: issues.includes("slider2b") || issues.includes("2b"),
+            rejected: !!issues.find(o => o.type === "slider2b" || o.type === "2b"),
             reject_on: "Data",
             issues
         };

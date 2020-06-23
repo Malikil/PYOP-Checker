@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "nodemon --exec \"heroku local -f Procfile.test\" -e js",
-    "start": "echo \"Don't use npm to start. Use 'heroku local' instead\""
+    "start": "nodemon --exec \"heroku local\" -e js"
   },
   "author": "Eric",
   "license": "ISC",

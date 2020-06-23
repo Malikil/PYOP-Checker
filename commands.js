@@ -81,7 +81,10 @@ async function getConfirmation(msg, prompt = undefined, accept = ['y', 'yes'], r
  *      rejected: boolean,
  *      reject_on?: "Drain" | "Length" | "Stars" | "User" | "Data",
  *      reject_type?: "High" | "Low",
- *      issues?: ("2b"|"slider2b"|"spinner"|"position"|"leaderboard")[]
+ *      issues?: {
+ *          type: "2b"|"slider2b"|"spinner"|"position"|"leaderboard",
+ *          time?: number
+ *      }[]
  *  },
  *  beatmap?: *,
  *  division?: "open"|"15k"
@@ -123,7 +126,7 @@ async function checkMap(mapid, {
         console.log(`Quick check returned: ${util.inspect(quick)}`);
         if (quick.rejected ||
                     (quick.issues &&
-                        (quick.issues[0] !== "user"
+                        (quick.issues[0].type !== "user"
                         || quick.issues.length > 1)))
             return {
                 passed: false,
@@ -146,7 +149,7 @@ async function checkMap(mapid, {
                 check: {
                     rejected: !!quick.issues,
                     reject_on: "Data",
-                    issues: ["leaderboard"].concat(quick.issues)
+                    issues: [{ type: "leaderboard" }].concat(quick.issues)
                 },
                 beatmap,
                 division
@@ -431,7 +434,10 @@ async function updatePlayerName(playerid)
  *      rejected: boolean,
  *      reject_on?: "Drain"|"Length"|"Stars"|"User"|"Data",
  *      reject_type?: "High"|"Low",
- *      issues?: ("2b"|"slider2b"|"spinner"|"position"|"leaderboard")[]
+ *      issues?: {
+ *          type: "2b"|"slider2b"|"spinner"|"position"|"leaderboard",
+ *          time?: number
+ *      }[]
  *   },
  *   beatmap?: DbBeatmap|CheckableMap,
  *   division?: "open"|"15k",
@@ -477,7 +483,7 @@ async function addMap(mapid, {
                 status = "Accepted (Automatic)";
             else
                 status = "Pending";
-        else if (!quick.issues || !quick.issues.includes("user"))
+        else if (!quick.issues || !quick.issues.find(i => i.type === "user"))
             status = "Screenshot Required";
         else // The map had a user issue and no leaderboard
             return {

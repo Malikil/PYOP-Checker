@@ -12,7 +12,10 @@ const { checkVals } = require('./checker');
  *      rejected: boolean,
  *      reject_on?: "Drain" | "Length" | "Stars" | "Data"
  *      reject_type?: "High" | "Low"
- *      issues?: ("2b" | "slider2b" | "spinner" | "position" | "leaderboard"|"user")[]
+ *      issues?: {
+ *          type: "2b" | "slider2b" | "spinner" | "position" | "leaderboard"|"user",
+ *          time?: number
+ *      }[]
  *  },
  *  beatmap?: any,
  *  division?: "15k" | "open"
@@ -49,9 +52,9 @@ function createRejectString(checkResult)
         case "Data":
             // Will be either 2b or slider2b, the other data issues don't reject
             let e = "Circle during slider track";
-            if (checkResult.check.issues.includes("2b"))
+            if (checkResult.check.issues.find(i => i.type === "2b"))
                 e = "Two circles are at the same time";
-            else if (checkResult.check.issues.includes("user"))
+            else if (checkResult.check.issues.find(i => i.type === "user"))
                 return "You can't use your own maps unless they're ranked";
             return "Some objects in the map have issues: " + e;
     }
