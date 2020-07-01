@@ -255,6 +255,7 @@ const commands = {
         // Args: osu profile, utc, [division]
         if (args.length < 2 || args.length > 3)
             return;
+        return msg.channel.send("Registration has closed.");
         let linkargs = args[0].split('/');
         let osuid = linkargs.pop();
         if (['osu', 'mania', 'taiko', 'fruits'].includes(osuid))
