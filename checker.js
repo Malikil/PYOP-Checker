@@ -241,9 +241,10 @@ async function mapCheck(map, division = undefined, user = "")
             
             // How big is the playfield?
             // 512 x 384
+            // But some notes are technically outside but still fine enough
             if (obj.pos && (
                     obj.pos.x > 513 || obj.pos.x < -1 ||
-                    obj.pos.y > 385 || obj.pos.y < -1
+                    obj.pos.y > 391 || obj.pos.y < -1
             )) issues.push({
                 type: "position",
                 time: obj.time
