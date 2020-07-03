@@ -40,7 +40,7 @@ function parseMod(modstr)
     if (modstr.includes('HR'))      mod |= MODS.HR;
     else if (modstr.includes('EZ')) mod |= MODS.EZ;
     if (modstr.includes('DT'))      mod |= MODS.DT;
-    else if (modstr.includes('NC')) mod |= MODS.NC;
+    else if (modstr.includes('NC')) mod |= MODS.NC | MODS.DT;
     else if (modstr.includes('HT')) mod |= MODS.HT;
     if (modstr.includes('FL'))      mod |= MODS.FL;
     
@@ -183,7 +183,7 @@ async function getBeatmap(mapid, mods)
         arscale = 600;
     map.data.ar_delay = 1200 + (arscale * (5 - ar) / 5);
     // Update length/bpm if DT/HT
-    if (mods & (MODS.DT | MODS.NC))
+    if (mods & MODS.DT)
     {
         map.data.total_length = (map.data.total_length * (2.0 / 3.0)) | 0;
         map.drain = (map.drain * (2.0 / 3.0)) | 0;
