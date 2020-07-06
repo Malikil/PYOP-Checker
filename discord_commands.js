@@ -365,7 +365,7 @@ const commands = {
         console.log(result);
         // Show the results of adding the map
         if (result.added)
-            return msg.channel.send((result.replaced ? `Replaced ${helpers.mapString(result.replaced)}\n` : "") +
+            return msg.channel.send((result.replaced ? `Replaced ${helpers.mapString(result.replaced)} (${result.replaced.bid})\n` : "") +
                 `Added ${helpers.mapString(result.beatmap)} to ${result.beatmap.pool.toUpperCase()} mod pool.\n` +
                 `Map approval status: ${result.beatmap.status}\n` +
                 `Current __${helpers.modString(result.beatmap.mods)}__ maps:` +

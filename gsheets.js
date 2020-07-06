@@ -3,6 +3,7 @@ const { GoogleSpreadsheet } = require('google-spreadsheet');
 const doc = new GoogleSpreadsheet(process.env.SPREADSHEET_ID);
 const helpers = require('./helpers');
 const { DbPlayer } = require('./types');
+const { checkPool } = require('./checker');
 
 /*const authFactory = new google.auth.GoogleAuth({
     scopes: ['https://www.googleapis.com/auth/spreadsheets']
@@ -190,7 +191,7 @@ async function pushMaps(players) {
     // Insert into two sets of columns
     var openRow = 0;
     var fiftRow = 0;
-    players.forEach(player => {
+    let exports = players.map(async player => {
         let baseCol = 0;
         let row = openRow;
         if (player.division === '15k')
@@ -198,9 +199,11 @@ async function pushMaps(players) {
             baseCol = 8;
             row = fiftRow;
         }
-        // Player's name and division
+        // Verify the pool doesn't have any issues
+        let check = await checkPool(player.maps);
+        // Player's name and list pool properties
         sheet.getCell(row, baseCol).value = player.osuname;
-        sheet.getCell(row, baseCol + 2).value = player.division;
+        check.message.forEach((m, i) => sheet.getCell(row, baseCol + i + 1).value = m);
         // Sort the maps by mod and add them to sheet
         player.maps.sort((a, b) => a.mods - b.mods).forEach((map, i) => {
             sheet.getCell(row + 1 + i, baseCol).value = helpers.modString(map.mods);
@@ -217,6 +220,7 @@ async function pushMaps(players) {
         else
             openRow += player.maps.length + 1;
     });
+    await Promise.all(exports);
     // Save the sheet values
     return sheet.saveUpdatedCells();
 }
@@ -237,7 +241,7 @@ async function createExportInterface() {
         /**
          * @param {DbPlayer} player
          */
-        parsePlayer: player => {
+        parsePlayer: async player => {
             try
             {
                 let baseCol = 0;
@@ -247,9 +251,11 @@ async function createExportInterface() {
                     baseCol = 8;
                     row = fiftRow;
                 }
-                // Player's name and division
+                // Verify the pool doesn't have any issues
+                let check = await checkPool(player.maps);
+                // Player's name and list pool properties
                 sheet.getCell(row, baseCol).value = player.osuname;
-                sheet.getCell(row, baseCol + 2).value = player.division;
+                check.message.forEach((m, i) => sheet.getCell(row, baseCol + i + 1).value = m);
                 // Sort the maps by mod and add them to sheet
                 player.maps.sort((a, b) => a.mods - b.mods).forEach((map, i) => {
                     sheet.getCell(row + 1 + i, baseCol).value = helpers.modString(map.mods);
@@ -266,6 +272,8 @@ async function createExportInterface() {
                     fiftRow += player.maps.length + 1;
                 else
                     openRow += player.maps.length + 1;
+                // Player's name, for logging
+                return player.osuname;
             }
             catch (err) { return Promise.reject(err); }
         },
