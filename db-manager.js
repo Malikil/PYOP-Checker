@@ -34,8 +34,8 @@ async function performAction(action)
 {
     let cursor = db.collection('teams').find();
     let results = [];
-    await cursor.forEach(p => results.push(action(new DbPlayer(p))));
-    return Promise.all(results);
+    await cursor.forEach(async p => results.push(await action(new DbPlayer(p))));
+    return results;
 }
 
 /**

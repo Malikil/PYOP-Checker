@@ -186,26 +186,30 @@ async function pushMaps(players) {
         });
     // Not sure if this will load the sheet,
     // but if I can both load and clear in a single step that's great
-    await sheet.clear();
+    await sheet.loadCells();
     // Parse players into the sheet
     // Insert into two sets of columns
-    var openRow = 0;
-    var fiftRow = 0;
-    let exports = players.map(async player => {
+    let fiftRow = 0;
+    let openRow = 0;
+    for (let pindex = 0; pindex < players.length; pindex++)
+    {
         let baseCol = 0;
         let row = openRow;
-        if (player.division === '15k')
+        if (players[pindex].division === '15k')
         {
-            baseCol = 8;
+            baseCol = 9;
             row = fiftRow;
         }
         // Verify the pool doesn't have any issues
-        let check = await checkPool(player.maps);
+        let check = await checkPool(players[pindex].maps);
         // Player's name and list pool properties
-        sheet.getCell(row, baseCol).value = player.osuname;
-        check.message.forEach((m, i) => sheet.getCell(row, baseCol + i + 1).value = m);
+        sheet.getCell(row, baseCol).value = players[pindex].osuname;
+        if (check.message.length > 0)
+            check.message.forEach((m, i) => sheet.getCell(row, baseCol + i + 1).value = m);
+        else
+            sheet.getCell(row, baseCol + 1).value = "";
         // Sort the maps by mod and add them to sheet
-        player.maps.sort((a, b) => a.mods - b.mods).forEach((map, i) => {
+        players[pindex].maps.sort((a, b) => a.mods - b.mods).forEach((map, i) => {
             sheet.getCell(row + 1 + i, baseCol).value = helpers.modString(map.mods);
             sheet.getCell(row + 1 + i, baseCol + 1).value = map.creator;
             sheet.getCell(row + 1 + i, baseCol + 2).value = helpers.mapString(map);
@@ -213,14 +217,16 @@ async function pushMaps(players) {
             sheet.getCell(row + 1 + i, baseCol + 4).value = helpers.convertSeconds(map.drain);
             sheet.getCell(row + 1 + i, baseCol + 5).value = map.bpm;
             sheet.getCell(row + 1 + i, baseCol + 6).value = map.bid;
+            sheet.getCell(row + 1 + i, baseCol + 7).value = map.status;
         });
+
         // Update the current row
-        if (player.division === '15k')
-            fiftRow += player.maps.length + 1;
+        if (players[pindex].division === '15k')
+            fiftRow += players[pindex].maps.length + 1;
         else
-            openRow += player.maps.length + 1;
-    });
-    await Promise.all(exports);
+            openRow += players[pindex].maps.length + 1;
+    }
+    
     // Save the sheet values
     return sheet.saveUpdatedCells();
 }
@@ -235,27 +241,34 @@ async function createExportInterface() {
     await sheet.loadCells();
     // Insert into two sets of columns
     // Track the rows for each
-    var openRow = 0;
-    var fiftRow = 0;
+    //var openRow = 0;
+    //var fiftRow = 0;
     return {
         /**
          * @param {DbPlayer} player
          */
         parsePlayer: async player => {
+            if (!this.openRow)
+                this.openRow = 0;
+            if (!this.fiftRow)
+                this.fiftRow = 0;
             try
             {
                 let baseCol = 0;
-                let row = openRow;
+                let row = this.openRow;
                 if (player.division === '15k')
                 {
-                    baseCol = 8;
-                    row = fiftRow;
+                    baseCol = 9;
+                    row = this.fiftRow;
                 }
                 // Verify the pool doesn't have any issues
                 let check = await checkPool(player.maps);
                 // Player's name and list pool properties
                 sheet.getCell(row, baseCol).value = player.osuname;
-                check.message.forEach((m, i) => sheet.getCell(row, baseCol + i + 1).value = m);
+                if (check.message.length > 0)
+                    check.message.forEach((m, i) => sheet.getCell(row, baseCol + i + 1).value = m);
+                else
+                    sheet.getCell(row, baseCol + 1).value = "";
                 // Sort the maps by mod and add them to sheet
                 player.maps.sort((a, b) => a.mods - b.mods).forEach((map, i) => {
                     sheet.getCell(row + 1 + i, baseCol).value = helpers.modString(map.mods);
@@ -266,12 +279,13 @@ async function createExportInterface() {
                     sheet.getCell(row + 1 + i, baseCol + 4).value = helpers.convertSeconds(map.drain);
                     sheet.getCell(row + 1 + i, baseCol + 5).value = map.bpm;
                     sheet.getCell(row + 1 + i, baseCol + 6).value = map.bid;
+                    sheet.getCell(row + 1 + i, baseCol + 7).value = map.status;
                 });
                 // Update the current row
                 if (player.division === '15k')
-                    fiftRow += player.maps.length + 1;
+                    this.fiftRow += player.maps.length + 1;
                 else
-                    openRow += player.maps.length + 1;
+                    this.openRow += player.maps.length + 1;
                 // Player's name, for logging
                 return player.osuname;
             }

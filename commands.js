@@ -273,11 +273,13 @@ async function exportMaps()
 {
     try
     {
-        let sheetfuncs = await google.createExportInterface();
+        //let sheetfuncs = await google.createExportInterface();
 
-        console.log(await db.performAction(sheetfuncs.parsePlayer));
-        let response = await sheetfuncs.commitChanges();
-        console.log(response);
+        let players = await db.performAction(p => p);
+        console.log(players);
+        await google.pushMaps(players);
+        //let response = await sheetfuncs.commitChanges();
+        //console.log(response);
         return { ok: true }
     }
     catch (err)
