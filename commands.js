@@ -8,7 +8,7 @@ const db = require('./db-manager');
 const util = require('util');
 const google = require('./gsheets');
 const helpers = require('./helpers');
-const { DbBeatmap, CheckableMap } = require('./types');
+const { DbBeatmap, CheckableMap, DbPlayer } = require('./types');
 
 const MAP_COUNT = 10;
 
@@ -299,23 +299,28 @@ async function exportMaps()
  */
 async function recheckMaps()
 {
-    let update = async function (team) {
+    /** @param {DbPlayer} player */
+    let update = async function (player) {
         // Check each map with the quick check.
         // It shouldn't require hitting the osu api, and all the required info
         // should already exist in the beatmap object.
         let rejects = [];
-        console.log(`${team.name} is in ${team.division} bracket`);
-        team.maps.forEach(map => {
-            let result = checker.quickCheck(map, null, team.division === "15k");
+        player.maps.forEach(map => {
+            let result = checker.quickCheck(map, player.division);
             if (result)
                 rejects.push({
-                    id: map.id,
-                    mod: map.mod
+                    bid: map.bid,
+                    mods: map.mods
                 });
             });
+        if (rejects.length > 0)
+        {
+            console.log(`${player.osuname} has rejects:`);
+            console.log(rejects);
+        }
         return {
-            division: team.division,
-            rejects: rejects
+            division: player.division,
+            rejects
         };
     };
     // Use the quick check from above on each database team
@@ -337,10 +342,6 @@ async function recheckMaps()
                     openrejects.push(reject);
             });
     });
-    console.log("Open rejects:");
-    console.log(openrejects);
-    console.log("15k rejects:");
-    console.log(fiftrejects);
     // Update each map from the results with a reject message
     // Don't bother updating if there are no maps needed to update
     let updateCount = 0;

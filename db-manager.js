@@ -475,7 +475,7 @@ async function rejectMap(mapid, mods, message)
  * Rejects a list of maps in bulk using the same message for each
  * @param {[
  *  {
- *      id: Number,
+ *      bid: Number,
  *      mods: Number
  *  }
  * ]} maps An array of maps to reject
@@ -489,7 +489,7 @@ async function bulkReject(maps, message, division)
     // arrayFilters
     let filters = maps.map(item => {
         return {
-            'badmap.bid': item.id,
+            'badmap.bid': item.bid,
             'badmap.mods': item.mods
         };
     });

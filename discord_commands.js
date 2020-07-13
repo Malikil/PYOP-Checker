@@ -829,22 +829,6 @@ const commands = {
     },
 
     /**
-     * Moves an existing player to a different team
-     * @param {Discord.Message} msg 
-     * @param {string[]} args 
-     */
-    async moveplayer(msg, args)
-    {
-        if (args.length > 2)
-            return;
-
-        if ((await Command.movePlayer(args[0], args[1])) > 0)
-            return msg.channel.send(`Moved ${args[0]} to ${args[1]}`);
-        else
-            return msg.channel.send("Couldn't move player");
-    },
-
-    /**
      * Toggles submissions locked
      * @param {Discord.Message} msg 
      */
@@ -900,7 +884,6 @@ commands.manualadd.permissions = "approver";
 
 commands.addplayer.permissions = "admin";
 commands.removeplayer.permissions = "admin";
-commands.moveplayer.permissions = "admin";
 commands.lock.permissions = "admin";
 commands.export.permissions = "admin";
 commands.update.permissions = "admin";
@@ -926,7 +909,6 @@ commands.unpass = commands.clearss;
 // ========== Admin ==========
 commands.ap = commands.addplayer;
 commands.rp = commands.removeplayer;
-commands.mp = commands.moveplayer;
 commands.updatemaps = commands.update;
 //#endregion
 //#region Help messages
@@ -1029,8 +1011,6 @@ commands.addplayer.help = "Adds a player to a team. If the team " +
     "!addPlayer \"Team Name\" (<osu name/id> <discordid/@/_>)...";
 commands.removeplayer.help = "Removes a player from all teams they might be on.\n" +
     "!removePlayer osuname";
-commands.moveplayer.help = "Moves an existing player to a different team.\n" +
-    "!movePlayer <player> <TeamName>";
 commands.update.help = "Updates map rejections with new star range";
 commands.add.osuhelp = "Use !add [mods] where mods is a combination of NM|HD|HR|DT|EZ|HT|CM, using the last map from /np";
 //#endregion

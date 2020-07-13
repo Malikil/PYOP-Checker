@@ -212,7 +212,8 @@ async function pushMaps(players) {
         players[pindex].maps.sort((a, b) => a.mods - b.mods).forEach((map, i) => {
             sheet.getCell(row + 1 + i, baseCol).value = helpers.modString(map.mods);
             sheet.getCell(row + 1 + i, baseCol + 1).value = map.creator;
-            sheet.getCell(row + 1 + i, baseCol + 2).value = helpers.mapString(map);
+            sheet.getCell(row + 1 + i, baseCol + 2).formula =
+                `=HYPERLINK("${helpers.mapLink(map)}","${helpers.mapString(map).replace(/"/g, '"&CHAR(34)&"')}")`;
             sheet.getCell(row + 1 + i, baseCol + 3).value = map.stars;
             sheet.getCell(row + 1 + i, baseCol + 4).value = helpers.convertSeconds(map.drain);
             sheet.getCell(row + 1 + i, baseCol + 5).value = map.bpm;
