@@ -66,7 +66,7 @@ function createRejectString(checkResult)
  */
 function getArgs(str)
 {
-    return str.match(/\\?.|^$/g).reduce((p, c) => {
+    let args = str.match(/\\?.|^$/g).reduce((p, c) => {
         if (c === '"')
             p.quote ^= 1;
         else if (!p.quote && c === ' ')
@@ -76,6 +76,7 @@ function getArgs(str)
         
         return  p;
     }, { a: [''] }).a;
+    return args.reduce((p, c) => c ? p.concat(c) : p, []);
     //str.match(/(?:[^\s"]+|"[^"]*")+/g);
 }
 

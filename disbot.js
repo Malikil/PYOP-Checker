@@ -44,5 +44,9 @@ new (require('./boat'))(
 );
 
 // Log in with discord
-client.login(process.env.DISCORD_TOKEN);
+client.login(process.env.DISCORD_TOKEN)
+.catch(err => {
+    console.error("Discord bot crashed");
+    console.error(err);
+});
 
