@@ -934,27 +934,6 @@ async function rejectMap(mapid, mods, desc)
     console.log(`Mod: ${mods}, Message: ${desc}`);
     return db.rejectMap(mapid, mods, desc);
 }
-
-/**
- * Sets a map back to screenshot required status
- * @param {number} mapid
- * @param {string} team
- */
-async function rejectScreenshot(mapid, team)
-{
-    console.log(`Attempting to update team "${team}" map id ${mapid} to unpass status`);
-    let result = await db.pendingMap(team, mapid, false);
-    if (result)
-        return {
-            ok: true,
-            players: result.players
-        };
-    else
-        return {
-            ok: false,
-            players: []
-        };
-}
 //#endregion
 
 module.exports = {
@@ -975,7 +954,6 @@ module.exports = {
     viewPending,    // Map approvers
     approveMap,
     rejectMap,
-    rejectScreenshot,
     viewMissingMaps,
     manualAddMap
 };

@@ -734,43 +734,6 @@ const commands = {
     },
 
     /**
-     * Clears a screenshot from a map, and notifies the team that it's happened
-     * @param {Discord.Message} msg 
-     * @param {string[]} args 
-     * @param {Discord.Client} client 
-     */
-    async clearss(msg, args, client)
-    {
-        // Get mapid
-        let mapid = helpers.parseMapId(args.shift());
-        if (!mapid)
-            return msg.channel.send("Didn't recognise beatmap id");
-        let team = args.reduce((p, s) => `${p} ${s}`, '').slice(1);
-
-        let result = await Command.rejectScreenshot(mapid, team);
-        if (result.ok)
-        {
-            const guild = client.guilds.get(process.env.DISCORD_GUILD);
-            let userlist = guild.members;
-
-            // Tell players on the team that they need a new screenshot
-            let dms = result.players.map(player => {
-                if (player.notif === undefined)
-                {
-                    let member = userlist.get(player.discordid);
-                    if (member)
-                        return member.send("A screenshot for one of your maps was reset:\n" +
-                            `https://osu.ppy.sh/b/${mapid}`);
-                }
-            });
-            dms.push(msg.channel.send("Set status to \"Screenshot Required\""));
-            return Promise.all(dms);
-        }
-        else
-            return msg.channel.send("Team not found or no matching map");
-    },
-
-    /**
      * Shows how many unfilled slots there are in pools
      * @param {Discord.Message} msg 
      */
@@ -880,8 +843,8 @@ commands.approve.permissions = "approver";
 commands.pending.permissions = "approver";
 commands.missing.permissions = "approver";
 commands.reject.permissions = "approver";
-commands.clearss.permissions = "approver";
 commands.manualadd.permissions = "approver";
+commands.autoapproved.permissions = "approver";
 
 commands.addplayer.permissions = "admin";
 commands.removeplayer.permissions = "admin";
@@ -906,7 +869,6 @@ commands.pool = commands.viewpool;
 commands.pass = commands.addpass;
 // ========== Approver ==========
 commands.accept = commands.approve;
-commands.unpass = commands.clearss;
 // ========== Admin ==========
 commands.ap = commands.addplayer;
 commands.rp = commands.removeplayer;
@@ -995,10 +957,6 @@ commands.pending.help = "Usage: !pending [pool]\n" +
     "Shows all maps with a pending status, " +
     "waiting to be approved.\n" +
     "(optional) pool: Only show maps from the listed modpool. NM|HD|HR|DT|CM";
-commands.clearss.help = "Usage: !clearss <map> <team>\n" +
-    "Map: Map link or id to reject\n" +
-    "Team: The team name\n" +
-    "Aliases: !unpass";
 commands.missing.help = "Usage: !missing\n" +
     "Shows how many map slots need to be filled for each mod " +
     "in either division.";
