@@ -135,7 +135,7 @@ async function checkMap(mapid, {
                 division
             };
         
-        let status = await checker.leaderboardCheck(mapid, mods, osuid);
+        let status = await checker.leaderboardCheck(mapid, mods, division, osuid);
         console.log(status);
         if (status.passed)
             return {

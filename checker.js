@@ -231,7 +231,7 @@ async function mapCheck(map, division = undefined, user = "")
  */
 async function leaderboardCheck(mapid, mod, division, userid)
 {
-    console.log(`Checking leaderboard for ${mapid} +${mod}`);
+    console.log(`Checking ${mapid} +${mod} leaderboard for scores from ${userid}`);
     let response = await fetch(`${osuapi}/get_scores?k=${key}&b=${mapid}&mods=${mod}`);
     let scores = await response.json();
     // If there aren't any passes with the mod, the map needs manual approval
@@ -246,7 +246,7 @@ async function leaderboardCheck(mapid, mod, division, userid)
     // first score is perfect, or if the user themself has a score
     console.log(`Found ${scores.length} leaderboard scores. Top score:`);
     let s = scores[0];
-    console.log(`${s.username} - ${
+    console.log(`${s.user_id} ${s.username} - ${
         ((s.count50 / 6) + (s.count100 / 3) + parseInt(s.count300))
         / (parseInt(s.count50) + parseInt(s.count100) + parseInt(s.count300) + parseInt(s.countmiss))
         * 100
