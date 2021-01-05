@@ -2,7 +2,10 @@ const readline = require('readline');
 const ojsama = require('ojsama');
 const fetch = require('node-fetch');
 
-module.exports = class CheckableMap {
+/**
+ * @deprecated Use ApiBeatmap instead
+ */
+class CheckableMap {
     /**
      * @param {object} o
      * @param {number} o.bid
@@ -103,3 +106,5 @@ module.exports = class CheckableMap {
         });
     }
 }
+
+module.exports = CheckableMap;

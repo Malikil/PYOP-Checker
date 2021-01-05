@@ -200,6 +200,12 @@ async function getBeatmap(mapid, mods)
     return map;
 }
 
+async function getLeaderboard(mapid, mods = 0)
+{
+    let response = await fetch(`https://osu.ppy.sh/api/get_scores?k=${key}&b=${mapid}&m=0&mods=${mods & MODS.DIFFMODS}`);
+    return response.json();
+}
+
 /**
  * Gets a beatmap object which can be used to calculate sr or find hitobjects
  * @param {number} mapid The beatmap id to get info for
@@ -356,5 +362,6 @@ module.exports = {
     convertSeconds,
     getPlayer,
     getBeatmap,
+    getLeaderboard,
     beatmapObject
 }
