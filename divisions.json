@@ -1,0 +1,24 @@
+[
+    {
+        "division": "open",
+        "starlimits": [
+            { "low": 5.3, "high": 6.25 },
+            { "low": 5.5, "high": 6.5 },
+            { "low": 5.7, "high": 6.75 },
+            { "low": 5.9, "high": 7 },
+            { "low": 6.1, "high": 7.25 },
+            { "low": 6.3, "high": 7.5 }
+        ]
+    },
+    {
+        "division": "15k",
+        "starlimits": [
+            { "low": 4.3, "high": 5.25 },
+            { "low": 4.5, "high": 5.5 },
+            { "low": 4.7, "high": 5.75 },
+            { "low": 4.9, "high": 6 },
+            { "low": 5.1, "high": 6.25 },
+            { "low": 5.3, "high": 6.5 }
+        ]
+    }
+]
