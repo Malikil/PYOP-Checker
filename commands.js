@@ -1,9 +1,10 @@
 /*
 This module should contain all the basic commands to be called from either
 bancho or discord
+It will interact with sheets/db modules, but not with discord/bancho
 */
-const Discord = require('discord.js');
-const checker = require('./checker');
+//const Discord = require('discord.js');
+const { Checker, Rule } = require('./beatmap_checker');
 const db = require('./db-manager');
 const util = require('util');
 const google = require('./gsheets');
@@ -11,19 +12,48 @@ const helpers = require('./helpers');
 const { DbBeatmap, CheckableMap, DbPlayer } = require('./types');
 
 const MAP_COUNT = 10;
-
-//#region Helper Functions
-// ============================================================================
-// ========================= Helper Functions =================================
-// ============================================================================
-
-/**
+//#region Create map checkers
+const divInfo = require('./divisions.json');
+const checkers = {};
+divInfo.forEach(div => {
+    // The date will determine which week we're in
+    let firstDue = new Date(process.env.FIRST_POOLS_DUE);
+    let now = new Date();
+    // Add one because firstDue marks the end of week 1 rather than the beginning
+    let week = ((now - firstDue) / (1000 * 60 * 60 * 24 * 7) + 1) | 0;
+    const getWeek = (arr, w) => {
+        if (w < arr.length)
+            return arr[w];
+        else
+            return arr[arr.length - 1];
+    };
+    // Create rules initialization array
+    let init = [];
+    // There are four types of rules
+    // 1. Star rating
+    let sr = getWeek(div.starlimits, w);
+    init.push({ ruleType: Rule.STAR_RATING_RULE, restrictType: Rule.MIN, limit: sr.low });
+    init.push({ ruleType: Rule.STAR_RATING_RULE, restrictType: Rule.MAX, limit: sr.high });
+    // 2. Drain time
+    let drain = getWeek(div.drainlimits, w);
+    init.push({ ruleType: Rule.DRAIN_TIME_RULE, restrictType: Rule.MIN, limit: drain.low });
+    init.push({ ruleType: Rule.DRAIN_TIME_RULE, restrictType: Rule.MAX, limit: drain.high });
+    // 3. Max total time
+    init.push({ ruleType: Rule.TOTAL_TIME_RULE, restrictType: Rule.MAX, limit: getWeek(div.lengthlimits, w).high });
+    // 4. Leaderboard limit
+    init.push({ ruleType: Rule.LEADERBOARD_RULE, restrictType: Rule.MIN, limit: getWeek(div.leaderboardlimits, w).low });
+    
+    checkers[div.division] = new Checker(init);
+});
+//#endregion
+//#region Discord functions - kept for reference
+/*
  * Silently waits for an undo command, and if it's received the team 
  * state will be restored to the given one
  * @param {Discord.Message} msg 
  * @param {*} team 
  */
-async function waitForUndo(msg, team)
+/*async function waitForUndo(msg, team)
 {
     let undo = await getConfirmation(msg, '', ['!undo'], []);
     if (!undo.aborted)
@@ -39,7 +69,7 @@ async function waitForUndo(msg, team)
  * @param {Discord.Message} msg 
  * @param {string} prompt
  */
-async function getConfirmation(msg, prompt = undefined, accept = ['y', 'yes'], reject = ['n', 'no'])
+/*async function getConfirmation(msg, prompt = undefined, accept = ['y', 'yes'], reject = ['n', 'no'])
 {
     // Prepare the accept/reject values
     let waitFor = accept.concat(reject);
@@ -65,7 +95,7 @@ async function getConfirmation(msg, prompt = undefined, accept = ['y', 'yes'], r
         aborted,
         err
     };
-}
+}*/
 //#endregion
 //#region Public Commands
 // ============================================================================
