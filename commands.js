@@ -22,7 +22,9 @@ divInfo.forEach(div => {
     // Add one because firstDue marks the end of week 1 rather than the beginning
     let week = ((now - firstDue) / (1000 * 60 * 60 * 24 * 7) + 1) | 0;
     const getWeek = (arr, w) => {
-        if (w < arr.length)
+        if (w < 0)
+            return arr[0];
+        else if (w < arr.length)
             return arr[w];
         else
             return arr[arr.length - 1];
@@ -31,17 +33,17 @@ divInfo.forEach(div => {
     let init = [];
     // There are four types of rules
     // 1. Star rating
-    let sr = getWeek(div.starlimits, w);
+    let sr = getWeek(div.starlimits, week);
     init.push({ ruleType: Rule.STAR_RATING_RULE, restrictType: Rule.MIN, limit: sr.low });
     init.push({ ruleType: Rule.STAR_RATING_RULE, restrictType: Rule.MAX, limit: sr.high });
     // 2. Drain time
-    let drain = getWeek(div.drainlimits, w);
+    let drain = getWeek(div.drainlimits, week);
     init.push({ ruleType: Rule.DRAIN_TIME_RULE, restrictType: Rule.MIN, limit: drain.low });
     init.push({ ruleType: Rule.DRAIN_TIME_RULE, restrictType: Rule.MAX, limit: drain.high });
     // 3. Max total time
-    init.push({ ruleType: Rule.TOTAL_TIME_RULE, restrictType: Rule.MAX, limit: getWeek(div.lengthlimits, w).high });
+    init.push({ ruleType: Rule.TOTAL_TIME_RULE, restrictType: Rule.MAX, limit: getWeek(div.lengthlimits, week).high });
     // 4. Leaderboard limit
-    init.push({ ruleType: Rule.LEADERBOARD_RULE, restrictType: Rule.MIN, limit: getWeek(div.leaderboardlimits, w).low });
+    init.push({ ruleType: Rule.LEADERBOARD_RULE, restrictType: Rule.MIN, limit: getWeek(div.leaderboardlimits, week).low });
     
     checkers[div.division] = new Checker(init);
 });
@@ -106,16 +108,7 @@ divInfo.forEach(div => {
  * @returns {Promise<{
  *  passed: boolean,
  *  error?: string,
- *  check?: {
- *      rejected: boolean,
- *      reject_on?: "Drain" | "Length" | "Stars" | "User" | "Data",
- *      reject_type?: "High" | "Low",
- *      issues?: {
- *          type: "2b"|"slider2b"|"spinner"|"position"|"leaderboard",
- *          time?: number
- *      }[]
- *  },
- *  beatmap?: *,
+ *  beatmap?: ApiBeatmap,
  *  division?: "open"|"15k"
  * }>} A message indicating whether the map would be accepted,
  * and the map object that got checked
