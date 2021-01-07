@@ -98,7 +98,9 @@ class ApiBeatmap {
         let beatmap = await fetch(`https://osu.ppy.sh/api/get_beatmaps?k=${OSUKEY}&b=${mapid}&mods=${mods & MODS.DIFFMODS}`)
             .then(res => res.json())
             .then(data => data[0]);
-        return new ApiBeatmap(beatmap, mods);
+        if (beatmap)
+            return new ApiBeatmap(beatmap, mods);
+        // Undefined if the beatmap doesn't exist
     }
 }
 

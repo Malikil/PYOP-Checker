@@ -9,11 +9,11 @@ const db = require('./db-manager');
 const util = require('util');
 const google = require('./gsheets');
 const helpers = require('./helpers');
-const { DbBeatmap, CheckableMap, DbPlayer } = require('./types');
+const { DbBeatmap, ApiBeatmap, CheckableMap, DbPlayer } = require('./types');
+const divInfo = require('./divisions.json');
 
 const MAP_COUNT = 10;
-//#region Create map checkers
-const divInfo = require('./divisions.json');
+//Create map checkers
 const checkers = {};
 divInfo.forEach(div => {
     // The date will determine which week we're in
@@ -45,7 +45,6 @@ divInfo.forEach(div => {
     
     checkers[div.division] = new Checker(init);
 });
-//#endregion
 //#region Discord functions - kept for reference
 /*
  * Silently waits for an undo command, and if it's received the team 
@@ -137,63 +136,32 @@ async function checkMap(mapid, {
     // If division is included, use that. Otherwise try to
     // get the division based on who sent the message
     let osuname;
-    if (!division && (discordid || osuid))
-    {
-        let player = await db.getPlayer(discordid || osuid);
-        if (player)
+    if (!division)
+        if (discordid || osuid)
         {
-            division = player.division;
-            osuname = player.osuname;
-            osuid = player.osuid;
+            let player = await db.getPlayer(discordid || osuid);
+            if (player)
+            {
+                division = player.division;
+                osuname = player.osuname;
+                osuid = player.osuid;
+            }
         }
-    }
-    try
-    {
-        let beatmap = await helpers.getBeatmap(mapid, mods);
-        if (!beatmap)
-            return { passed: false };
-        let quick = await checker.mapCheck(beatmap, division, osuname);
-        console.log(`Quick check returned: ${util.inspect(quick)}`);
-        if (quick.rejected ||
-                    (quick.issues &&
-                        (quick.issues[0].type !== "user"
-                        || quick.issues.length > 1)))
-            return {
-                passed: false,
-                check: quick,
-                beatmap,
-                division
-            };
-        
-        let status = await checker.leaderboardCheck(mapid, mods, division, osuid);
-        console.log(status);
-        if (status.passed)
-            return {
-                passed: true,
-                beatmap,
-                division
-            };
-        else
-            return {
-                passed: false,
-                check: {
-                    rejected: !!quick.issues,
-                    reject_on: "Data",
-                    issues: [{ type: "leaderboard" }].concat(quick.issues)
-                },
-                beatmap,
-                division
-            };
-    }
-    catch (err)
-    {
+        else // Use open as the default division
+            division = "open";
+    let beatmap = await ApiBeatmap.buildFromApi(mapid, mods);
+    if (!beatmap)
         return {
             passed: false,
-            error: err.error || err,
-            beatmap: err.map,
-            division
+            error: `Couldn't find beatmap with id ${mapid}`
         };
-    }
+    let check = await checkers[division].check(beatmap);
+    console.log(`Rules check returned: ${util.inspect(check)}`);
+    return {
+        ...check,
+        beatmap,
+        division
+    };
 }
 
 /**

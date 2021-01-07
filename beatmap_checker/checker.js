@@ -25,11 +25,11 @@ class Checker {
 
     async check(beatmap) {
         let checkResult = {
-            passing: true,
+            passed: true,
             message: "This map can be accepted automatically"
         };
 
-        for (let i = 0; checkResult.passing && i < this.rules.length; i++)
+        for (let i = 0; checkResult.passed && i < this.rules.length; i++)
         {
             let result = await this.rules[i].check(beatmap);
             if (!result.passed)
@@ -43,13 +43,13 @@ class Checker {
                 {
                     if (Math.abs(result.limit - result.actual) > drainBuffer)
                     {
-                        checkResult.passing = false;
+                        checkResult.passed = false;
                         checkResult.message = rules[i].userMessage(result.actual);
                     }
                 }
                 else
                 {
-                    checkResult.passing = false;
+                    checkResult.passed = false;
                     checkResult.message = rules[i].userMessage(result.actual);
                 }
             }
