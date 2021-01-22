@@ -15,7 +15,7 @@ class StarRatingRule extends Rule {
         let result = {
             passed: false,
             limit: this.rating,
-            actual: map.difficultyrating
+            actual: beatmap.difficultyrating
         };
 
         if (this.checkType === Rule.MAX)
@@ -27,9 +27,9 @@ class StarRatingRule extends Rule {
     }
 
     userMessage(value) {
-        return `${helpers.convertSeconds(value)} is ${
+        return `${value.toFixed(2)} stars is ${
             this.checkType === Rule.MAX? "above the maximum" : "below the minimum"
-        } allowed star rating of ${helpers.convertSeconds(this.rating)}`;
+        } allowed star rating of ${this.rating.toFixed(2)}`;
     }
 }
 

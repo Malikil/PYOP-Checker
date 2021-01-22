@@ -24,6 +24,8 @@ class Checker {
     }
 
     async check(beatmap) {
+        console.log("checker.js:27 - Checking map");
+        console.log(beatmap);
         let checkResult = {
             passed: true,
             message: "This map can be accepted automatically"
@@ -37,20 +39,20 @@ class Checker {
                 // Special cases for rules
                 // Leaderboard isn't an automatic rejection
                 // Drain time has a buffer
-                if (rules[i] instanceof Rules.LeaderboardRule)
+                if (this.rules[i] instanceof Rules.LeaderboardRule)
                     checkResult.message = "There aren't enough scores on the leaderboard to automatically approve this map";
-                else if (rules[i] instanceof Rules.DrainTimeRule)
+                else if (this.rules[i] instanceof Rules.DrainTimeRule)
                 {
                     if (Math.abs(result.limit - result.actual) > drainBuffer)
                     {
                         checkResult.passed = false;
-                        checkResult.message = rules[i].userMessage(result.actual);
+                        checkResult.message = this.rules[i].userMessage(result.actual);
                     }
                 }
                 else
                 {
                     checkResult.passed = false;
-                    checkResult.message = rules[i].userMessage(result.actual);
+                    checkResult.message = this.rules[i].userMessage(result.actual);
                 }
             }
         }

@@ -1,6 +1,7 @@
 const Command = require('./commands');
 const Banchojs = require('bancho.js');
-const helpers = require('./helpers');
+const helpers = require('./helpers/helpers');
+const MODS = require('./helpers/bitwise');
 const util = require('util');
 
 class Logger
@@ -59,12 +60,12 @@ const commands = {
             modarr.forEach(mstr => {
                 switch (mstr)
                 {
-                    case "Hidden":     mods |= helpers.MODS.HD; break;
-                    case "HardRock":   mods |= helpers.MODS.HR; break;
-                    case "DoubleTime": mods |= helpers.MODS.DT; break;
-                    case "Easy":       mods |= helpers.MODS.EZ; break;
-                    case "HalfTime":   mods |= helpers.MODS.HT; break;
-                    case "Flashlight": mods |= helpers.MODS.FL; break;
+                    case "Hidden":     mods |= MODS.HD; break;
+                    case "HardRock":   mods |= MODS.HR; break;
+                    case "DoubleTime": mods |= MODS.DT; break;
+                    case "Easy":       mods |= MODS.EZ; break;
+                    case "HalfTime":   mods |= MODS.HT; break;
+                    case "Flashlight": mods |= MODS.FL; break;
                 }
             });
         }

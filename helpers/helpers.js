@@ -102,6 +102,8 @@ function parseMapId(mapString = '')
     {
         // If the link isn't to a beatmap, then ignore it
         // If the link is a /s/ link, ignore it
+        // ...ppy.sh/beatmapsets...
+        // ...ppy.sh/b/###
         if (mapString && mapString.includes("sh/b"))
         {
             // Get everything after the last slash, this should be the beatmap id

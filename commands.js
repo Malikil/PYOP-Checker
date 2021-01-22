@@ -70,7 +70,7 @@ const MAP_COUNT = 10;
 // ============================================================================
 /**
  * Checks whether a given map would be accepted
- * @param {number|string} mapid The map id or link to map
+ * @param {number} mapid The map id
  * @returns {Promise<{
  *  passed: boolean,
  *  message?: string,
@@ -96,7 +96,7 @@ async function checkMap(mapid, {
     // If division is included, use that. Otherwise try to
     // get the division based on who sent the message
     let osuname;
-    if (!division)
+    if (!checkers[division])
         if (discordid || osuid)
         {
             let player = await db.getPlayer(discordid || osuid);
@@ -106,9 +106,11 @@ async function checkMap(mapid, {
                 osuname = player.osuname;
                 osuid = player.osuid;
             }
+            else // Use the first division as default
+                division = Object.keys(checkers)[0];
         }
-        else // Use open as the default division
-            division = "open";
+        else
+            division = Object.keys(checkers)[0];
     let beatmap = await ApiBeatmap.buildFromApi(mapid, mods);
     if (!beatmap)
         return {

@@ -108,20 +108,22 @@ const commands = {
         let mods = 0;
         if (args[1])
             mods = helpers.parseMod(args[1]);
+        // Extract the map id from the first arg
+        let mapid = helpers.parseMapId(args[0]);
 
-        let result = await Command.checkMap(args[0], {
+        let result = await Command.checkMap(mapid, {
             mods: mods,
             division: args[2],
             discordid: msg.author.id
         });
         console.log("Result of checkMap command:");
         console.log(result);
-        if (result.passed)
+        if (result.message)
+            return msg.channel.send(`${result.division} division: ${result.message}`);
+        else if (result.passed)
             return msg.channel.send("This map could be automatically approved");
         else if (result.error)
             throw result.error;
-        else if (result.message)
-            return msg.channel.send(result.message);
         else
             return msg.channel.send("This map would need to be manually checked");
     },
@@ -149,7 +151,7 @@ const commands = {
             }, '') +
             `Drain length: ${helpers.convertSeconds(drains.low)}` +
             ` - ${helpers.convertSeconds(drains.high)}\n` +
-            `   Total length must be less than ${helpers.convertSeconds(maxLength)}\n` +
+            `Total length must be less than ${helpers.convertSeconds(maxLength)}\n` +
             `Total pool drain time must be ${helpers.convertSeconds(minPool)}` +
             ` - ${helpers.convertSeconds(maxPool)}\n\n` +
             `Maps with less than a certain number of scores with the selected ` +
