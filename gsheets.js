@@ -1,9 +1,9 @@
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 //const util = require('util');
 const doc = new GoogleSpreadsheet(process.env.SPREADSHEET_ID);
-const helpers = require('./helpers');
+const helpers = require('./helpers/helpers');
 const { DbPlayer } = require('./types');
-const { checkPool } = require('./checker');
+const checkers = require('./checkers');
 
 /*const authFactory = new google.auth.GoogleAuth({
     scopes: ['https://www.googleapis.com/auth/spreadsheets']
@@ -201,11 +201,11 @@ async function pushMaps(players) {
             row = fiftRow;
         }
         // Verify the pool doesn't have any issues
-        let check = await checkPool(players[pindex].maps);
+        let check = await checkers[players[pindex].division].checkPool(players[pindex].maps);
         // Player's name and list pool properties
         sheet.getCell(row, baseCol).value = players[pindex].osuname;
-        if (check.message.length > 0)
-            check.message.forEach((m, i) => sheet.getCell(row, baseCol + i + 1).value = m);
+        if (check.length > 0)
+            check.forEach((m, i) => sheet.getCell(row, baseCol + i + 1).value = m);
         else
             sheet.getCell(row, baseCol + 1).value = "";
         // Sort the maps by mod and add them to sheet
@@ -263,11 +263,11 @@ async function createExportInterface() {
                     row = this.fiftRow;
                 }
                 // Verify the pool doesn't have any issues
-                let check = await checkPool(player.maps);
+                let check = await checkers[players[pindex].division].checkPool(player.maps);
                 // Player's name and list pool properties
                 sheet.getCell(row, baseCol).value = player.osuname;
-                if (check.message.length > 0)
-                    check.message.forEach((m, i) => sheet.getCell(row, baseCol + i + 1).value = m);
+                if (check.length > 0)
+                    check.forEach((m, i) => sheet.getCell(row, baseCol + i + 1).value = m);
                 else
                     sheet.getCell(row, baseCol + 1).value = "";
                 // Sort the maps by mod and add them to sheet

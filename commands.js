@@ -4,49 +4,15 @@ bancho or discord
 It will interact with sheets/db modules, but not with discord/bancho
 */
 //const Discord = require('discord.js');
-const { Checker, Rule } = require('./beatmap_checker');
+const checkers = require('./checkers');
 const db = require('./db-manager');
 const util = require('util');
 const google = require('./gsheets');
-const helpers = require('./helpers');
+const helpers = require('./helpers/helpers');
 const { DbBeatmap, ApiBeatmap, CheckableMap, DbPlayer } = require('./types');
-const divInfo = require('./divisions.json');
 
 const MAP_COUNT = 10;
-//Create map checkers
-const checkers = {};
-divInfo.forEach(div => {
-    // The date will determine which week we're in
-    let firstDue = new Date(process.env.FIRST_POOLS_DUE);
-    let now = new Date();
-    // Add one because firstDue marks the end of week 1 rather than the beginning
-    let week = ((now - firstDue) / (1000 * 60 * 60 * 24 * 7) + 1) | 0;
-    const getWeek = (arr, w) => {
-        if (w < 0)
-            return arr[0];
-        else if (w < arr.length)
-            return arr[w];
-        else
-            return arr[arr.length - 1];
-    };
-    // Create rules initialization array
-    let init = [];
-    // There are four types of rules
-    // 1. Star rating
-    let sr = getWeek(div.starlimits, week);
-    init.push({ ruleType: Rule.STAR_RATING_RULE, restrictType: Rule.MIN, limit: sr.low });
-    init.push({ ruleType: Rule.STAR_RATING_RULE, restrictType: Rule.MAX, limit: sr.high });
-    // 2. Drain time
-    let drain = getWeek(div.drainlimits, week);
-    init.push({ ruleType: Rule.DRAIN_TIME_RULE, restrictType: Rule.MIN, limit: drain.low });
-    init.push({ ruleType: Rule.DRAIN_TIME_RULE, restrictType: Rule.MAX, limit: drain.high });
-    // 3. Max total time
-    init.push({ ruleType: Rule.TOTAL_TIME_RULE, restrictType: Rule.MAX, limit: getWeek(div.lengthlimits, week).high });
-    // 4. Leaderboard limit
-    init.push({ ruleType: Rule.LEADERBOARD_RULE, restrictType: Rule.MIN, limit: getWeek(div.leaderboardlimits, week).low });
-    
-    checkers[div.division] = new Checker(init);
-});
+
 //#region Discord functions - kept for reference
 /*
  * Silently waits for an undo command, and if it's received the team 
@@ -107,6 +73,7 @@ divInfo.forEach(div => {
  * @param {number|string} mapid The map id or link to map
  * @returns {Promise<{
  *  passed: boolean,
+ *  message?: string,
  *  error?: string,
  *  beatmap?: ApiBeatmap,
  *  division?: "open"|"15k"

@@ -1,4 +1,4 @@
-const helpers = require('../helpers');
+const helpers = require('./../helpers/helpers.js');
 const Rules = {
     StarRatingRule: require('./star-rule'),
     DrainTimeRule: require('./drain-rule'),

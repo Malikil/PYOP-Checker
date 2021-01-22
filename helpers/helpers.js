@@ -1,27 +1,36 @@
 const fetch = require('node-fetch');
 const ojsama = require('ojsama');
 const readline = require('readline');
-const { CheckableMap } = require('./types');
+const { CheckableMap } = require('./../types');
+const MODS = require('./bitwise');
 
 const osuapi = "https://osu.ppy.sh/api";
 const key = process.env.OSUKEY;
 
 /**
- * Mods bitwise
+ * Gets which week the tournament is currently in
+ * @param {*[]} arr An array of objects to return from
+ * @returns {Number|*} If an array is given, the object at this week's index will
+ * be returned. Otherwise the index for this week will be given
  */
-const MODS = {
-    EZ: 1 << 1,
-    HD: 1 << 3,
-    HR: 1 << 4,
-    DT: 1 << 6,
-    HT: 1 << 8,
-    NC: 1 << 9,
-    FL: 1 << 10,
-    DIFFMODS: 0,
-    ALLOWED:  0
-};
-MODS.DIFFMODS = MODS.HR | MODS.DT | MODS.HT;
-MODS.ALLOWED = MODS.EZ | MODS.HD | MODS.HR | MODS.DT | MODS.HT | MODS.NC | MODS.FL;
+function currentWeek(arr) {
+    // The date will determine which week we're in
+    const firstDue = new Date(process.env.FIRST_POOLS_DUE);
+    let now = new Date();
+    // Add one because firstDue marks the end of week 1 rather than the beginning
+    let week = ((now - firstDue) / (1000 * 60 * 60 * 24 * 7) + 1) | 0;
+    if (arr)
+    {
+        if (week < 0)
+            return arr[0];
+        else if (week < arr.length)
+            return arr[week];
+        else
+            return arr[arr.length - 1];
+    }
+    else
+        return week;
+}
 
 /**
  * Converts a mod string into its number equivalent
@@ -352,7 +361,7 @@ function beatmapObject(mapid, mods = 0)
 }
 
 module.exports = {
-    MODS,
+    currentWeek,
     parseMod,
     parseMapId,
     getModpool,

@@ -20,7 +20,7 @@
         ]
     },
     {
-        "division": "15k",
+        "division": "10k",
         "starlimits": [
             { "low": 4.3, "high": 5.25 },
             { "low": 4.5, "high": 5.5 },

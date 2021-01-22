@@ -1,5 +1,5 @@
 const fetch = require('node-fetch');
-const { MODS } = require('../helpers');
+const MODS = require('../helpers/bitwise');
 const OSUKEY = process.env.OSUKEY;
 
 class ApiBeatmap {

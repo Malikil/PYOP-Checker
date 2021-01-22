@@ -1,65 +1,10 @@
 const Discord = require('discord.js');
-const helpers = require('./helpers');
+const helpers = require('./helpers/helpers');
 const Command = require('./commands');
 const { inspect } = require('util');
-const { checkVals } = require('./checker');
+const divInfo = require('./divisions.json');
 
 //#region Helper functions
-/**
- * Assumes passed is false and rejected is true
- * @param {{
- *  check?: {
- *      rejected: boolean,
- *      reject_on?: "Drain" | "Length" | "Stars" | "Data"
- *      reject_type?: "High" | "Low"
- *      issues?: {
- *          type: "2b" | "slider2b" | "spinner" | "position" | "leaderboard"|"user",
- *          time?: number
- *      }[]
- *  },
- *  beatmap?: any,
- *  division?: "15k" | "open"
- * }} checkResult 
- */
-function createRejectString(checkResult)
-{
-    // checkResult.check.rejected == true implicitly
-    let min = checkVals.minStar;
-    let max = checkVals.maxStar;
-    if (checkResult.division === "15k")
-    {
-        min = checkVals.lowMin;
-        max = checkVals.lowMax;
-    }
-    // Parse how the map got rejected
-    switch (checkResult.check.reject_on)
-    {
-        case "Drain":
-            if (checkResult.check.reject_type === "High")
-                return `The drain time is more than ${checkVals.drainBuffer} seconds above the ` +
-                    `${helpers.convertSeconds(checkVals.maxLength)} max (${helpers.convertSeconds(checkResult.beatmap.drain)}).`;
-            else
-                return `The drain time is more than ${checkVals.drainBuffer} seconds below the ` +
-                    `${helpers.convertSeconds(checkVals.minLength)} min (${helpers.convertSeconds(checkResult.beatmap.drain)}).`;
-        case "Length":
-            return `The total map length is longer than the ${helpers.convertSeconds(checkVals.absoluteMax)}` +
-                `limit (${helpers.convertSeconds(checkResult.beatmap.data.total_length)})`;
-        case "Stars":
-            if (checkResult.check.reject_type === "High")
-                return `The star rating is above the ${max} maximum (${checkResult.beatmap.stars})`;
-            else
-                return `The star rating is below the ${min} minimum (${checkResult.beatmap.stars})`;
-        case "Data":
-            // Will be either 2b or slider2b, the other data issues don't reject
-            let e = "Circle during slider track";
-            if (checkResult.check.issues.find(i => i.type === "2b"))
-                e = "Two circles are at the same time";
-            else if (checkResult.check.issues.find(i => i.type === "user"))
-                return "You can't use your own maps unless they're ranked";
-            return "Some objects in the map have issues: " + e;
-    }
-}
-
 /**
  * Splits a string into args
  * @param {string} str 
@@ -175,10 +120,8 @@ const commands = {
             return msg.channel.send("This map could be automatically approved");
         else if (result.error)
             throw result.error;
-        else if (!result.check)
-            return msg.channel.send("Couldn't check beatmap");
-        else if (result.check.rejected)
-            return msg.channel.send(createRejectString(result));
+        else if (result.message)
+            return msg.channel.send(result.message);
         else
             return msg.channel.send("This map would need to be manually checked");
     },
@@ -194,23 +137,30 @@ const commands = {
         const poolCount = 10; // 10 maps per pool
         let minPool = minTotal * poolCount;
         let maxPool = maxTotal * poolCount;
+        // Cheating a little here, I assume all divisions are the same as the default division
+        let defaultDiv = divInfo[0];
+        let drains = helpers.currentWeek(defaultDiv.drainlimits);
+        let maxLength = helpers.currentWeek(defaultDiv.lengthlimits).high;
 
         return msg.channel.send("Requirements for this week:\n" +
-            `Star rating:\n` +
-            `    Open: ${checkVals.minStar.toFixed(2)} - ${checkVals.maxStar.toFixed(2)}\n` +
-            `    15K: ${checkVals.lowMin.toFixed(2)} - ${checkVals.lowMax.toFixed(2)}\n` +
-            `Drain length: ${helpers.convertSeconds(checkVals.minLength)}` +
-            ` - ${helpers.convertSeconds(checkVals.maxLength)}\n` +
-            `   Total length must be less than ${helpers.convertSeconds(checkVals.absoluteMax)}\n` +
+            "Star rating:\n" + divInfo.reduce((p, c) => {
+                let sr = helpers.currentWeek(c.starlimits);
+                return p + `    ${c.division}: ${sr.low.toFixed(2)} - ${sr.high.toFixed(2)}\n`
+            }, '') +
+            `Drain length: ${helpers.convertSeconds(drains.low)}` +
+            ` - ${helpers.convertSeconds(drains.high)}\n` +
+            `   Total length must be less than ${helpers.convertSeconds(maxLength)}\n` +
             `Total pool drain time must be ${helpers.convertSeconds(minPool)}` +
             ` - ${helpers.convertSeconds(maxPool)}\n\n` +
             `Maps with less than a certain number of scores with the selected ` +
             `mod on the leaderboard will need to be submitted with a ` +
             `screenshot of a pass on the map. ` +
             `Maps without a leaderboard will always need a screenshot.\n` +
-            `Auto accepted leaderboard scores:\n` +
-            `    Open: ${checkVals.leaderboard}\n` +
-            `    15k: ${checkVals.leaders15k}`);
+            `Auto accepted leaderboard scores:` + divInfo.reduce((p, c) => {
+                let minLeaders = helpers.currentWeek(c.leaderboardlimits).low;
+                return p + `\n    ${c.division}: ${minLeaders}`;
+            }, '')
+        );
     },
 
     /**
@@ -380,8 +330,7 @@ const commands = {
                 `Message: ${result.error}`
             );
         else
-            return msg.channel.send(`Rejected ${helpers.mapString(result.beatmap)}:\n` +
-                createRejectString(result));
+            return msg.channel.send(`Rejected ${helpers.mapString(result.beatmap)}:`);
     },
 
     /**
