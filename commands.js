@@ -9,7 +9,8 @@ const db = require('./db-manager');
 const util = require('util');
 const google = require('./gsheets');
 const helpers = require('./helpers/helpers');
-const { DbBeatmap, ApiBeatmap, CheckableMap, DbPlayer } = require('./types');
+const { DbBeatmap, ApiBeatmap, CheckableMap, DbPlayer, ApiPlayer } = require('./types');
+const divInfo = require('./divisions.json');
 
 const MAP_COUNT = 10;
 
@@ -152,60 +153,69 @@ async function getPlayers()
 }
 
 /**
- * Adds a player in an unconfirmed state
- * @param {string|number} osuid The player's osu id or osu username
- * @param {string} discordid The player's discord id
- * @param {string} utc The player's utc timezone
- * @param {"open"|"15k"} division Which division to add the team to
+ * Adds a team
+ * @param {string} teamname The team's name
+ * @param {string} division Which division to add the team to
+ * @param {{
+ *  osuid: number|string,
+ *  discordid: string,
+ *  utc: string
+ * }[]} players A list of players on the team
  * @returns {Promise<{
  *  added: boolean,
- *  confirmed?: boolean,
- *  reject?: boolean
+ *  players?: {
+ *      osuid: number,
+ *      osuname: string,
+ *      discordid: string
+ *  }[],
+ *  message?: string
  * }>} How many players got added/updated
  */
-async function addPlayer(osuid, discordid, utc, division)
+async function addTeam(division, teamname, players)
 {
-    // If the player already exists, update their division
-    let player = await db.getPlayer(discordid || osuid);
-    if (player)
-    {
-        player.division = division;
-        player.utc = utc;
-        db.updatePlayer(player);
+    // Find division requirements
+    let div = divInfo.find(d => d.division === division);
+    // Verify the players
+    let apiplayers = await Promise.all(
+        players.map(p => ApiPlayer.buildFromApi(p.osuid))
+    );
+    // Make sure the players are in rank range
+    let allowed = apiplayers.reduce((p, c) => p &&
+            c.pp_rank >= div.ranklimits.high &&
+            c.pp_rank < div.ranklimits.low
+    , true);
+    if (!allowed)
         return {
             added: false,
-            confirmed: !player.unconfirmed
+            message: "Some players don't meet rank requirements"
         };
-    }
-    else
-    {
-        // Get the player info
-        let player = await helpers.getPlayer(osuid);
-        if (player)
-        {
-            // Make sure the player is in the correct rank range
-            if (division === '15k' && player.pp_rank < 15000)
-                return {
-                    added: false,
-                    reject: true
-                };
-                
-            // Add the player's info to the db
-            let pobj = {
-                osuid: player.user_id,
-                osuname: player.username,
-                discordid, utc, division
-            };
-            let result = await db.updatePlayer(pobj);
-            return {
-                added: !!result,
-                confirmed: false
-            };
-        }
+    
+    // Convert players to db format
+    let playerlist = apiplayers.map(apip => {
+        let player = players.find(p =>
+            p.osuid.toString().toLowerCase() === apip.username.toLowerCase() ||
+            p.osuid === apip.user_id
+        );
+        let obj = {
+            osuid: apip.user_id,
+            osuname: apip.username,
+            discordid: player.discordid
+        };
+        if (player.utc !== "_")
+            obj.utc = player.utc;
+    });
+    // Add the team to the db
+    let result = await db.addTeam(teamname, division, playerlist);
+    if (result)
         return {
-            added: false
+            added: true,
+            players: playerlist
         };
-    }
+    else
+        return {
+            added: false,
+            message: "Error writing to database"
+        };
 }
 //#endregion
 //#region Admin Commands
@@ -899,7 +909,7 @@ async function rejectMap(mapid, mods, desc)
 module.exports = {
     checkMap,  // Public
     getPlayers,
-    addPlayer, // Admins
+    addTeam, // Admin
     removePlayer,
     exportMaps,
     recheckMaps,

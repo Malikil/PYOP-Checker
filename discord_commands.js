@@ -6,26 +6,6 @@ const divInfo = require('./divisions.json');
 
 //#region Helper functions
 /**
- * Splits a string into args
- * @param {string} str 
- */
-function getArgs(str)
-{
-    let args = str.match(/\\?.|^$/g).reduce((p, c) => {
-        if (c === '"')
-            p.quote ^= 1;
-        else if (!p.quote && c === ' ')
-            p.a.push('');
-        else
-            p.a[p.a.length - 1] += c.replace(/\\(.)/, "$1");
-        
-        return  p;
-    }, { a: [''] }).a;
-    return args.reduce((p, c) => c ? p.concat(c) : p, []);
-    //str.match(/(?:[^\s"]+|"[^"]*")+/g);
-}
-
-/**
  * Will ask for confirmation in the channel of a received message,
  * from the user who sent that message
  * @param {Discord.Message} msg 
@@ -205,40 +185,58 @@ const commands = {
      * @param {string[]} args 
      */
     async register(msg, args) {
-        // Args: osu profile, utc, [division]
-        if (args.length < 2 || args.length > 3)
-            return;
-        return msg.channel.send("Registration has closed.");
-        let linkargs = args[0].split('/');
-        let osuid = linkargs.pop();
-        if (['osu', 'mania', 'taiko', 'fruits'].includes(osuid))
-            osuid = linkargs.pop();
-        let division = (args[2] || '').toLowerCase();
-        if (division)
-        {
-            if (division !== "open" && division !== "15k")
-                return msg.channel.send("Please enter either 'Open' or '15k' for division");
+        // Args: division, osu profile, utc time, @p2, p2 profile, p2 utc, @p3, p3 profile, p3 utc, ...team name
+        if (args.length === 0)
+            return msg.channel.send(commands.register.help);
+        else if (args.length < 7)
+            return msg.channel.send("Not enough arguments");
+        // Verify arguments
+        let division = args[0].toLowerCase();
+        if (!divInfo.find(d => d.division === division))
+            return msg.channel.send("Division not found");
+        const parseProfile = p => {
+            let items = p.split('/');
+            let pid = items.pop();
+            if (["osu", "taiko", "mania", "fruits"].includes(pid))
+                pid = items.pop();
+            return pid;
         }
-        else
-            division = "open";
+        let players = [
+            { // P1
+                discordid: msg.author.id,
+                osuid: parseProfile(args[1]),
+                utc: args[2]
+            },
+            { // P2
+                discordid: args[3].match(/[0-9]+/)[0],
+                osuid: parseProfile(args[4]),
+                utc: args[5]
+            }
+        ];
+        // Possible player 3
+        let p3id = args[6].match(/[0-9]+/)[0];
+        if (p3id)
+            players.push({
+                discordid: p3id,
+                osuid: parseProfile(args[7]),
+                utc: args[8]
+            });
+        // The remaining args make up the team name
+        let teamName = '';
+        for (let i = p3id ? 9 : 6; i < args.length; i++)
+            teamName += args[i] + ' ';
+        teamName = teamName.trim();
         
-        let result = await Command.addPlayer(osuid, msg.author.id, args[1], division);
-        if (!result.added)
-            if (result.confirmed === undefined)
-                if (result.reject)
-                    return msg.channel.send("Your rank is too high for 15k division");
-                else
-                    return msg.channel.send("Couldn't find player info from osu server");
-            else if (result.confirmed)
-                return msg.channel.send("You've already registered! Your information has been updated");
-            else
-                return msg.channel.send("You've already registered! Please message Malikil " +
-                    "in game to complete your registration\n" +
-                    `\`\`\`\n!confirm ${msg.author.id}\n\`\`\``);
+        console.log(players);
+        let result = await Command.addTeam(division, teamName, players);
+        if (result.added)
+            return msg.channel.send(
+                `Registered **${teamName}**\n` +
+                `__Captain__: ${result.players[0].osuname} <@!${result.players[0].discordid}>\n` +
+                `__Players__: ${result.players.reduce((p, c) => ({osuname: `${p.osuname}, ${c.osuname}`})).osuname}`
+            );
         else
-            return msg.channel.send("Registration received, please message Malikil " +
-                "in-game with the following message:\n" +
-                `\`\`\`\n!confirm ${msg.author.id}\n\`\`\``);
+            return msg.channel.send(`Could not add team: ${result.message}`);
     },
     //#endregion
     //#region ============================== Player ==============================
@@ -841,12 +839,19 @@ commands.requirements.help = "Usage: !requirements\n" +
 commands.players.help = "Usage: !players [open|15k]\n" +
     "Optionally limit to a division by specifying 'open' or '15k'\n" +
     "Shows the currently registered teams and players on those teams\n";
-commands.register.help = "Usage: !register <osu profile link|username> <UTC time> [division]\n" +
-    "Use either link to your profile -OR- username" +
-    "UTC time: Should be some sort of offset from utc, eg UTC-7 or just -7\n" +
-    "(Optional) Division: Open or 15k. If left out open is assumed.\n" +
-    "Register for the tournament, after registering you will get a code that you need to send " +
-    "to Malikil in-game to finish your registration.\n";
+commands.register.help = "Format:\n" +
+    "```!register <division> <osu profile link or username> <UTC time>\n" +
+    "<@ player 2> <player 2 profile/username> <player 2 UTC>\n" +
+    "<@ player 3> <player 3 profile/username> <player 3 UTC> (Optional)\n" +
+    "<team name>```\n" +
+    "The team captain should register for the whole team, please make sure all items are in " +
+    "the correct order.\n" +
+    "Divisions are open or 10k.\n" +
+    "You can use either the link to your osu profile or your osu username. If using username " +
+    "all spaces should be replaced with underscore. Eg 'Example User Name' becomes 'Example\\_User\\_Name'\n" +
+    "UTC times should be some sort of offset from utc, eg UTC-7 or just -7. If one of your players " +
+    "doesn't want their time zone considered while scheduling enter a single underscore instead. Eg " +
+    "`@Malikil Malikil _`\nIf you need to make changes to your team, please let Malikil know.";
 // ============================== Player ==============================
 commands.osuname.help = "Usage: !osuname\n" +
     "Updates your osu username if you've changed it";
@@ -924,6 +929,31 @@ commands.removeplayer.help = "Removes a player from all teams they might be on.\
 commands.update.help = "Updates map rejections with new star range";
 commands.add.osuhelp = "Use !add [mods] where mods is a combination of NM|HD|HR|DT|EZ|HT|CM, using the last map from /np";
 //#endregion
+
+/**
+ * Splits a string into args
+ * @param {string} s 
+ */
+function getArgs(s)
+{
+    // Handle multiple lines
+    let lines = s.split('\n');
+    return lines.reduce((arr, str) => {
+        let args = str.match(/\\?.|^$/g).reduce((p, c) => {
+            if (c === '"')
+                p.quote ^= 1;
+            else if (!p.quote && c === ' ')
+                p.a.push('');
+            else
+                p.a[p.a.length - 1] += c.replace(/\\(.)/, "$1");
+            
+            return  p;
+        }, { a: [''] }).a;
+        return arr.concat(args.reduce((p, c) => c ? p.concat(c) : p, []));
+    }, []);
+    //str.match(/(?:[^\s"]+|"[^"]*")+/g);
+}
+
 /**
  * Runs a command by name, and checks whether the
  * command is allowed to be run by the caller

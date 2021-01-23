@@ -1,7 +1,7 @@
 /*
 This module should handle connecting to the database and all the CRUD operations
 */
-const { MongoClient, Db, ObjectID } = require('mongodb');
+const { MongoClient, Db } = require('mongodb');
 const util = require('util');
 const { DbBeatmap, DbPlayer } = require('./types');
 
@@ -26,11 +26,11 @@ client.connect(err => {
 });
 //#region ============================== Helpers/General ==============================
 /**
- * Performs the given action for each item in the database
+ * Performs the given action for each item in the database, and return an array of the results
  * @param {function(DbPlayer) => Promise<*>} action 
  * @returns {Promise<*[]>} An array containing return values from each function call
  */
-async function performAction(action)
+async function map(action)
 {
     let cursor = db.collection('teams').find();
     let results = [];
@@ -66,6 +66,32 @@ function identify(id)
 //#endregion
 //#region ============================== Manage Players ==============================
 /**
+ * Adds a new team with the given players
+ * @param {string} teamname 
+ * @param {string} division 
+ * @param {{
+ *  osuid: number,
+ *  osuname: string,
+ *  discordid: string,
+ *  utc: string
+ * }[]} players 
+ */
+async function addTeam(teamname, division, players)
+{
+    console.log(`Adding new team: ${teamname}`);
+    let result = await db.collection('teams').insertOne(
+        {
+            teamname,
+            division,
+            players,
+            maps: [],
+            oldmaps: []
+        }
+    );
+    return !!result.result.ok;
+}
+
+/**
  * Adds a player to the database
  * @param {object} p
  * 
@@ -100,21 +126,6 @@ async function updatePlayer({osuid, osuname, discordid, division, utc})
         { upsert: true }
     );
     return result.modifiedCount + result.upsertedCount;
-}
-
-/**
- * Finishes registering a player with matching osuid and discord id
- * @param {number} osuid The player's osu id
- * @param {string} discordid The discord id for the player
- */
-async function confirmPlayer(osuid, discordid)
-{
-    let result = await db.collection('teams').updateOne(
-        { osuid, discordid },
-        { $unset: { unconfirmed: "" } }
-    );
-
-    return result.modifiedCount;
 }
 
 /**
@@ -508,8 +519,8 @@ async function bulkReject(maps, message, division)
 }
 
 module.exports = {
+    addTeam,
     updatePlayer,  // Teams/players
-    confirmPlayer,
     removePlayer,
     toggleNotification,
     getPlayer,
@@ -522,5 +533,5 @@ module.exports = {
     rejectMap,
     findMissingMaps,
     bulkReject,  // General management
-    performAction
+    map
 };

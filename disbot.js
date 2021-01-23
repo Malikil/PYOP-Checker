@@ -35,13 +35,13 @@ client.on('message', msg => {
                     "```" + util.inspect(reason).slice(0, 1000) + "...```"));
 });
 
-// ============================================================================
+/*/ ============================================================================
 // ======================== Set up the osu client here ========================
 // ============================================================================
 new (require('./boat'))(
     process.env.BANCHO_USER,
     process.env.BANCHO_PASS
-);
+);//*/
 
 // Log in with discord
 client.login(process.env.DISCORD_TOKEN)

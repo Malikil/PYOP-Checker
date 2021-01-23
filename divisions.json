@@ -1,6 +1,9 @@
 [
     {
         "division": "open",
+        "ranklimits": {
+            "low": 100000, "high": 0
+        },
         "starlimits": [
             { "low": 5.3, "high": 6.25 },
             { "low": 5.5, "high": 6.5 },
@@ -21,6 +24,9 @@
     },
     {
         "division": "10k",
+        "ranklimits":{
+            "low": 100000, "high": 10000
+        },
         "starlimits": [
             { "low": 4.3, "high": 5.25 },
             { "low": 4.5, "high": 5.5 },
