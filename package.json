@@ -14,7 +14,7 @@
     "discord.js": "^11.5.1",
     "google-spreadsheet": "^3.0.11",
     "mongodb": "^3.5.2",
-    "node-fetch": "^2.6.0",
+    "node-fetch": "^2.6.1",
     "ojsama": "^1.2.5"
   },
   "engines": {
