@@ -199,6 +199,9 @@ const commands = {
             let pid = items.pop();
             if (["osu", "taiko", "mania", "fruits"].includes(pid))
                 pid = items.pop();
+            let asInt = parseInt(pid);
+            if (asInt)
+                pid = asInt;
             return pid;
         }
         let players = [

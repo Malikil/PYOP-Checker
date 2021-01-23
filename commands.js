@@ -179,6 +179,7 @@ async function addTeam(division, teamname, players)
     let apiplayers = await Promise.all(
         players.map(p => ApiPlayer.buildFromApi(p.osuid))
     );
+    
     // Make sure the players are in rank range
     let allowed = apiplayers.reduce((p, c) => p &&
             c.pp_rank >= div.ranklimits.high &&
@@ -203,7 +204,10 @@ async function addTeam(division, teamname, players)
         };
         if (player.utc !== "_")
             obj.utc = player.utc;
+        return obj;
     });
+    console.log(playerlist);
+
     // Add the team to the db
     let result = await db.addTeam(teamname, division, playerlist);
     if (result)
