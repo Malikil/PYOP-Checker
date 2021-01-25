@@ -3,7 +3,7 @@ This module should handle connecting to the database and all the CRUD operations
 */
 const { MongoClient, Db } = require('mongodb');
 const util = require('util');
-const { DbBeatmap, DbPlayer } = require('./types');
+const { DbBeatmap, DbPlayer, DbTeam } = require('./types');
 
 const mongoUser = process.env.MONGO_USER;
 const mongoPass = process.env.MONGO_PASS;
@@ -64,7 +64,6 @@ function identify(id)
     ]};
 }
 //#endregion
-//#region ============================== Manage Players ==============================
 /**
  * Adds a new team with the given players
  * @param {string} teamname 
@@ -92,59 +91,6 @@ async function addTeam(teamname, division, players)
 }
 
 /**
- * Adds a player to the database
- * @param {object} p
- * 
- * @param {string} p.osuid The player's osu id
- * @param {string} p.osuname The player's osu username
- * @param {string} p.discordid The player's discord id
- * @param {"open"|"15k"} p.division Which division to add the player to
- * @param {string} p.utc The player's utc time modifier
- * @returns How many records were modified
- */
-async function updatePlayer({osuid, osuname, discordid, division, utc})
-{
-    console.log(`Adding ${osuname}`);
-    let result = await db.collection('teams').updateOne(
-        { $or: [
-            { osuid },
-            { discordid }
-        ] },
-        {
-            $set: {
-                osuid,
-                osuname,
-                discordid,
-                division,
-                utc
-            },
-            $setOnInsert: {
-                maps: [],
-                unconfirmed: true
-            }
-        },
-        { upsert: true }
-    );
-    return result.modifiedCount + result.upsertedCount;
-}
-
-/**
- * Removes a player from the database
- * @param {string} playerid The player to remove. Should be either a discord id or osu id
- * @returns How many records were modified
- */
-async function removePlayer(playerid)
-{
-    console.log(`Removing ${playerid}`);
-    let result = await db.collection('teams').deleteOne(
-        identify(playerid)
-    );
-    console.log(`Removed ${result.deletedCount} players`);
-    return result.deletedCount;
-}
-//#endregion
-
-/**
  * Toggles whether the player wants to receive notifications of map updates
  * @param {string} discordid The Discord id of the player to update
  * @returns True/False indicating the new status, or undefined if the player
@@ -152,15 +98,15 @@ async function removePlayer(playerid)
  */
 async function toggleNotification(discordid)
 {
-    let player = await db.collection('teams').findOne({ discordid });
-    if (!player)
+    let team = await db.collection('teams').findOne({ 'players.discordid': discordid });
+    if (!team)
         return;
-    
+    let player = team.players.find(p => p.discordid === discordid);
     if (player.notif)
     {
         let result = await db.collection('teams').updateOne(
-            { discordid },
-            { $unset: { notif: "" } }
+            { 'players.discordid': discordid },
+            { $unset: { 'players.$.notif': "" } }
         );
         if (result.modifiedCount)
             return false;
@@ -168,12 +114,30 @@ async function toggleNotification(discordid)
     else
     {
         let result = await db.collection('teams').updateOne(
-            { discordid },
-            { $set: { notif: true } }
+            { 'players.discordid': discordid },
+            { $set: { 'players.$.notif': true } }
         );
         if (result.modifiedCount)
             return true;
     }
+}
+
+/**
+ * Gets a team with a given player on it
+ * @param {string|number} id The player's id, either discord or osu id, or osu username
+ */
+async function getTeamByPlayerid(id)
+{
+    console.log(`Finding team for player ${id}`);
+    let team = await db.collection('teams').findOne({
+        $or: [
+            { 'players.discordid': id },
+            { 'players.osuid': id },
+            { 'players.osuname': regexify(id, 'i') }
+        ]
+    });
+    if (team)
+        return new DbTeam(team);
 }
 
 /**
@@ -183,14 +147,14 @@ async function toggleNotification(discordid)
 async function getPlayer(id)
 {
     console.log(`Finding player with id ${id}`);
-    let player = await db.collection('teams').findOne({
-        $or: [
-            { discordid: id },
-            { osuid: id },
-            { osuname: regexify(id, 'i') }
-        ]
-    });
-    console.log(util.inspect(player, { depth: 1 }));
+    let team = await getTeamByPlayerid(id);
+    // Get the specific player from the team
+    let player = team.players.find(p =>
+        p.discordid === id ||
+        p.osuid === id ||
+        p.osuname.match(regexify(id, 'i')).length > 0
+    );
+
     if (player)
         return new DbPlayer(player);
 }
@@ -199,20 +163,20 @@ async function getPlayer(id)
 /**
  * Adds a map to the given mod bracket. Removes the first map on the list if
  * two maps are already present.
- * @param {string|number} playerid The player identifier, either osuid or discordid
+ * @param {string} team The player identifier, either osuid or discordid
  * @param {DbBeatmap} map The map object to add
  * @returns True if the map was added without issue, false if the map wasn't added,
  * and a map object if a map got replaced.
  */
-async function addMap(playerid, map)
+async function addMap(team, map)
 {
-    console.log(`Adding map ${map.bid} to ${playerid}'s ${map.pool} pool`);
+    console.log(`Adding map ${map.bid} to ${team}'s ${map.pool} pool`);
     // let updateobj = { $push: {}};
     // updateobj.$push[`maps.${mod}`] = map;
-    let idobj = identify(playerid);
+    let idobj = { teamname: team };
     let teamobj = await db.collection('teams').findOneAndUpdate(
         idobj,
-        { $push: { maps: map.toObject() } },
+        { $push: { maps: { ...map } } },
         { returnOriginal: false }
     );
     console.log(`Team ok: ${teamobj.ok}`);
@@ -232,7 +196,7 @@ async function addMap(playerid, map)
             },
             {
                 updateOne: {
-                    filter: identify(playerid),
+                    filter: { teamname: team },
                     update: { $pull: { maps: null } }
                 }
             }
@@ -247,17 +211,17 @@ async function addMap(playerid, map)
 /**
  * Removes a map from a team's pool. If two maps in the pool are the same, only one
  * will be removed.
- * @param {string|number} playerid The player who's pool to remove the map from
+ * @param {string} team Which team to remove the map from
  * @param {Number} mapid The beatmap id to remove
  * @param {"nm"|"hd"|"hr"|"dt"|"cm"} modpool The modpool for the map
  * @param {number} mods Which mods the map uses
  * @returns The number of modified documents
  */
-async function removeMap(playerid, mapid, modpool, mods)
+async function removeMap(team, mapid, modpool, mods)
 {
     // I can't guarantee there will only be one matching map
     // Set one matching map to null, then pull nulls
-    let filter = identify(playerid);
+    let filter = { teamname: team };
     filter.maps = { $elemMatch: { bid: mapid } };
     if (modpool !== undefined)
         filter.maps.$elemMatch.pool = modpool;
@@ -274,7 +238,7 @@ async function removeMap(playerid, mapid, modpool, mods)
             }
         } },
         { updateOne: {
-            filter: identify(playerid),
+            filter: { teamname: team },
             update: { $pull: { maps: null } }
         } }
     ]);
@@ -519,10 +483,9 @@ async function bulkReject(maps, message, division)
 }
 
 module.exports = {
-    addTeam,
-    updatePlayer,  // Teams/players
-    removePlayer,
+    addTeam, // Teams/players
     toggleNotification,
+    getTeamByPlayerid,
     getPlayer,
     addMap,     // Maps
     removeMap,

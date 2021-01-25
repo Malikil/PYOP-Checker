@@ -26,8 +26,10 @@ class Checker {
     async check(beatmap) {
         console.log("checker.js:27 - Checking map");
         console.log(beatmap);
+        
         let checkResult = {
             passed: true,
+            approved: true,
             message: "This map can be accepted automatically"
         };
 
@@ -36,24 +38,28 @@ class Checker {
             let result = await this.rules[i].check(beatmap);
             if (!result.passed)
             {
-                // Special cases for rules
-                // Leaderboard isn't an automatic rejection
-                // Drain time has a buffer
+                // Special rejection cases
                 if (this.rules[i] instanceof Rules.LeaderboardRule)
+                { // Leaderboard isn't an automatic rejection
+                    checkResult.passed = true;
                     checkResult.message = "There aren't enough scores on the leaderboard to automatically approve this map";
+                    checkResult.screenshotNeeded = true
+                }
                 else if (this.rules[i] instanceof Rules.DrainTimeRule)
-                {
+                { // Drain time has a buffer
                     if (Math.abs(result.limit - result.actual) > drainBuffer)
-                    {
-                        checkResult.passed = false;
-                        checkResult.message = this.rules[i].userMessage(result.actual);
-                    }
+                        checkResult = {
+                            passed: false,
+                            approved: false,
+                            message: this.rules[i].userMessage(result.actual)
+                        };
                 }
                 else
-                {
-                    checkResult.passed = false;
-                    checkResult.message = this.rules[i].userMessage(result.actual);
-                }
+                    checkResult = {
+                        passed: false,
+                        approved: false,
+                        message: this.rules[i].userMessage(result.actual)
+                    };
             }
         }
 

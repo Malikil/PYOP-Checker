@@ -28,20 +28,4 @@ module.exports = class DbBeatmap {
         this.mods = mods;
         this.pool = pool;
     }
-
-    toObject() {
-        return {
-            bid: this.bid,
-            status: this.status,
-            drain: this.drain,
-            stars: this.stars,
-            bpm: this.bpm,
-            artist: this.artist,
-            title: this.title,
-            version: this.version,
-            creator: this.creator,
-            mods: this.mods,
-            pool: this.pool
-        };
-    }
 }

@@ -91,11 +91,7 @@ const commands = {
         // Extract the map id from the first arg
         let mapid = helpers.parseMapId(args[0]);
 
-        let result = await Command.checkMap(mapid, {
-            mods: mods,
-            division: args[2],
-            discordid: msg.author.id
-        });
+        let result = await Command.checkMap(mapid, mods, args[2], msg.author.id);
         console.log("Result of checkMap command:");
         console.log(result);
         if (result.message)
@@ -143,40 +139,6 @@ const commands = {
                 return p + `\n    ${c.division}: ${minLeaders}`;
             }, '')
         );
-    },
-
-    /**
-     * Gets a list of teams/players
-     * @param {Discord.Message} msg 
-     */
-    async players(msg, args)
-    {
-        let div;
-        if (args[0])
-            div = args[0].toLowerCase();
-        // If args is too long ignore it
-        if (args.length > 1 || (div && div !== "open" && div !== "15k"))
-            return;
-        
-        let result = await Command.getPlayers();
-
-        if (div === "open")
-            return msg.channel.send(`**Open division:** ${result.open.reduce(
-                    (p, c) => `${p}, ${c}`
-                , '').slice(2)}`);
-        else if (div === "15k")
-            return msg.channel.send(`**15k division:** ${result.fift.reduce(
-                    (p, c) => `${p}, ${c}`
-                , '').slice(2)}`);
-        else
-            return Promise.all([
-                msg.channel.send(`**Open division:** ${result.open.reduce(
-                    (p, c) => `${p}, ${c}`
-                , '').slice(2)}`),
-                msg.channel.send(`**15k division:** ${result.fift.reduce(
-                    (p, c) => `${p}, ${c}`
-                , '').slice(2)}`)
-            ]);
     },
 
     /**
@@ -299,11 +261,6 @@ const commands = {
         // Ignore commands with too many args
         if (args.length < 1 || args.length > 2)
             return;
-        // Check for locked here
-        if (global.locked)
-            return msg.channel.send("Submissions are currently locked. " +
-                "If you're submitting a replacement for a map that was rejected " +
-                "after submissions closed, please send it to Malikil directly.");
         let mapid = helpers.parseMapId(args[0]);
         if (!mapid)
             return msg.channel.send("Couldn't recognise beatmap id");
@@ -311,10 +268,7 @@ const commands = {
         let cm = false;
         if (args[1])
             cm = args[1].toUpperCase().includes("CM");
-        let result = await Command.addMap(mapid, {
-            mods, cm,
-            discordid: msg.author.id
-        });
+        let result = await Command.addMap(mapid, mods, cm, msg.author.id);
         console.log("Result of addMap command:");
         console.log(result);
         // Show the results of adding the map
@@ -327,13 +281,16 @@ const commands = {
                     `${str}\n${helpers.mapString(map)} ${map.pool === "cm" ? "CM" : ""}`
                 , '')
             );
-        else if (result.error)
+        else if (result.result.passed)
             return msg.channel.send(
                 `Couldn't add ${result.beatmap ? helpers.mapString(result.beatmap) : "unknown beatmap"}\n` +
-                `Message: ${result.error}`
+                `Message: ${result.result.message}`
             );
         else
-            return msg.channel.send(`Rejected ${helpers.mapString(result.beatmap)}:`);
+            return msg.channel.send(
+                `Rejected ${helpers.mapString(result.beatmap)}:\n` +
+                `Message: ${result.result.message}`
+            );
     },
 
     /**
@@ -697,87 +654,19 @@ const commands = {
     },
     //#endregion
     //#region ============================== Admin ==============================
+
     /**
-     * Adds a player to a team, and creates the team if it doesn't already exist
-     * @param {Discord.Message} msg 
+     * Updates teams each week.  
+     * 
+     * Export maps
+     * Move maps to 'old pools'
+     * @param {Discord.Message} msg
      * @param {string[]} args
+     * @param {Discord.Client} client
      */
-    async addplayer(msg, args)
-    {
-        // First arg is team name
-        let team = args.shift();
-        // Then player osuid/discordid come in pairs
-        // Starting in the second spot and using i - 1 so the last arg will be
-        // ignored if there are an odd number
-        let players = [];
-        for (let i = 1; i < args.length; i += 2)
-        {
-            // Extract the number from the discord id
-            let match = args[i].match(/[0-9]+/)[0];
-            if (match || args[i] === '_')
-                players.push({
-                    osuid: args[i - 1],
-                    discordid: match
-                });
-        }
-
-        // If there are an odd number of args, the last one should be division
-        let added;
-        if (args.length % 2 === 1)
-            added = await Command.addPlayer(team, players, args.pop());
-        else
-            added = await Command.addPlayer(team, players);
-        
-        return msg.channel.send(`Added ${added} players`);
-    },
-
-    /**
-     * Removes a player from their team
-     * @param {Discord.Message} msg 
-     * @param {string[]} args 
-     */
-    async removeplayer(msg, args)
-    {
-        // Combine multiple words into one
-        let osuname = args.reduce((p, c) => `${p} ${c}`, '').slice(1);
-        let result = await Command.removePlayer(osuname);
-        return msg.channel.send(`Removed ${osuname} from ${result} teams`);
-    },
-
-    /**
-     * Toggles submissions locked
-     * @param {Discord.Message} msg 
-     */
-    async lock(msg)
-    {
-        global.locked = !global.locked;
-        return msg.channel.send(`Submissions ${global.locked ? "locked" : "unlocked"}`);
-    },
-
-    /**
-     * Exports maps to google sheets
-     * @param {Discord.Message} msg 
-     */
-    async export(msg)
-    {
-        let result = await Command.exportMaps();
-        if (result.ok)
-            return msg.channel.send("Maps exported");
-        else
-            return msg.channel.send(result.message);
-    },
-
-    /**
-     * Updates maps with new weekly star range
-     * @param {Discord.Message} msg 
-     */
-    async update(msg)
+    async update(msg, args, client)
     {
         let updateCount = await Command.recheckMaps();
-        if (updateCount)
-            return msg.channel.send(`Updated ${updateCount} teams`);
-        else
-            return msg.channel.send("No teams updated");
     }
     //#endregion
 }
@@ -798,10 +687,6 @@ commands.reject.permissions = "approver";
 commands.manualadd.permissions = "approver";
 commands.autoapproved.permissions = "approver";
 
-commands.addplayer.permissions = "admin";
-commands.removeplayer.permissions = "admin";
-commands.lock.permissions = "admin";
-commands.export.permissions = "admin";
 commands.update.permissions = "admin";
 //#endregion
 //#region Aliases
@@ -821,10 +706,6 @@ commands.pool = commands.viewpool;
 commands.pass = commands.addpass;
 // ========== Approver ==========
 commands.accept = commands.approve;
-// ========== Admin ==========
-commands.ap = commands.addplayer;
-commands.rp = commands.removeplayer;
-commands.updatemaps = commands.update;
 //#endregion
 //#region Help messages
 // ============================== Public ==============================
@@ -839,9 +720,6 @@ commands.requirements.help = "Usage: !requirements\n" +
     "Displays the star rating and length requirements for " +
     "the current week\n" +
     "Aliases: !req";
-commands.players.help = "Usage: !players [open|15k]\n" +
-    "Optionally limit to a division by specifying 'open' or '15k'\n" +
-    "Shows the currently registered teams and players on those teams\n";
 commands.register.help = "Format:\n" +
     "```!register <division> <osu profile link or username> <UTC time>\n" +
     "<@ player 2> <player 2 profile/username> <player 2 UTC>\n" +
@@ -924,13 +802,7 @@ commands.manualadd.help = "Usage: !manualadd <player> <map> [mods]\n" +
     "approving it. This should only be used for cases such as the bot is " +
     "calculating a different star rating from what's shown in-game.";
 // ============================== Admin ==============================
-commands.addplayer.help = "Adds a player to a team. If the team " +
-    "doesn't already exist it is created.\n" +
-    "!addPlayer \"Team Name\" (<osu name/id> <discordid/@/_>)...";
-commands.removeplayer.help = "Removes a player from all teams they might be on.\n" +
-    "!removePlayer osuname";
 commands.update.help = "Updates map rejections with new star range";
-commands.add.osuhelp = "Use !add [mods] where mods is a combination of NM|HD|HR|DT|EZ|HT|CM, using the last map from /np";
 //#endregion
 
 /**

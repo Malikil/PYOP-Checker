@@ -7,7 +7,6 @@ const Discord = require('discord.js');
 const commands = require('./discord_commands');
 const util = require('util');
 const client = new Discord.Client();
-global.locked = false;
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
@@ -48,5 +47,11 @@ client.login(process.env.DISCORD_TOKEN)
 .catch(err => {
     console.error("Discord bot crashed");
     console.error(err);
-});
+})
+/*.then(() => {
+    const announce = client.channels.get(process.env.CHANNEL_ANNOUNCEMENTS);
+    setTimeout(() => announce.send("Pools closing soon"), 5000);
+    setTimeout(() => announce.send("Pools closed"), 20000);
+    // Set announcement timers
+});*/
 

@@ -1,4 +1,5 @@
 const fetch = require('node-fetch');
+const DbBeatmap = require('./dbbeatmap');
 const MODS = require('../helpers/bitwise');
 const OSUKEY = process.env.OSUKEY;
 
@@ -101,6 +102,28 @@ class ApiBeatmap {
         if (beatmap)
             return new ApiBeatmap(beatmap, mods);
         // Undefined if the beatmap doesn't exist
+    }
+
+    /**
+     * @param {string} status 
+     * @param {"nm"|"hd"|"hr"|"dt"|"cm"} pool 
+     */
+    toDbBeatmap(status, pool, mods) {
+        let obj = new DbBeatmap({
+            bid: this.beatmap_id,
+            drain: this.hit_length,
+            stars: this.difficultyrating,
+            bpm: this.bpm,
+            artist: this.artist,
+            title: this.title,
+            version: this.version,
+            creator: this.creator,
+            mods: this.mods,
+            status, pool
+        });
+        if (mods !== undefined)
+            obj.mods = mods;
+        return obj;
     }
 }
 

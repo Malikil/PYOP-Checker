@@ -9,7 +9,7 @@ const db = require('./db-manager');
 const util = require('util');
 const google = require('./gsheets');
 const helpers = require('./helpers/helpers');
-const { DbBeatmap, ApiBeatmap, CheckableMap, DbPlayer, ApiPlayer } = require('./types');
+const { DbBeatmap, ApiBeatmap, DbPlayer, ApiPlayer } = require('./types');
 const divInfo = require('./divisions.json');
 
 const MAP_COUNT = 10;
@@ -72,6 +72,9 @@ const MAP_COUNT = 10;
 /**
  * Checks whether a given map would be accepted
  * @param {number} mapid The map id
+ * @param {number} mods
+ * @param {string} division
+ * @param {string} discordid
  * @returns {Promise<{
  *  passed: boolean,
  *  message?: string,
@@ -81,12 +84,8 @@ const MAP_COUNT = 10;
  * }>} A message indicating whether the map would be accepted,
  * and the map object that got checked
  */
-async function checkMap(mapid, {
-    mods = 0,
-    division = undefined,
-    osuid = undefined,
-    discordid = undefined
-}) {
+async function checkMap(mapid, mods, division, discordid)
+{
     if (!mapid || isNaN(mapid))
         return {
             passed: false,
@@ -96,22 +95,16 @@ async function checkMap(mapid, {
     console.log(`Checking map ${mapid} with mods ${mods}`);
     // If division is included, use that. Otherwise try to
     // get the division based on who sent the message
-    let osuname;
     if (!checkers[division])
-        if (discordid || osuid)
-        {
-            let player = await db.getPlayer(discordid || osuid);
-            if (player)
-            {
-                division = player.division;
-                osuname = player.osuname;
-                osuid = player.osuid;
-            }
-            else // Use the first division as default
-                division = Object.keys(checkers)[0];
-        }
-        else
+    {
+        let team = await db.getTeamByPlayerid(discordid);
+        if (team)
+            division = team.division;
+        else // Use the first division as default
             division = Object.keys(checkers)[0];
+    }
+    else
+        division = Object.keys(checkers)[0];
     let beatmap = await ApiBeatmap.buildFromApi(mapid, mods);
     if (!beatmap)
         return {
@@ -398,77 +391,63 @@ async function updatePlayerName(playerid)
 /**
  * Adds a map to the players's team and makes sure it's acceptable
  * @param {number} mapid Map id
- * @param {Object} p1
- * @param {number} p1.mods
- * @param {boolean} p1.cm
- * @param {string} p1.discordid Optional
- * @param {number|string} p1.osuid Optional, osu id or osu username
+ * @param {number} mods
+ * @param {boolean} cm
+ * @param {string} discordid
  * 
  * @returns {Promise<{
- *   added: boolean,
- *   error?: string,
- *   check?: {
- *      rejected: boolean,
- *      reject_on?: "Drain"|"Length"|"Stars"|"User"|"Data",
- *      reject_type?: "High"|"Low",
- *      issues?: {
- *          type: "2b"|"slider2b"|"spinner"|"position"|"leaderboard",
- *          time?: number
- *      }[]
- *   },
- *   beatmap?: DbBeatmap|CheckableMap,
- *   division?: "open"|"15k",
- *   replaced?: DbBeatmap,
- *   current?: DbBeatmap[]
+ *  added: boolean,
+ *  result: {
+ *      passed: boolean,
+ *      approved: boolean,
+ *      message: string
+ *  },
+ *  beatmap?: ApiBeatmap|DbBeatmap,
+ *  replaced?: DbBeatmap,
+ *  current?: DbBeatmap[]
  * }>}
  */
-async function addMap(mapid, {
-    mods = 0,
-    cm = false,
-    discordid,
-    osuid
-}) {
-    var player = await db.getPlayer(osuid || discordid);
-    if (!player || player.unconfirmed)
+async function addMap(mapid, mods, cm, discordid)
+{
+    var team = await db.getTeamByPlayerid(discordid);
+    if (!team)
         return {
             added: false,
-            error: "Player not found or registration not completed"
+            result: {
+                passed: false,
+                approved: false,
+                message: "Player not found"
+            }
         };
 
     // Check beatmap approval
     console.log(`Looking for map with id ${mapid} and mod ${mods}`);
     try
     {
-        let beatmap = await helpers.getBeatmap(mapid, mods);
+        let beatmap = await ApiBeatmap.buildFromApi(mapid, mods);
         if (!beatmap)
             return {
                 added: false,
-                error: "Beatmap doesn't exist"
+                result: {
+                    passed: false,
+                    approved: false,
+                    message: "Beatmap not found"
+                }
             };
-        let quick = await checker.mapCheck(beatmap, player.division, player.osuname);
-        console.log(quick);
-        let status;
-        if (quick.rejected)
+        let checkResult = await checkers[team.division].check(beatmap);
+        if (!checkResult.passed)
             return {
-                check: quick,
-                beatmap,
-                division: player.division,
-                added: false
+                added: false,
+                result: checkResult,
+                beatmap
             };
-        else if ((await checker.leaderboardCheck(mapid, mods, player.division, player.osuid)).passed)
-            if (beatmap.version !== "Aspire" && (!quick.issues || quick.issues.length === 0))
-                status = "Accepted (Automatic)";
+        else if (checkResult.approved)
+            if (beatmap.version === "Aspire" || beatmap.approved > 3)
+                status = "Pending"
             else
-                status = "Pending";
-        else if (!quick.issues || !quick.issues.find(i => i.type === "user"))
+                status = "Accepted (Automatic)";
+        else
             status = "Screenshot Required";
-        else // The map had a user issue and no leaderboard
-            return {
-                check: quick,
-                beatmap,
-                division: player.division,
-                added: false
-            };
         
         // Get the mod pool this map is being added to
         let modpool = cm ? "cm" : helpers.getModpool(mods);
@@ -476,7 +455,7 @@ async function addMap(mapid, {
         // Check if a map should be removed to make room for this one
         // We need the first rejected map, and a count of maps in the modpool
         let rejected;
-        let count = player.maps.reduce((n, m) => {
+        let count = team.maps.reduce((n, m) => {
             if (m.pool === modpool)
             {
                 if (!rejected && m.status.startsWith("Rejected"))
@@ -486,23 +465,19 @@ async function addMap(mapid, {
             else return n;
         }, 0);
         if (rejected && count > 1)
-            await db.removeMap(player.osuid, rejected.bid, rejected.pool, rejected.mods);
+            await db.removeMap(team.teamname, rejected.bid, rejected.pool, rejected.mods);
         else // We don't need to remove a map, because there's still an empty space
             rejected = undefined;
 
-        let mapitem = new DbBeatmap({
-            ...beatmap,
-            status,
-            pool: modpool
-        });
+        let mapitem = beatmap.toDbBeatmap(status, modpool, mods);
         
-        let result = await db.addMap(player.osuid, mapitem);
+        let result = await db.addMap(team.teamname, mapitem);
         if (result)
         {
             // Prepare the current pool state
             let cur = [];
             let skipped = false; // Whether we've skipped a map yet
-            player.maps.forEach(m => {
+            team.maps.forEach(m => {
                 // Get maps with matching mods
                 if (m.mods === mods)
                 {
@@ -527,13 +502,17 @@ async function addMap(mapid, {
                 replaced,
                 added: true,
                 beatmap: mapitem,
-                current: cur
+                current: cur,
+                result: checkResult
             };
         }
         else
             return {
                 added: false,
-                error: "Add map failed.",
+                result: {
+                    ...checkResult,
+                    message: "Add map failed"
+                },
                 beatmap
             };
     }
@@ -541,7 +520,10 @@ async function addMap(mapid, {
     {
         return {
             added: false,
-            error: err.error || err,
+            result: {
+                passed: true,
+                message: "This should never happen " + (err.error || err)
+            },
             beatmap: err.map
         }
     }
