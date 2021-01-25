@@ -13,6 +13,7 @@ const { DbBeatmap, ApiBeatmap, DbPlayer, ApiPlayer } = require('./types');
 const divInfo = require('./divisions.json');
 
 const MAP_COUNT = 10;
+const DRAIN_BUFFER = parseInt(process.env.DRAIN_BUFFER);
 
 //#region Discord functions - kept for reference
 /*
@@ -166,6 +167,14 @@ async function getPlayers()
  */
 async function addTeam(division, teamname, players)
 {
+    // Make sure none of the players are already on a team
+    let team = await db.getTeamByPlayerlist(players);
+    if (team)
+        return {
+            added: false,
+            message: "Some players are already on a team. Please let Malikil know " +
+                "if you need to make changes to an existing team."
+        };
     // Find division requirements
     let div = divInfo.find(d => d.division === division);
     // Verify the players
@@ -323,49 +332,6 @@ async function recheckMaps()
 // ============================================================================
 // ========================== Player Commands =================================
 // ============================================================================
-/**
- * If the given discordid matches a player in the database, finish their registration
- * @param {number} osuid 
- * @param {string} discordid 
- * @returns {Promise<{
- *  confirmed: boolean,
- *  updated: boolean
- * }>} Confirmed indicates the confirmed status of the player,
- * updated indicates if the player should have been updated
- */
-async function confirmRegistration(osuname, discordid)
-{
-    let player = await db.getPlayer(osuname);
-    if (player && player.discordid === discordid)
-        if (player.unconfirmed)
-        {
-            let result = await db.confirmPlayer(player.osuid, discordid);
-            if (result)
-            {
-                google.addPlayer(player);
-                return {
-                    confirmed: true,
-                    updated: true
-                };
-            }
-            else
-                return {
-                    confirmed: false,
-                    updated: true
-                };
-        }
-        else
-            return {
-                confirmed: true,
-                updated: false
-            };
-    else
-        return {
-            confirmed: false,
-            updated: false
-        };
-}
-
 /**
  * Updates the osu name of a given player
  * @param {string} playerid Discord id or osuname
@@ -687,8 +653,8 @@ async function removeMap(mapid, {
 async function viewPool(discordid, mods)
 {
     // Get which team the player is on
-    let player = await db.getPlayer(discordid);
-    if (!player)
+    let team = await db.getTeamByPlayerid(discordid);
+    if (!team)
         return { error: "Couldn't find player" };
 
     // Add all mods if not otherwise requested
@@ -706,7 +672,7 @@ async function viewPool(discordid, mods)
     };
     // Loop over all the maps, add them to the proper output string,
     // and add them to the pool for checking.
-    player.maps.forEach(map => {
+    team.maps.forEach(map => {
         if (mods.includes(map.pool))
         {
             // If the mod hasn't been seen yet, add it to the output
@@ -722,16 +688,16 @@ async function viewPool(discordid, mods)
     // Put all the output strings together in order
     let str = mods.reduce((s, m) => s + (strs[m] || ""), '');
     // Check the pool as a whole
-    let result = await checker.checkPool(pool);
+    let result = await checkers[team.division].checkPool(pool);
     // Don't display pool error messages if limited by a certain mod
     if (mods.length === 5)
     {
         str += `\nTotal drain: ${helpers.convertSeconds(result.totalDrain)}`;
-        str += `\n${result.overUnder} maps are within 15 seconds of drain time limit`;
+        str += `\n${result.overUnder} maps are within ${DRAIN_BUFFER} seconds of drain time limit`;
         // Show pool problems
-        str += `\nThere are ${MAP_COUNT - player.maps.length} unfilled slots\n`;
-        if (result.message.length > 0)
-            result.message.forEach(item => str += `\n${item}`);
+        str += `\nThere are ${MAP_COUNT - team.maps.length} unfilled slots\n`;
+        if (result.messages.length > 0)
+            result.messages.forEach(item => str += `\n${item}`);
     }
     // Do display duplicate maps always though
     if (result.duplicates.length > 0)
@@ -901,7 +867,6 @@ module.exports = {
     recheckMaps,
     toggleNotif,    // Players
     updatePlayerName,
-    confirmRegistration,
     addMap,         // Maps
     addPass,
     removeMap,

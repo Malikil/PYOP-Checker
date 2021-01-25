@@ -112,7 +112,7 @@ class ApiBeatmap {
         let obj = new DbBeatmap({
             bid: this.beatmap_id,
             drain: this.hit_length,
-            stars: this.difficultyrating,
+            stars: parseFloat(this.difficultyrating.toFixed(2)),
             bpm: this.bpm,
             artist: this.artist,
             title: this.title,

@@ -68,15 +68,24 @@ class Checker {
 
     async checkPool(beatmaps) {
         // Ignore map-specific checks, just aggregate everything
+        // Cheating a little bit here, checking the pool will only be done with DbBeatmaps
+        // But I don't want to make the change in the db so its keys line up with the osu api
+        let found = [];
+        let duplicates = [];
         let checkResult = await beatmaps.reduce(async (previous, map) => {
             let agg = await previous;
+            // Check for duplicates
+            if (found.includes(map.bid))
+                duplicates.push(map);
+            else
+                found.push(map.bid);
             // Find the total drain time
-            agg.total += map.hit_length;
+            agg.total += map.drain;
             // Count how many maps use the drain buffer
             let drainRules = this.rules.filter(r => r instanceof Rules.DrainTimeRule);
             for (let i = 0; i < drainRules.length; i++)
             {
-                let result = await drainRules[i].check(map);
+                let result = await drainRules[i].check({ hit_length: map.drain });
                 if (!result.passed && Math.abs(result.limit - result.actual) <= drainBuffer)
                     agg.overUnder++;
             }
@@ -84,8 +93,8 @@ class Checker {
             return agg;
         }, Promise.resolve({ total: 0, overUnder: 0 }));
 
-        let messages = [];
         // Verify length limit
+        let messages = [];
         if (checkResult.total < minTotal * beatmaps.length)
             messages.push(`Total combined drain time is too short (${
                 helpers.convertSeconds(agg.total)
@@ -99,10 +108,15 @@ class Checker {
                 helpers.convertSeconds(maxTotal * beatmaps.length)
             })`);
         // Beatmaps using drain buffer
-        if (agg.overUnder > overUnderMax)
+        if (checkResult.overUnder > overUnderMax)
             messages.push(`More than ${overUnderMax} maps are outside the drain time limits`);
 
-        return messages;
+        return {
+            totalDrain: checkResult.total,
+            overUnder: checkResult.overUnder,
+            messages,
+            duplicates
+        };
     }
 }
 

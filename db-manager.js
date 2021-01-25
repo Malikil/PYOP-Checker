@@ -140,6 +140,24 @@ async function getTeamByPlayerid(id)
         return new DbTeam(team);
 }
 
+async function getTeamByPlayerlist(players)
+{
+    let filter = [];
+    players.forEach(p => {
+        if (p.osuid)
+            filter.push({ 'players.osuid': p.osuid });
+        if (p.osuname)
+            filter.push({ 'players.osuname': regexify(p.osuname, 'i') });
+        if (p.discordid)
+            filter.push({ 'players.discordid': p.discordid });
+    });
+    let team = await db.collection('teams').findOne({
+        $or: filter
+    });
+    if (team)
+        return new DbTeam(team);
+}
+
 /**
  * Gets a player based on their osu id or discord id
  * @param {string|number} id The player's id, either discord or osu id, or osu username
@@ -486,6 +504,7 @@ module.exports = {
     addTeam, // Teams/players
     toggleNotification,
     getTeamByPlayerid,
+    getTeamByPlayerlist,
     getPlayer,
     addMap,     // Maps
     removeMap,
