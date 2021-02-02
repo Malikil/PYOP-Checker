@@ -179,10 +179,10 @@ const commands = {
             }
         ];
         // Possible player 3
-        let p3id = args[6].match(/[0-9]+/)[0];
-        if (p3id)
+        let p3id = args[6].match(/[0-9]+/);
+        if (p3id && p3id[0])
             players.push({
-                discordid: p3id,
+                discordid: p3id[0],
                 osuid: parseProfile(args[7]),
                 utc: args[8]
             });
