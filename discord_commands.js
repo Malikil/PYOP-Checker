@@ -191,6 +191,8 @@ const commands = {
         for (let i = p3id ? 9 : 6; i < args.length; i++)
             teamName += args[i] + ' ';
         teamName = teamName.trim();
+        if (!teamName)
+            return msg.channel.send("Couldn't register: No team name given");
         
         console.log(players);
         let result = await Command.addTeam(division, teamName, players);
