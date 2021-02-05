@@ -607,29 +607,28 @@ async function addPass(mapid, discordid)
 async function removeMap(mapid, {
     mods,
     cm = false,
-    discordid,
-    osuid
+    discordid
 }) {
     // Get which team the player is on
-    let player = await db.getPlayer(discordid || osuid);
-    if (!player)
+    let team = await db.getTeamByPlayerid(discordid);
+    if (!team)
         return {
-            error: "Couldn't find player",
+            error: "Couldn't find team",
             removed: []
         };
     // Special case for removing all maps
     if (mapid === "all")
     {
-        await db.removeAllMaps(player.osuid)
-        return { removed: player.maps };
+        await db.removeAllMaps(team.teamname)
+        return { removed: team.maps };
     }
     let modpool = (cm ? "cm" : undefined);
     console.log(`Removing mapid ${mapid} from ${modpool}`);
-    let result = await db.removeMap(player.osuid, mapid, modpool, mods);
+    let result = await db.removeMap(team.teamname, mapid, modpool, mods);
     if (result)
     {
         // Find the map info for this id, for user friendliness' sake
-        let map = player.maps.find(item => 
+        let map = team.maps.find(item => 
             item.bid === mapid &&
             (!modpool || item.pool === modpool) &&
             (!mods || item.mods === mods)

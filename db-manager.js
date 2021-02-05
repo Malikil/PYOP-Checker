@@ -265,13 +265,13 @@ async function removeMap(team, mapid, modpool, mods)
 
 /**
  * Removes all maps from the given team's pool
- * @param {string|number} playerid Team name
+ * @param {string|number} teamname Team name
  * @returns The number of teams modified
  */
-async function removeAllMaps(playerid)
+async function removeAllMaps(teamname)
 {
     let result = await db.collection('teams').updateOne(
-        identify(playerid),
+        { teamname },
         { $set: { maps: [] } }
     );
     return result.modifiedCount;
