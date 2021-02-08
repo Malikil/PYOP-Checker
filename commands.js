@@ -15,57 +15,6 @@ const divInfo = require('./divisions.json');
 const MAP_COUNT = 10;
 const DRAIN_BUFFER = parseInt(process.env.DRAIN_BUFFER);
 
-//#region Discord functions - kept for reference
-/*
- * Silently waits for an undo command, and if it's received the team 
- * state will be restored to the given one
- * @param {Discord.Message} msg 
- * @param {*} team 
- */
-/*async function waitForUndo(msg, team)
-{
-    let undo = await getConfirmation(msg, '', ['!undo'], []);
-    if (!undo.aborted)
-    {
-        db.setTeamState(team);
-        msg.channel.send("Reset maps to previous state");
-    }
-}
-
-/**
- * Will ask for confirmation in the channel of a received message,
- * from the user who sent that message
- * @param {Discord.Message} msg 
- * @param {string} prompt
- */
-/*async function getConfirmation(msg, prompt = undefined, accept = ['y', 'yes'], reject = ['n', 'no'])
-{
-    // Prepare the accept/reject values
-    let waitFor = accept.concat(reject);
-    let waitForStr = waitFor.reduce((p, v) => p + `/${v}`, "").slice(1);
-    if (prompt)
-        await msg.channel.send(`${prompt} (${waitForStr})`);
-    let err = "";
-    let aborted = await msg.channel.awaitMessages(
-        message => message.author.equals(msg.author)
-            && waitFor.includes(message.content.toLowerCase()),
-        { maxMatches: 1, time: 10000, errors: ['time'] }
-    ).then(results => {
-        console.log(results);
-        let response = results.first();
-        return reject.includes(response.content.toLowerCase());
-    }).catch(reason => {
-        console.log("Response timer expired");
-        err = "Timed out. ";
-        return true;
-    });
-    console.log(`Aborted? ${aborted}`);
-    return {
-        aborted,
-        err
-    };
-}*/
-//#endregion
 //#region Public Commands
 // ============================================================================
 // ========================= Public Functions =================================
@@ -409,7 +358,7 @@ async function addMap(mapid, mods, cm, discordid)
             };
         else if (checkResult.approved)
             if (beatmap.version === "Aspire" || beatmap.approved > 3)
-                status = "Pending"
+                status = "Pending";
             else
                 status = "Accepted (Automatic)";
         else
@@ -435,7 +384,7 @@ async function addMap(mapid, mods, cm, discordid)
         else // We don't need to remove a map, because there's still an empty space
             rejected = undefined;
 
-        let mapitem = beatmap.toDbBeatmap(status, modpool, mods);
+        let mapitem = beatmap.toDbBeatmap(status, modpool);
         
         let result = await db.addMap(team.teamname, mapitem);
         if (result)
@@ -502,49 +451,41 @@ async function addMap(mapid, mods, cm, discordid)
  *  mods: number,
  *  cm: boolean
  * }[]} maps
- * @param {object} o1
- * 
- * @param {string} o1.discordid
- * @param {number} o1.osuid
+ * @param {string} discordid
  * 
  * @returns {Promise<{
  *  error?: string,
  *  added: number
  * }>}
  */
-async function addBulk(maps, {
-    discordid,
-    osuid
-}) {
+async function addBulk(maps, discordid) {
     // Get the user's team
-    let player = await db.getPlayer(discordid || osuid);
-    if (!player)
+    let team = await db.getTeamByPlayerid(discordid);
+    if (!team)
         return {
-            error: "Player not found",
+            error: "Team not found",
             added: 0
         };
-    console.log(`Found player ${player.osuname}`);
+    console.log(`commands.js:addBulk - Found ${team.teamname}`);
     let added = await maps.reduce(async (count, map) => {
         console.log(`Checking map ${map.mapid} +${map.mods}${map.cm ? " CM" : ""}`);
         // Get the map
-        let beatmap = await helpers.getBeatmap(map.mapid, map.mods);
-        let quick = await checker.mapCheck(beatmap, player.division, player.osuname);
-        if (quick.rejected)
+        let beatmap = await ApiBeatmap.buildFromApi(map.mapid, map.mods);
+        let checkResult = await checkers[team.division].check(beatmap);
+        if (!checkResult.passed)
             return count;
         let status;
-        if ((await checker.leaderboardCheck(map.mapid, map.mods, player.division, player.osuid)).passed)
-            if (beatmap.version !== "Aspire")
-                status = "Accepted (Automatic)";
-            else
+        if (checkResult.approved)
+            if (beatmap.version === "Aspire" || beatmap.approved > 3)
                 status = "Pending";
-        else if (!quick.issues || !quick.issues.includes("user"))
+            else
+                status = "Accepted (Automatic)";
+        else
             status = "Screenshot Required";
-        else // The map had a user issue and no leaderboard
-            return count;
         let pool = map.cm ? "cm" : helpers.getModpool(map.mods);
-        let mapitem = new DbBeatmap({ ...beatmap, status, pool });
+        let mapitem = beatmap.toDbBeatmap(status, pool);
         // Add map
-        let added = await db.addMap(player.osuid, mapitem);
+        let added = await db.addMap(team.teamname, mapitem);
         if (added)
             return (await count) + 1;
         else

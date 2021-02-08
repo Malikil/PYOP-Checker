@@ -65,7 +65,7 @@ class ApiBeatmap {
         // - packs
 
         // If mods were used, update required values
-        this.mods = mods & MODS.DIFFMODS;
+        this.mods = mods;
         if (mods & MODS.DT)
         {
             this.total_length = (this.total_length * (2.0 / 3.0)) | 0;
@@ -108,7 +108,7 @@ class ApiBeatmap {
      * @param {string} status 
      * @param {"nm"|"hd"|"hr"|"dt"|"cm"} pool 
      */
-    toDbBeatmap(status, pool, mods) {
+    toDbBeatmap(status, pool) {
         let obj = new DbBeatmap({
             bid: this.beatmap_id,
             drain: this.hit_length,
@@ -121,8 +121,6 @@ class ApiBeatmap {
             mods: this.mods,
             status, pool
         });
-        if (mods !== undefined)
-            obj.mods = mods;
         return obj;
     }
 }

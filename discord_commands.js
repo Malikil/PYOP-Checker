@@ -302,7 +302,7 @@ const commands = {
     async addbulk(msg)
     {
         // Skip over the !addbulk command and split into lines
-        let lines = msg.content.substr(9).split('\n');
+        let lines = msg.content.substr("!addbulk ".length).split('\n');
         console.log(lines);
         let maps = lines.reduce((arr, line) => {
             let lineargs = line.split(' ');
@@ -326,7 +326,7 @@ const commands = {
                 });
             return arr;
         }, []);
-        let result = await Command.addBulk(maps, { discordid: msg.author.id });
+        let result = await Command.addBulk(maps, msg.author.id);
         if (result.error)
             return msg.channel.send(result.error);
         else
