@@ -97,13 +97,13 @@ class Checker {
         let messages = [];
         if (checkResult.total < minTotal * beatmaps.length)
             messages.push(`Total combined drain time is too short (${
-                helpers.convertSeconds(agg.total)
+                helpers.convertSeconds(checkResult.total)
             } vs ${beatmaps.length} x ${helpers.convertSeconds(minTotal)} -> ${
                 helpers.convertSeconds(minTotal * beatmaps.length)
             })`);
         else if (checkResult.total > maxTotal * beatmaps.length)
             messages.push(`Total combined drain time is too long (${
-                helpers.convertSeconds(agg.total)
+                helpers.convertSeconds(checkResult.total)
             } vs ${beatmaps.length} x ${helpers.convertSeconds(maxTotal)} -> ${
                 helpers.convertSeconds(maxTotal * beatmaps.length)
             })`);
