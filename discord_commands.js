@@ -179,10 +179,10 @@ const commands = {
             }
         ];
         // Possible player 3
-        let p3id = args[6].match(/[0-9]+/);
+        let p3id = args[6].match(/<@![0-9]+>/);
         if (p3id && p3id[0])
             players.push({
-                discordid: p3id[0],
+                discordid: p3id[0].slice(3, -1),
                 osuid: parseProfile(args[7]),
                 utc: args[8]
             });
@@ -840,7 +840,6 @@ function getArgs(s)
  */
 async function run(comname, msg, client)
 {
-    console.log(`Running command ${comname}`);
     const APPROVER = process.env.ROLE_MAP_APPROVER;
     const ADMIN = process.env.ROLE_ADMIN;
     let com = commands[comname];
@@ -848,8 +847,12 @@ async function run(comname, msg, client)
         return msg.channel.send("This command is only available in the server to Map Approvers");
     else if (com.permissions === "admin" && !msg.member.roles.has(ADMIN))
         return msg.channel.send("This command is only available in the server to Admins");
-    else
-        return com(msg, getArgs(msg.content).slice(1), client);
+    else {
+        let args = getArgs(msg.content).slice(1);
+        console.log(`Running command ${comname} with arguments`);
+        console.log(args);
+        return com(msg, args, client);
+    }
 }
 
 module.exports = {

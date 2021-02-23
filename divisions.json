@@ -13,7 +13,7 @@
             { "low": 6.3, "high": 7.5 }
         ],
         "drainlimits": [
-            { "low": 60, "high": 330 }
+            { "low": 60, "high": 315 }
         ],
         "lengthlimits": [
             { "high": 390 }
@@ -36,7 +36,7 @@
             { "low": 5.5, "high": 6.9 }
         ],
         "drainlimits": [
-            { "low": 60, "high": 330 }
+            { "low": 60, "high": 315 }
         ],
         "lengthlimits": [
             { "high": 390 }
