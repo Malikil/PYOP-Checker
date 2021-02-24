@@ -11,6 +11,7 @@ const google = require('./gsheets');
 const helpers = require('./helpers/helpers');
 const { DbBeatmap, ApiBeatmap, DbPlayer, ApiPlayer } = require('./types');
 const divInfo = require('./divisions.json');
+const { captureRejectionSymbol } = require('events');
 
 const MAP_COUNT = 10;
 const DRAIN_BUFFER = parseInt(process.env.DRAIN_BUFFER);
@@ -145,9 +146,11 @@ async function addTeam(division, teamname, players)
     // Convert players to db format
     let playerlist = apiplayers.map(apip => {
         let player = players.find(p =>
-            p.osuid.toString().toLowerCase() === apip.username.toLowerCase() ||
+            p.osuid.toString().toLowerCase() === apip.username.toLowerCase().replace(/ /g, '_') ||
             p.osuid === apip.user_id
         );
+        console.log(`Looking for ${apip.username}`);
+        console.log(player);
         let obj = {
             osuid: apip.user_id,
             osuname: apip.username,

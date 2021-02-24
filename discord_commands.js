@@ -164,31 +164,39 @@ const commands = {
             let asInt = parseInt(pid);
             if (asInt)
                 pid = asInt;
+            else
+                pid = pid.replace(/ /g, '_');
             return pid;
         }
-        let players = [
-            { // P1
-                discordid: msg.author.id,
-                osuid: parseProfile(args[1]),
-                utc: args[2]
-            },
-            { // P2
-                discordid: args[3].match(/[0-9]+/)[0],
-                osuid: parseProfile(args[4]),
-                utc: args[5]
-            }
-        ];
-        // Possible player 3
-        let p3id = args[6].match(/<@![0-9]+>/);
-        if (p3id && p3id[0])
-            players.push({
-                discordid: p3id[0].slice(3, -1),
-                osuid: parseProfile(args[7]),
-                utc: args[8]
-            });
+        let players = [];
+        try {
+            players = [
+                { // P1
+                    discordid: msg.author.id,
+                    osuid: parseProfile(args[1]),
+                    utc: args[2]
+                },
+                { // P2
+                    discordid: args[3].match(/[0-9]+/)[0],
+                    osuid: parseProfile(args[4]),
+                    utc: args[5]
+                }
+            ];
+            // Possible player 3
+            let p3id = args[6].match(/<@!?[0-9]+>/);
+            if (p3id && p3id[0])
+                players.push({
+                    discordid: p3id[0].match(/[0-9]+/)[0],
+                    osuid: parseProfile(args[7]),
+                    utc: args[8]
+                });
+        }
+        catch (err) {
+            return msg.channel.send("Couldn't recognise player profiles");
+        }
         // The remaining args make up the team name
         let teamName = '';
-        for (let i = p3id ? 9 : 6; i < args.length; i++)
+        for (let i = players.length * 3; i < args.length; i++)
             teamName += args[i] + ' ';
         teamName = teamName.trim();
         if (!teamName)
