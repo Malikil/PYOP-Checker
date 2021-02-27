@@ -472,12 +472,12 @@ const commands = {
             {
                 let attach = msg.attachments.first();
                 let attachment = new Discord.Attachment(attach.url, attach.filename);
-                passReference = await passChannel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${result.player}`,
+                passReference = await passChannel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${msg.author.username}`,
                     attachment);
             }
             else
                 // Copy the link/image to the screenshots channel
-                passReference = await passChannel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${result.player}\n` +
+                passReference = await passChannel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${msg.author.username}\n` +
                     args[1]);
         }
         else
