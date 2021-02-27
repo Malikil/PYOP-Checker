@@ -42,7 +42,7 @@ async function checkMap(mapid, mods, division, discordid)
             error: "Couldn't recognise beatmap id"
         };
     
-    console.log(`Checking map ${mapid} with mods ${mods}`);
+    console.log(`Checking map ${mapid} with mods ${mods} using ${division} division`);
     // If division is included, use that. Otherwise try to
     // get the division based on who sent the message
     if (!checkers[division])
@@ -53,8 +53,6 @@ async function checkMap(mapid, mods, division, discordid)
         else // Use the first division as default
             division = Object.keys(checkers)[0];
     }
-    else
-        division = Object.keys(checkers)[0];
     let beatmap = await ApiBeatmap.buildFromApi(mapid, mods);
     if (!beatmap)
         return {

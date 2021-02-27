@@ -346,21 +346,15 @@ async function pendingMap(discordid, mapid, pass)
     let result = await db.collection('teams').updateOne(
         {
             'players.discordid': discordid,
-            maps: { $elemMatch: {
-                bid: mapid,
-                status: "Screenshot Required"
-            } }
+            'maps.bid': mapid
         },
         {
             $set: { 'maps.$[pendmap].status': "Pending" },
             $push: { 'maps.$[pendmap].passes': pass }
         },
-        { arrayFilters: [
-            {
-                'pendmap.status': "Screenshot Required",
-                'pendmap.bid': mapid
-            }
-        ] }
+        { arrayFilters: [{
+            'pendmap.bid': mapid
+        }] }
     );
     //console.log(result);
     return {
