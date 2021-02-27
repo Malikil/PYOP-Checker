@@ -11,7 +11,6 @@ const google = require('./gsheets');
 const helpers = require('./helpers/helpers');
 const { DbBeatmap, ApiBeatmap, DbPlayer, ApiPlayer } = require('./types');
 const divInfo = require('./divisions.json');
-const { captureRejectionSymbol } = require('events');
 
 const MAP_COUNT = 10;
 const DRAIN_BUFFER = parseInt(process.env.DRAIN_BUFFER);
@@ -503,6 +502,7 @@ async function addBulk(maps, discordid) {
  * Adds a pass to a map in the player's team's pool
  * @param {number} mapid
  * @param {string} discordid 
+ * @param {string} referenceLink
  * 
  * @returns {Promise<{
  *  added: boolean,
@@ -510,18 +510,18 @@ async function addBulk(maps, discordid) {
  *  player?: string
  * }>}
  */
-async function addPass(mapid, discordid)
+async function addPass(mapid, discordid, referenceLink)
 {
     // Get which team the player is on
-    let player = await db.getPlayer(discordid);
-    if (!player)
+    let team = await db.getTeamByPlayerid(discordid);
+    if (!team)
         return {
             added: false,
-            error: "Couldn't find player"
+            error: "Couldn't find team"
         };
 
     // Update the status
-    let result = await db.pendingMap(player.discordid, mapid);
+    let result = await db.pendingMap(player.discordid, mapid, referenceLink);
     if (!result.matched)
         return {
             added: false,

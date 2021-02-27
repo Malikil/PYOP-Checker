@@ -462,12 +462,9 @@ const commands = {
         if (!mapid)
             return msg.channel.send(`Couldn't recognise beatmap id`);
 
-        // Attempt to update the map status
-        let result = await Command.addPass(mapid, msg.author.id);
-        if (result.error)
-            return msg.channel.send(result.error);
         // Forward the screenshot to the proper channel
         const passChannel = client.channels.get(process.env.CHANNEL_SCREENSHOTS);
+        let passReference;
         if (passChannel && passChannel.type === "text")
         {
             // Always include the attachment if there is one
@@ -475,18 +472,24 @@ const commands = {
             {
                 let attach = msg.attachments.first();
                 let attachment = new Discord.Attachment(attach.url, attach.filename);
-                passChannel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${result.player}`,
+                passReference = await passChannel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${result.player}`,
                     attachment);
             }
             else
                 // Copy the link/image to the screenshots channel
-                passChannel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${result.player}\n` +
+                passReference = await passChannel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${result.player}\n` +
                     args[1]);
         }
         else
             return msg.channel.send("Couldn't find screenshots channel. " +
                 `Found ${passChannel} instead.\n` +
                 "This is not a good thing, please tell Malikil.");
+
+        // Attempt to update the map status
+        let result = await Command.addPass(mapid, msg.author.id, passReference.url);
+        if (result.error)
+            return msg.channel.send(result.error);
+
         // Screenshot should be updated by this point
         if (result.added)
             return msg.channel.send("Screenshot added");

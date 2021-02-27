@@ -331,12 +331,13 @@ async function findMissingMaps()
 }
 
 /**
- * Changes a map between "Screenshot Required" and "Pending" statuses
+ * Adds a pass to a map and updates the status
  * @param {String} discordid The player to update
  * @param {Number} mapid The map id to update
+ * @param {string} pass A reference link to the pass
  * @returns The number of modified players
  */
-async function pendingMap(discordid, mapid)
+async function pendingMap(discordid, mapid, pass)
 {
     // We don't care about mod at this point, they're not supposed to have
     // the same map more than once anyways.
@@ -344,13 +345,16 @@ async function pendingMap(discordid, mapid)
     // approved status back to pending just by submitting a screenshot
     let result = await db.collection('teams').updateOne(
         {
-            discordid,
+            'players.discordid': discordid,
             maps: { $elemMatch: {
                 bid: mapid,
                 status: "Screenshot Required"
             } }
         },
-        { $set: { 'maps.$[pendmap].status': "Pending" } },
+        {
+            $set: { 'maps.$[pendmap].status': "Pending" },
+            $push: { 'maps.$[pendmap].passes': pass }
+        },
         { arrayFilters: [
             {
                 'pendmap.status': "Screenshot Required",
