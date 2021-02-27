@@ -521,16 +521,14 @@ async function addPass(mapid, discordid, referenceLink)
         };
 
     // Update the status
-    let result = await db.pendingMap(player.discordid, mapid, referenceLink);
+    let result = await db.pendingMap(discordid, mapid, referenceLink);
     if (!result.matched)
         return {
             added: false,
-            error: "Couldn't find map",
-            player: player.osuname
+            error: "Couldn't find map"
         };
     return {
-        added: !!result.added,
-        player: player.osuname
+        added: !!result.added
     };
 }
 
