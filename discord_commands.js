@@ -1,6 +1,6 @@
 const Discord = require('discord.js');
 const helpers = require('./helpers/helpers');
-const Command = require('./commands');
+const Command = require('./commands_old');
 const { inspect } = require('util');
 const divInfo = require('./divisions.json');
 
@@ -71,37 +71,6 @@ const commands = {
             }, '') +
             "\n\nUse ? after a command to get more information about it, eg `!check ?`"
         );
-    },
-
-    /**
-     * Checks whether a given map would be valid,
-     * without actually adding the map to any pools
-     * @param {Discord.Message} msg
-     * @param {string[]} args
-     */
-    async check(msg, args)
-    {
-        // args order should be map, mod?, division?
-        if (args.length < 1 || args.length > 3)
-            return;
-        // Convert mods into a number
-        let mods = 0;
-        if (args[1])
-            mods = helpers.parseMod(args[1]);
-        // Extract the map id from the first arg
-        let mapid = helpers.parseMapId(args[0]);
-
-        let result = await Command.checkMap(mapid, mods, args[2], msg.author.id);
-        console.log("Result of checkMap command:");
-        console.log(result);
-        if (result.message)
-            return msg.channel.send(`${result.division} division: ${result.message}`);
-        else if (result.passed)
-            return msg.channel.send("This map could be automatically approved");
-        else if (result.error)
-            throw result.error;
-        else
-            return msg.channel.send("This map would need to be manually checked");
     },
 
     /**
@@ -687,8 +656,6 @@ commands.autoapproved.permissions = "approver";
 //#region Aliases
 // ========== Public ==========
 commands.commands = commands.help;
-commands.checkmap = commands.check;
-commands.map = commands.check;
 commands.req = commands.requirements;
 // ========== Player ==========
 commands.addmap = commands.add;
@@ -705,12 +672,6 @@ commands.accept = commands.approve;
 //#region Help messages
 // ============================== Public ==============================
 commands.help.help = "Shows a list of available commands";
-commands.check.help = "Usage: !check <map> [mod] [division]\n" +
-    "Map: Should be a link or map id\n" +
-    "(Optional) Mod: Should be some combination of HD|HR|DT|HT|EZ. Default is NoMod\n" +
-    "(Optional) Division: Open or 15k. If left out will try to find which team you're " +
-    "on, or use open division if it can't." +
-    "Aliases: !map, !checkmap";
 commands.requirements.help = "Usage: !requirements\n" +
     "Displays the star rating and length requirements for " +
     "the current week\n" +

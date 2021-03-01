@@ -3,10 +3,27 @@ This will be the main entry point.
 Connection to discord should be handled here. Commands should be handled with
 the 'commands' module, but those methods will be called from here.
 */
+const fs = require('fs');
 const Discord = require('discord.js');
 const commands = require('./discord_commands');
+const validator = require('./validator');
 const util = require('util');
 const client = new Discord.Client();
+
+// Load commands from files
+client.commands = new Discord.Collection();
+fs.readdir('./commands',
+    (_, folders) => folders.forEach(folder => {
+        fs.readdir(`./commands/${folder}`,
+            (_, files) => {
+                files.filter(f => f.endsWith('.js')).forEach(file => {
+                    const command = require(`./commands/${folder}/${file}`);
+                    client.commands.set(command.name, command);
+                });
+            }
+        );
+    })
+);
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
@@ -19,16 +36,38 @@ client.on('message', msg => {
         return msg.reply("Pong!");
 
     console.log(`\x1b[36mReceived message:\x1b[0m ${msg.content}`);
+
+    // Handle commands
+    const simpleArgs = msg.content.slice(1).split(' ');
+    const commandName = simpleArgs.shift().toLowerCase();
+    const command = client.commands.get(commandName)
+        || client.commands.find(comm => comm.alias && comm.alias.includes(commandName));
+
+    if (command) {
+        // Validate args
+        const args = validator.validateArgs(command.args, msg.content);
+        if (args.rejected)
+            return msg.channel.send(`${args.error || ""}\n\n${validator.usageString(command)}`);
+        // Run command
+        command.run(msg, args)
+        .catch(err => {
+            console.error(err);
+            msg.channel.send("Malikil did a stupid, and so the bot broke. " +
+                "Please tell him what you were trying to do and send him this:\n" +
+                "```" + util.inspect(err).slice(0, 1000) + "...```");
+        });
+    }
+
     let commandNames = Object.keys(commands.commands);
     let commandArgs = msg.content.split(' ');
-    let command = commandArgs[0].slice(1);
-    if (commandNames.includes(command))
+    let commandN = commandArgs[0].slice(1);
+    if (commandNames.includes(commandN))
         // Check if this is a help message or not
         if (commandArgs[1] === '?')
-            msg.channel.send(commands.commands[command].help)
+            msg.channel.send(commands.commands[commandN].help)
                 .catch(() => msg.channel.send("No help available"));
         else
-            commands.run(command, msg, client)
+            commands.run(commandN, msg, client)
                 .catch(reason => msg.channel.send("Malikil did a stupid, and so the bot broke. " +
                     "Please tell him what you were trying to do and send him this:\n" +
                     "```" + util.inspect(reason).slice(0, 1000) + "...```"));
