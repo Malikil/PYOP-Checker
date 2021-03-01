@@ -6,7 +6,6 @@ It will interact with sheets/db modules, but not with discord/bancho
 //const Discord = require('discord.js');
 const checkers = require('./checkers');
 const db = require('./db-manager');
-const util = require('util');
 const google = require('./gsheets');
 const helpers = require('./helpers/helpers');
 const { DbBeatmap, ApiBeatmap, DbPlayer, ApiPlayer } = require('./types');

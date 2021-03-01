@@ -42,38 +42,7 @@ async function getConfirmation(msg, prompt = undefined, accept = ['y', 'yes'], r
 
 const commands = {
     //#region ============================== Public ==============================
-    /**
-     * Shows available commands
-     * @param {Discord.Message} msg 
-     */
-    async help(msg)
-    {
-        console.log("Showing help");
-        let sorted = {
-            public: [],
-            player: [],
-            approver: [],
-            admin: []
-        }
-        comnames.forEach(name => sorted[commands[name].permissions || 'public'].push(name));
-        if (msg.member) // Only check roles if this came from the server
-        {
-            var approver = msg.member.roles.cache.has(process.env.ROLE_MAP_APPROVER);
-            var admin = msg.member.roles.cache.has(process.env.ROLE_ADMIN);
-        }
-        msg.channel.send(
-            Object.keys(sorted).reduce((prev, key) => {
-                if ((!approver && key === 'approver')
-                        || (!admin && key === 'admin'))
-                    return prev;
-                return `${prev}\nAvailable **${key}** commands:\n` +
-                    sorted[key].reduce((p, c) => `${p}, !${c}`, '').slice(2);
-            }, '') +
-            "\n\nUse ? after a command to get more information about it, eg `!check ?`"
-        );
-    },
-
-    /**
+        /**
      * Shows the requirements for the current week
      * @param {Discord.Message} msg 
      */
@@ -636,7 +605,7 @@ const commands = {
     },
     //#endregion
 }
-const comnames = Object.keys(commands);
+
 //#region Command permissions
 commands.osuname.permissions = "player";
 commands.notif.permissions = "player";
@@ -655,7 +624,6 @@ commands.autoapproved.permissions = "approver";
 //#endregion
 //#region Aliases
 // ========== Public ==========
-commands.commands = commands.help;
 commands.req = commands.requirements;
 // ========== Player ==========
 commands.addmap = commands.add;
@@ -671,7 +639,6 @@ commands.accept = commands.approve;
 //#endregion
 //#region Help messages
 // ============================== Public ==============================
-commands.help.help = "Shows a list of available commands";
 commands.requirements.help = "Usage: !requirements\n" +
     "Displays the star rating and length requirements for " +
     "the current week\n" +
