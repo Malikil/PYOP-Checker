@@ -163,48 +163,6 @@ const commands = {
     },
 
     /**
-     * Adds a map to the player's pool
-     * @param {Discord.Message} msg
-     * @param {string[]} args
-     */
-    async add(msg, args)
-    {
-        // Ignore commands with too many args
-        if (args.length < 1 || args.length > 2)
-            return;
-        let mapid = helpers.parseMapId(args[0]);
-        if (!mapid)
-            return msg.channel.send("Couldn't recognise beatmap id");
-        let mods = helpers.parseMod(args[1]);
-        let cm = false;
-        if (args[1])
-            cm = args[1].toUpperCase().includes("CM");
-        let result = await Command.addMap(mapid, mods, cm, msg.author.id);
-        console.log("Result of addMap command:");
-        console.log(result);
-        // Show the results of adding the map
-        if (result.added)
-            return msg.channel.send((result.replaced ? `Replaced ${helpers.mapString(result.replaced)} (${result.replaced.bid})\n` : "") +
-                `Added ${helpers.mapString(result.beatmap)} to ${result.beatmap.pool.toUpperCase()} mod pool.\n` +
-                `Map approval status: ${result.beatmap.status}\n` +
-                `Current __${helpers.modString(result.beatmap.mods)}__ maps:` +
-                result.current.reduce((str, map) =>
-                    `${str}\n${helpers.mapString(map)} ${map.pool === "cm" ? "CM" : ""}`
-                , '')
-            );
-        else if (result.result.passed)
-            return msg.channel.send(
-                `Couldn't add ${result.beatmap ? helpers.mapString(result.beatmap) : "unknown beatmap"}\n` +
-                `Message: ${result.result.message}`
-            );
-        else
-            return msg.channel.send(
-                `Rejected ${helpers.mapString(result.beatmap)}:\n` +
-                `Message: ${result.result.message}`
-            );
-    },
-
-    /**
      * Adds multiple maps to the player's pool
      * @param {Discord.Message} msg 
      */
@@ -572,7 +530,6 @@ const commands = {
 //#region Command permissions
 commands.osuname.permissions = "player";
 commands.notif.permissions = "player";
-commands.add.permissions = "player";
 commands.addbulk.permissions = "player";
 commands.remove.permissions = "player";
 commands.viewpool.permissions = "player";
@@ -587,7 +544,6 @@ commands.autoapproved.permissions = "approver";
 //#endregion
 //#region Aliases
 // ========== Player ==========
-commands.addmap = commands.add;
 commands.bulkadd = commands.addbulk;
 commands.removemap = commands.remove;
 commands.rem = commands.remove;
@@ -616,21 +572,6 @@ commands.register.help = "Format:\n" +
 // ============================== Player ==============================
 commands.osuname.help = "Usage: !osuname\n" +
     "Updates your osu username if you've changed it";
-commands.add.help = "Usage: !add <map> [mod]\n" +
-    "map: A map link or beatmap id\n" +
-    "(optional) mod: What mods to use. Should be some combination of " +
-    "CM|HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored. " +
-    "To add the map as a custom mod, include CM.\n" +
-    "You may optionally attach a screenshot to automatically use that as " +
-    "your pass. It must be as an attachment, to use a separate link use " +
-    "the !addpass command.\n" +
-    "Aliases: !addmap\n\n" +
-    "If there are already two maps in the selected mod pool, the first map " +
-    "will be removed when adding a new one. To replace a specific map, " +
-    "remove it first before adding another one. Rejected maps will be " +
-    "replaced in preference to pending/accepted.\n"// +
-    //"If you make a mistake you can use `!undo` within 10 seconds to " +
-    //"return your maps to how they were before.";
 commands.addbulk.help = "Use !addbulk, then include map id/links and mods one per line. eg:\n" +
     "    !addbulk <https://osu.ppy.sh/b/8708> NM\n    <https://osu.ppy.sh/b/8708> HD\n" +
     "    <https://osu.ppy.sh/b/75> HR\n    <https://osu.ppy.sh/b/75> DT\n";
