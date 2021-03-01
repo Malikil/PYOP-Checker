@@ -6,7 +6,7 @@ const util = require('util');
 
 module.exports = {
     name: "check",
-    help: "Checks whether a map would be allowed in a pool",
+    description: "Checks whether a map would be allowed in a pool",
     args: [
         { arg: "map", required: true },
         { arg: "mods" },

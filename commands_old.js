@@ -20,55 +20,6 @@ const DRAIN_BUFFER = parseInt(process.env.DRAIN_BUFFER);
 // ========================= Public Functions =================================
 // ============================================================================
 /**
- * Checks whether a given map would be accepted
- * @param {number} mapid The map id
- * @param {number} mods
- * @param {string} division
- * @param {string} discordid
- * @returns {Promise<{
- *  passed: boolean,
- *  message?: string,
- *  error?: string,
- *  beatmap?: ApiBeatmap,
- *  division?: "open"|"15k"
- * }>} A message indicating whether the map would be accepted,
- * and the map object that got checked
- */
-async function checkMap(mapid, mods, division, discordid)
-{
-    if (!mapid || isNaN(mapid))
-        return {
-            passed: false,
-            error: "Couldn't recognise beatmap id"
-        };
-    
-    console.log(`Checking map ${mapid} with mods ${mods} using ${division} division`);
-    // If division is included, use that. Otherwise try to
-    // get the division based on who sent the message
-    if (!checkers[division])
-    {
-        let team = await db.getTeamByPlayerid(discordid);
-        if (team)
-            division = team.division;
-        else // Use the first division as default
-            division = Object.keys(checkers)[0];
-    }
-    let beatmap = await ApiBeatmap.buildFromApi(mapid, mods);
-    if (!beatmap)
-        return {
-            passed: false,
-            error: `Couldn't find beatmap with id ${mapid}`
-        };
-    let check = await checkers[division].check(beatmap);
-    console.log(`Rules check returned: ${util.inspect(check)}`);
-    return {
-        ...check,
-        beatmap,
-        division
-    };
-}
-
-/**
  * Get a list of all players in either division
  * @returns {Promise<{
  *  open: string[],
@@ -796,7 +747,6 @@ async function rejectMap(mapid, mods, desc)
 //#endregion
 
 module.exports = {
-    checkMap,  // Public
     getPlayers,
     addTeam, // Admin
     removePlayer,

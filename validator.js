@@ -14,6 +14,8 @@ function validateArgs(expected, actual) {
     const args = {
         rejected: false
     };
+    if (!expected)
+        expected = [];
 
     if (cmdargs.length > expected.length)
         args.rejected = true;
@@ -73,7 +75,7 @@ function usageString(command) {
         });
     if (command.alias)
         alias = "\nAliases: " + command.alias.reduce((p, c) => `${p}, ${c}`);
-    return `Usage: !${command.name}${header}\n${command.help}${description}${alias}`;
+    return `Usage: !${command.name}${header}\n${command.description}${description}${alias}`;
 }
 
 const valid = {
