@@ -48,6 +48,12 @@ client.on('message', msg => {
         const args = validator.validateArgs(command.args, msg.content);
         if (args.rejected)
             return msg.channel.send(`${args.error || ""}\n\n${validator.usageString(command)}`);
+        // Verify permissions
+        if (command.permissions && command.permissions.length > 0) {
+            const roles = msg.member.roles.cache;
+            if (!command.permissions.every(perm => roles.has(perm)))
+                return msg.channel.send("You don't have the required role to access this command");
+        }
         // Run command
         command.run(msg, args)
         .catch(err => {

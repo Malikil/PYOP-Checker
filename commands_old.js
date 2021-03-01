@@ -20,31 +20,6 @@ const DRAIN_BUFFER = parseInt(process.env.DRAIN_BUFFER);
 // ========================= Public Functions =================================
 // ============================================================================
 /**
- * Get a list of all players in either division
- * @returns {Promise<{
- *  open: string[],
- *  fift: string[]
- * }>} Lists of player names for each division
- */
-async function getPlayers()
-{
-    // Create the player lists
-    var open = [];
-    var fift = [];
-    await db.performAction(async function(player) {
-        if (player.division === "15k" && !player.unconfirmed)
-            fift.push(player.osuname);
-        else if (!player.unconfirmed)
-            open.push(player.osuname);
-    });
-
-    return {
-        open,
-        fift
-    }
-}
-
-/**
  * Adds a team
  * @param {string} teamname The team's name
  * @param {string} division Which division to add the team to
@@ -747,7 +722,6 @@ async function rejectMap(mapid, mods, desc)
 //#endregion
 
 module.exports = {
-    getPlayers,
     addTeam, // Admin
     removePlayer,
     exportMaps,
