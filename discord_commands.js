@@ -58,8 +58,8 @@ const commands = {
         comnames.forEach(name => sorted[commands[name].permissions || 'public'].push(name));
         if (msg.member) // Only check roles if this came from the server
         {
-            var approver = msg.member.roles.has(process.env.ROLE_MAP_APPROVER);
-            var admin = msg.member.roles.has(process.env.ROLE_ADMIN);
+            var approver = msg.member.roles.cache.has(process.env.ROLE_MAP_APPROVER);
+            var admin = msg.member.roles.cache.has(process.env.ROLE_ADMIN);
         }
         msg.channel.send(
             Object.keys(sorted).reduce((prev, key) => {
@@ -150,8 +150,8 @@ const commands = {
         // Args: division, osu profile, utc time, @p2, p2 profile, p2 utc, @p3, p3 profile, p3 utc, ...team name
         if (args.length === 0)
             return msg.channel.send(commands.register.help);
-        else if (args.length < 7)
-            return msg.channel.send("Not enough arguments");
+        else return msg.channel.send("Registrations are closed");/*if (args.length < 7)
+            return msg.channel.send("Not enough arguments");//*/
         // Verify arguments
         let division = args[0].toLowerCase();
         if (!divInfo.find(d => d.division === division))
@@ -854,9 +854,11 @@ async function run(comname, msg, client)
     const APPROVER = process.env.ROLE_MAP_APPROVER;
     const ADMIN = process.env.ROLE_ADMIN;
     let com = commands[comname];
-    if (com.permissions === "approver" && !msg.member.roles.has(APPROVER))
+    let member = msg.member;
+    console.log(member);
+    if (com.permissions === "approver" && !msg.member.roles.cache.has(APPROVER))
         return msg.channel.send("This command is only available in the server to Map Approvers");
-    else if (com.permissions === "admin" && !msg.member.roles.has(ADMIN))
+    else if (com.permissions === "admin" && !msg.member.roles.cache.has(ADMIN))
         return msg.channel.send("This command is only available in the server to Admins");
     else {
         let args = getArgs(msg.content).slice(1);

@@ -749,19 +749,17 @@ async function viewMissingMaps()
  * @returns {Promise<string>} A short message describing results
  */
 async function manualAddMap(playerid, mapid, mods, custom) {
-    let player = await db.getPlayer(playerid);
-    if (!player)
+    let team = await db.getTeamByPlayerid(playerid);
+    if (!team)
         return "No player found";
 
-    let map = await helpers.getBeatmap(mapid, mods);
+    let map = await ApiBeatmap.buildFromApi(mapid, mods);
     if (!map)
         return "No beatmap found";
+
+    let pool = custom ? 'cm' : helpers.getModpool(mods);
     
-    let result = await db.addMap(player.discordid, new DbBeatmap({
-        ...map,
-        pool: custom ? "cm" : helpers.getModpool(mods),
-        status: "Accepted"
-    }));
+    let result = await db.addMap(team.teamname, map.toDbBeatmap("Approved", pool));
     if (result)
     {
         if (result instanceof DbBeatmap)
