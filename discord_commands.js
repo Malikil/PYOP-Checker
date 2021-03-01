@@ -666,22 +666,6 @@ const commands = {
         return msg.channel.send("```" + inspect(count) + "```");
     },
     //#endregion
-    //#region ============================== Admin ==============================
-
-    /**
-     * Updates teams each week.  
-     * 
-     * Export maps
-     * Move maps to 'old pools'
-     * @param {Discord.Message} msg
-     * @param {string[]} args
-     * @param {Discord.Client} client
-     */
-    async update(msg, args, client)
-    {
-        let updateCount = await Command.recheckMaps();
-    }
-    //#endregion
 }
 const comnames = Object.keys(commands);
 //#region Command permissions
@@ -699,8 +683,6 @@ commands.missing.permissions = "approver";
 commands.reject.permissions = "approver";
 commands.manualadd.permissions = "approver";
 commands.autoapproved.permissions = "approver";
-
-commands.update.permissions = "admin";
 //#endregion
 //#region Aliases
 // ========== Public ==========
@@ -814,8 +796,6 @@ commands.manualadd.help = "Usage: !manualadd <player> <map> [mods]\n" +
     "Adds the map to the player's pool, bypassing map checks and automatically " +
     "approving it. This should only be used for cases such as the bot is " +
     "calculating a different star rating from what's shown in-game.";
-// ============================== Admin ==============================
-commands.update.help = "Updates map rejections with new star range";
 //#endregion
 
 /**
@@ -854,8 +834,6 @@ async function run(comname, msg, client)
     const APPROVER = process.env.ROLE_MAP_APPROVER;
     const ADMIN = process.env.ROLE_ADMIN;
     let com = commands[comname];
-    let member = msg.member;
-    console.log(member);
     if (com.permissions === "approver" && !msg.member.roles.cache.has(APPROVER))
         return msg.channel.send("This command is only available in the server to Map Approvers");
     else if (com.permissions === "admin" && !msg.member.roles.cache.has(ADMIN))
