@@ -246,36 +246,6 @@ const commands = {
     },
 
     /**
-     * Views current maps in the team's pool
-     * @param {Discord.Message} msg 
-     * @param {string[]} args
-     */
-    async viewpool(msg, args)
-    {
-        if (args.length > 1)
-            return;
-        
-        // Split the first argument into modpools
-        let mods;
-        if (args[0])
-        {
-            let modstr = args[0].toLowerCase();
-            mods = ['nm', 'hd', 'hr', 'dt', 'cm'].reduce((arr, mod) => {
-                if (modstr.includes(mod))
-                    arr.push(mod);
-                return arr;
-            }, []);
-        }
-
-        // Get the pool
-        let result = await Command.viewPool(msg.author.id, mods);
-        if (result.error)
-            return msg.channel.send(result.error);
-        else
-            return msg.channel.send(result.poolstr);
-    },
-
-    /**
      * Adds a pass
      * @param {Discord.Message} msg 
      * @param {string[]} args 
@@ -506,7 +476,6 @@ const commands = {
 commands.osuname.permissions = "player";
 commands.addbulk.permissions = "player";
 commands.remove.permissions = "player";
-commands.viewpool.permissions = "player";
 commands.addpass.permissions = "player";
 
 commands.approve.permissions = "approver";
@@ -521,9 +490,6 @@ commands.autoapproved.permissions = "approver";
 commands.bulkadd = commands.addbulk;
 commands.removemap = commands.remove;
 commands.rem = commands.remove;
-commands.view = commands.viewpool;
-commands.list = commands.viewpool;
-commands.pool = commands.viewpool;
 commands.pass = commands.addpass;
 // ========== Approver ==========
 commands.accept = commands.approve;
@@ -558,10 +524,6 @@ commands.remove.help = "Usage: !remove <map> [mod]\n" +
     "Aliases: !rem, !removemap\n\n"// +
     //"If you make a mistake you can use !undo within 10 seconds to " +
     //"return your maps to how they were before.";
-commands.viewpool.help = "Usage: !viewpool [mod]\n" +
-    "View maps in your pool and their statuses. " +
-    "Optionally limit to a specific set of mods from NM|HD|HR|DT|CM\n" +
-    "Aliases: !view, !list, !pool";
 commands.addpass.help = "Usage: !addpass <map> [screenshot]\n" +
     "map: A map link or beatmap id\n" +
     "screenshot: A link to a screenshot of your pass on the map\n" +

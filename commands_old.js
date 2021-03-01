@@ -363,77 +363,6 @@ async function removeMap(mapid, {
         return { removed: [] };
 }
 
-/**
- * Views all the maps in a player's pool
- * @param {string} discordid
- * @param {("nm"|"hd"|"hr"|"dt"|"cm")[]} mods
- * 
- * @returns {Promise<{
- *  error?: string,
- *  poolstr?: string
- * }>}
- */
-async function viewPool(discordid, mods)
-{
-    // Get which team the player is on
-    let team = await db.getTeamByPlayerid(discordid);
-    if (!team)
-        return { error: "Couldn't find player" };
-
-    // Add all mods if not otherwise requested
-    if (!mods || mods.length === 0)
-        mods = ["nm", "hd", "hr", "dt", "cm"];
-
-    let strs = {};
-    let pool = [];
-    const modNames = {
-        nm: "**__No Mod:__**\n",
-        hd: "**__Hidden:__**\n",
-        hr: "**__Hard Rock:__**\n",
-        dt: "**__Double Time:__**\n",
-        cm: "**__Custom Mod:__**\n"
-    };
-    // Loop over all the maps, add them to the proper output string,
-    // and add them to the pool for checking.
-    team.maps.forEach(map => {
-        if (mods.includes(map.pool))
-        {
-            // If the mod hasn't been seen yet, add it to the output
-            if (!strs[map.pool])
-                strs[map.pool] = modNames[map.pool];
-            // Add the map's info to the proper string
-            strs[map.pool] += `${helpers.mapString(map)} ${map.pool === 'cm' ? `+${helpers.modString(map.mods)} ` : ""}<${helpers.mapLink(map)}>\n`;
-            strs[map.pool] += `\tDrain: ${helpers.convertSeconds(map.drain)}, Stars: ${map.stars}, Status: ${map.status}\n`;
-
-            pool.push(map);
-        }
-    });
-    // Put all the output strings together in order
-    let str = mods.reduce((s, m) => s + (strs[m] || ""), '');
-    // Check the pool as a whole
-    let result = await checkers[team.division].checkPool(pool);
-    // Don't display pool error messages if limited by a certain mod
-    if (mods.length === 5)
-    {
-        str += `\nTotal drain: ${helpers.convertSeconds(result.totalDrain)}`;
-        str += `\n${result.overUnder} maps are within ${DRAIN_BUFFER} seconds of drain time limit`;
-        // Show pool problems
-        str += `\nThere are ${MAP_COUNT - team.maps.length} unfilled slots\n`;
-        if (result.messages.length > 0)
-            result.messages.forEach(item => str += `\n${item}`);
-    }
-    // Do display duplicate maps always though
-    if (result.duplicates.length > 0)
-    {
-        str += "\nThe following maps were found more than once:";
-        result.duplicates.forEach(dupe => str += `\n\t${helpers.mapString(dupe)}`);
-    }
-
-    return {
-        poolstr: str || "Nothing to display"
-    };
-}
-
 //#endregion
 //#region Approver Commands
 // ============================================================================
@@ -569,7 +498,6 @@ module.exports = {
     // Maps
     addPass,
     removeMap,
-    viewPool,
     addBulk,
     viewPending,    // Map approvers
     approveMap,
