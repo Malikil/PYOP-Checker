@@ -138,31 +138,6 @@ const commands = {
     },
 
     /**
-     * Toggles notifications on or off
-     * @param {Discord.Message} msg 
-     * @param {string[]} args
-     */
-    async notif(msg, args)
-    {
-        if (args[0] === '??')
-        {
-            let status = await Command.toggleNotif(msg.author.id, false);
-            if (status === undefined)
-                return msg.channel.send("Couldn't find player");
-            else
-                return msg.channel.send(`Notifications currently set to: ${!!status}`);
-        }
-        else if (args.length === 0)
-        {
-            let status = await Command.toggleNotif(msg.author.id);
-            if (status === undefined)
-                return msg.channel.send("Couldn't update your notification status");
-            else
-                return msg.channel.send(`Toggled notifications to: ${!!status}`);
-        }
-    },
-
-    /**
      * Adds multiple maps to the player's pool
      * @param {Discord.Message} msg 
      */
@@ -529,7 +504,6 @@ const commands = {
 
 //#region Command permissions
 commands.osuname.permissions = "player";
-commands.notif.permissions = "player";
 commands.addbulk.permissions = "player";
 commands.remove.permissions = "player";
 commands.viewpool.permissions = "player";
@@ -595,9 +569,6 @@ commands.addpass.help = "Usage: !addpass <map> [screenshot]\n" +
     "instead of using a link if you prefer. You still need to include " +
     "the map link/id regardless.\n" +
     "Aliases: !pass";
-commands.notif.help = "Usage: !notif\n" +
-    "Toggles whether the bot will DM you if one of your maps is rejected\n" +
-    "Use `!notif ??` to view the current setting";
 // ============================== Approver ==============================
 commands.approve.help = "Usage: !approve <map> [mod]\n" +
     "Map: Map link or id to approve\n" +

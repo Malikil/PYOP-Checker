@@ -93,33 +93,37 @@ async function addTeam(teamname, division, players)
 /**
  * Toggles whether the player wants to receive notifications of map updates
  * @param {string} discordid The Discord id of the player to update
- * @returns True/False indicating the new status, or undefined if the player
+ * @param {boolean} setting
+ * @returns True/False indicating the current/new status, or undefined if the player
  * wasn't found
  */
-async function toggleNotification(discordid)
+async function setNotify(discordid, setting)
 {
     let team = await db.collection('teams').findOne({ 'players.discordid': discordid });
     if (!team)
         return;
     let player = team.players.find(p => p.discordid === discordid);
-    if (player.notif)
-    {
-        let result = await db.collection('teams').updateOne(
-            { 'players.discordid': discordid },
-            { $unset: { 'players.$.notif': "" } }
-        );
-        if (result.modifiedCount)
-            return false;
-    }
-    else
-    {
-        let result = await db.collection('teams').updateOne(
-            { 'players.discordid': discordid },
-            { $set: { 'players.$.notif': true } }
-        );
-        if (result.modifiedCount)
-            return true;
-    }
+    if (setting !== undefined && !!player.notify !== setting)
+        if (player.notify)
+        {
+            let result = await db.collection('teams').updateOne(
+                { 'players.discordid': discordid },
+                { $unset: { 'players.$.notify': "" } }
+            );
+            if (result.modifiedCount)
+                return false;
+        }
+        else
+        {
+            let result = await db.collection('teams').updateOne(
+                { 'players.discordid': discordid },
+                { $set: { 'players.$.notify': true } }
+            );
+            if (result.modifiedCount)
+                return true;
+        }
+    
+    return !!player.notify;
 }
 
 /**
@@ -500,7 +504,7 @@ async function bulkReject(maps, message, division)
 
 module.exports = {
     addTeam, // Teams/players
-    toggleNotification,
+    setNotify,
     getTeamByPlayerid,
     getTeamByPlayerlist,
     getPlayer,

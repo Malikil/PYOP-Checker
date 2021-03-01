@@ -5,15 +5,15 @@ module.exports = class DbPlayer {
      * @param {string} o.osuname
      * @param {string} o.discordid
      * @param {string?} o.utc
-     * @param {boolean?} o.notif True or undefined
+     * @param {boolean?} o.notify True or undefined
      */
     constructor({
-        osuid, osuname, discordid, utc, notif
+        osuid, osuname, discordid, utc, notify
     }) {
         this.osuid = osuid;
         this.osuname = osuname;
         this.discordid = discordid;
         this.utc = utc;
-        this.notif = notif;
+        this.notify = notify;
     }
 }

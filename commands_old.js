@@ -229,147 +229,6 @@ async function updatePlayerName(playerid)
 }
 
 /**
- * Adds a map to the players's team and makes sure it's acceptable
- * @param {number} mapid Map id
- * @param {number} mods
- * @param {boolean} cm
- * @param {string} discordid
- * 
- * @returns {Promise<{
- *  added: boolean,
- *  result: {
- *      passed: boolean,
- *      approved: boolean,
- *      message: string
- *  },
- *  beatmap?: ApiBeatmap|DbBeatmap,
- *  replaced?: DbBeatmap,
- *  current?: DbBeatmap[]
- * }>}
- */
-async function addMap(mapid, mods, cm, discordid)
-{
-    var team = await db.getTeamByPlayerid(discordid);
-    if (!team)
-        return {
-            added: false,
-            result: {
-                passed: false,
-                approved: false,
-                message: "Player not found"
-            }
-        };
-
-    // Check beatmap approval
-    console.log(`Looking for map with id ${mapid} and mod ${mods}`);
-    try
-    {
-        let beatmap = await ApiBeatmap.buildFromApi(mapid, mods);
-        if (!beatmap)
-            return {
-                added: false,
-                result: {
-                    passed: false,
-                    approved: false,
-                    message: "Beatmap not found"
-                }
-            };
-        let checkResult = await checkers[team.division].check(beatmap);
-        if (!checkResult.passed)
-            return {
-                added: false,
-                result: checkResult,
-                beatmap
-            };
-        else if (checkResult.approved)
-            if (beatmap.version === "Aspire" || beatmap.approved > 3)
-                status = "Pending";
-            else
-                status = "Accepted (Automatic)";
-        else
-            status = "Screenshot Required";
-        
-        // Get the mod pool this map is being added to
-        let modpool = cm ? "cm" : helpers.getModpool(mods);
-
-        // Check if a map should be removed to make room for this one
-        // We need the first rejected map, and a count of maps in the modpool
-        let rejected;
-        let count = team.maps.reduce((n, m) => {
-            if (m.pool === modpool)
-            {
-                if (!rejected && m.status.startsWith("Rejected"))
-                    rejected = m;
-                return n + 1;
-            }
-            else return n;
-        }, 0);
-        if (rejected && count > 1)
-            await db.removeMap(team.teamname, rejected.bid, rejected.pool, rejected.mods);
-        else // We don't need to remove a map, because there's still an empty space
-            rejected = undefined;
-
-        let mapitem = beatmap.toDbBeatmap(status, modpool);
-        
-        let result = await db.addMap(team.teamname, mapitem);
-        if (result)
-        {
-            // Prepare the current pool state
-            let cur = [];
-            let skipped = false; // Whether we've skipped a map yet
-            team.maps.forEach(m => {
-                // Get maps with matching mods
-                if (m.mods === mods)
-                {
-                    // Make sure it's not the removed map
-                    if (skipped || (m.bid !== result.bid)
-                        && (rejected
-                            ? m.bid !== rejected.bid
-                            : true))
-                        cur.push(m);
-                    else
-                        skipped = true;
-                }
-            });
-            // Add the newly added map
-            cur.push(mapitem);
-            
-            // Send status and current pool info
-            let replaced = rejected;
-            if (result.bid)
-                replaced = result;
-            return {
-                replaced,
-                added: true,
-                beatmap: mapitem,
-                current: cur,
-                result: checkResult
-            };
-        }
-        else
-            return {
-                added: false,
-                result: {
-                    ...checkResult,
-                    message: "Add map failed"
-                },
-                beatmap
-            };
-    }
-    catch (err)
-    {
-        return {
-            added: false,
-            result: {
-                passed: true,
-                message: "This should never happen " + (err.error || err)
-            },
-            beatmap: err.map
-        }
-    }
-}
-
-/**
  * Adds multiple maps at once
  * @param {{
  *  mapid: number,
@@ -575,26 +434,6 @@ async function viewPool(discordid, mods)
     };
 }
 
-/**
- * Toggles whether the player wants to receive notifications when their maps are rejected
- * @param {string} discordid Who to toggle the status of
- * @param toggle Set to false if no changes should be made, only check the current value
- * 
- * @returns {Promise<boolean>} The current notification status of the player,
- * or undefined if player not found
- */
-async function toggleNotif(discordid, toggle = true)
-{
-    if (toggle)
-        return db.toggleNotification(discordid);
-    
-    let player = await db.getPlayer(discordid);
-    if (!player)
-        return;
-
-    let status = player.notif;
-    return !!status;
-}
 //#endregion
 //#region Approver Commands
 // ============================================================================
@@ -725,9 +564,9 @@ module.exports = {
     removePlayer,
     exportMaps,
     recheckMaps,
-    toggleNotif,    // Players
+    // Players
     updatePlayerName,
-    addMap,         // Maps
+    // Maps
     addPass,
     removeMap,
     viewPool,

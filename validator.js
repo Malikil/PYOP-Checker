@@ -134,13 +134,25 @@ const valid = {
     },
     division: {
         validate(arg) {
+            arg = arg.toLowerCase();
             if (["open", "10k"].includes(arg))
                 return arg;
             else
-                return null;
+                return undefined;
         },
         description: "open or 10k",
         error: "Invalid division"
+    },
+    setting: {
+        description: "on or off",
+        error: "",
+        validate(arg) {
+            arg = arg.toLowerCase();
+            if (["on", "off"].includes(arg))
+                return arg;
+            else
+                return undefined;
+        }
     }
 }
 
