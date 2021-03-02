@@ -11,14 +11,15 @@ const MODS = require('./helpers/bitwise');
  */
 function validateArgs(expected, actual) {
     const cmdargs = getArgs(actual).slice(1);
-    const args = {
-        rejected: false
+    const validation = {
+        rejected: false,
+        args: {}
     };
     if (!expected)
         expected = [];
 
     if (cmdargs.length > expected.length)
-        args.rejected = true;
+        validation.rejected = true;
 
     // Run through the expected args
     // make sure the required args are present, and all provided args are valid
@@ -31,19 +32,25 @@ function validateArgs(expected, actual) {
             // Arg doesn't exist => Ignore
             
         if (i < cmdargs.length) {
-            const value = valid[arg.arg].validate(cmdargs[i]);
-            if (value)
-                args[arg.arg] = value;
-            else {
-                args.rejected = true;
-                args.error = valid[arg.arg].error;
+            // Special 'any' argument type doesn't need to be validated
+            if (arg.arg !== 'any') {
+                const value = valid[arg.arg].validate(cmdargs[i]);
+                if (value)
+                    validation.args[arg.arg] = value;
+                else {
+                    validation.rejected = true;
+                    validation.error = valid[arg.arg].error;
+                }
             }
+            // 'any' argument type
+            else
+                validation.args[arg.name] = cmdargs[i];
         }
         else if (arg.required)
-            args.rejected = true;
+            validation.rejected = true;
     });
     
-    return args;
+    return validation;
 }
 
 /**
@@ -53,7 +60,9 @@ function validateArgs(expected, actual) {
  *  help: string,
  *  args?: {
  *      arg: string,
- *      required?: boolean
+ *      required: boolean,
+ *      name?: string,
+ *      description?: string
  *  }[],
  *  alias?: string[]
  * }} command Name of the command
@@ -64,13 +73,24 @@ function usageString(command) {
     let alias = "";
     if (command.args)
         command.args.forEach(arg => {
-            if (arg.required) {
-                header += ` <${arg.arg}>`;
-                description += `\n${arg.arg}: ${valid[arg.arg].description}`;
+            // Special 'any' arg type will come with its own description
+            if (arg.arg !== "any")
+                if (arg.required) {
+                    header += ` <${arg.arg}>`;
+                    description += `\n${arg.arg}: ${valid[arg.arg].description}`;
+                }
+                else {
+                    header += ` [${arg.arg}]`;
+                    description += `\n(Optional) ${arg.arg}: ${valid[arg.arg].description}`;
+                }
+            // 'any' argument type
+            else if (arg.required) {
+                header += ` <${arg.name}>`;
+                description += `\n${arg.name}: ${arg.description}`;
             }
             else {
-                header += ` [${arg.arg}]`;
-                description += `\n(Optional) ${arg.arg}: ${valid[arg.arg].description}`;
+                header += ` [${arg.name}]`;
+                description += `\n(Optional) ${arg.name}: ${arg.description}`;
             }
         });
     if (command.alias)
@@ -149,16 +169,6 @@ const valid = {
         validate(arg) {
             arg = arg.toLowerCase();
             if (["on", "off"].includes(arg))
-                return arg;
-            else
-                return undefined;
-        }
-    },
-    link: {
-        description: "",
-        error: "Link not recognised",
-        validate(arg) {
-            if (arg.includes("http"))
                 return arg;
             else
                 return undefined;

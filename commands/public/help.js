@@ -3,7 +3,11 @@ const Discord = require('discord.js');
 
 module.exports = {
     name: "help",
-    description: "Shows available commands",
+    description: "Shows available commands. " +
+        "Use !help <command> for more details about the command",
+    args: [
+        { arg: 'any', name: 'command', description: "The command to get the details of" }
+    ],
     alias: [ "commands" ],
 
     /**

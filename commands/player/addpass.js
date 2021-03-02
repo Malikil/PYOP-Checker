@@ -5,12 +5,12 @@ const helpers = require('../../helpers/helpers');
 module.exports = {
     name: "addpass",
     description: "Adds a screenshot of a pass for one of your maps. " +
-        "Mods should not be included, the map is only be in your pool " +
+        "Mods should not be included, the map is only in your pool " +
         "once so link/id is enough to identify it.\n" +
         "You may upload the image directly to discord or include a link to your image.",
     args: [
         { arg: 'map', required: true },
-        { arg: 'link' }
+        { arg: 'any', name: "link", description: "Link to screenshot of pass" }
     ],
     alias: [ 'pass' ],
 
@@ -19,7 +19,7 @@ module.exports = {
      */
     async run(msg, { map, link }) {
         // Make sure there's something to update with
-        if (msg.attachments.size === 0 && !link)
+        if (msg.attachments.size === 0 && !(link && link.includes("http")))
             return msg.channel.send("Please include a link or image attachment");
 
         // Try to update the map status

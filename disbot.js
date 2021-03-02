@@ -45,9 +45,9 @@ client.on('message', msg => {
 
     if (command) {
         // Validate args
-        const args = validator.validateArgs(command.args, msg.content);
-        if (args.rejected)
-            return msg.channel.send(`${args.error || ""}\n\n${validator.usageString(command)}`);
+        const validation = validator.validateArgs(command.args, msg.content);
+        if (validation.rejected)
+            return msg.channel.send(`${validation.error || ""}\n\n${validator.usageString(command)}`);
         // Verify permissions
         if (command.permissions && command.permissions.length > 0) {
             const roles = msg.member.roles.cache;
@@ -55,7 +55,7 @@ client.on('message', msg => {
                 return msg.channel.send("You don't have the required role to access this command");
         }
         // Run command
-        command.run(msg, args)
+        command.run(msg, validation.args)
         .catch(err => {
             console.error(err);
             msg.channel.send("Malikil did a stupid, and so the bot broke. " +
