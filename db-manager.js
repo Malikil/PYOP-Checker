@@ -361,32 +361,30 @@ async function findMissingMaps()
  * @param {String} discordid The player to update
  * @param {Number} mapid The map id to update
  * @param {string} pass A reference link to the pass
- * @returns The number of modified players
+ * @param {boolean} pending Whether the status should be left as-is or changed to pending
+ * @returns The number of modified teams
  */
-async function pendingMap(discordid, mapid, pass)
+async function addScreenshot(discordid, mapid, pass, pending)
 {
     // We don't care about mod at this point, they're not supposed to have
     // the same map more than once anyways.
-    // There is a check for current status though, no point in resetting an
-    // approved status back to pending just by submitting a screenshot
+    // Only update the status if pending is true
+    let updateObj = { $push: { 'maps.$[pendmap].passes': pass } };
+    if (pending)
+        updateObj.$set = { 'maps.$[pendmap].status': "Pending" };
+
     let result = await db.collection('teams').updateOne(
         {
             'players.discordid': discordid,
             'maps.bid': mapid
         },
-        {
-            $set: { 'maps.$[pendmap].status': "Pending" },
-            $push: { 'maps.$[pendmap].passes': pass }
-        },
+        updateObj,
         { arrayFilters: [{
             'pendmap.bid': mapid
         }] }
     );
     //console.log(result);
-    return {
-        added: result.modifiedCount,
-        matched: result.matchedCount
-    };
+    return result.modifiedCount;
 }
 
 /**
@@ -535,7 +533,7 @@ module.exports = {
     removeMap,
     removeAllMaps,
     findMapsWithStatus,
-    pendingMap,
+    addScreenshot,
     approveMap,
     rejectMap,
     findMissingMaps,

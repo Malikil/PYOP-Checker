@@ -153,6 +153,16 @@ const valid = {
             else
                 return undefined;
         }
+    },
+    link: {
+        description: "",
+        error: "Link not recognised",
+        validate(arg) {
+            if (arg.includes("http"))
+                return arg;
+            else
+                return undefined;
+        }
     }
 }
 

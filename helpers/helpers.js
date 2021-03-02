@@ -123,6 +123,7 @@ function parseMapId(mapString = '')
  * Converts a map object to the artist - title [version] format
  */
 const mapString = map => `${map.artist} - ${map.title} [${map.version}]`;
+/** osu.ppy.sh/b/${dbmap.bid} */
 const mapLink = dbmap => `https://osu.ppy.sh/b/${dbmap.bid}`;
 
 /**
@@ -142,6 +143,7 @@ function convertSeconds(length)
 /**
  * Gets a single player from the osu server based on id or username
  * @param {String|Number} osuid 
+ * @deprecated Use ApiPlayer
  */
 async function getPlayer(osuid)
 {
@@ -160,6 +162,7 @@ async function getPlayer(osuid)
  * @param {Number} mods The bitwise value of the selected mods
  * @returns {Promise<CheckableMap>} A promise which will resolve to a beatmap object, or undefined if
  *     no beatmap was found
+ * @deprecated Use ApiBeatmap
  */
 async function getBeatmap(mapid, mods)
 {

@@ -48,7 +48,7 @@ module.exports = {
             if (beatmap.version === "Aspire" || beatmap.approved > 3)
                 status = "Pending";
             else
-                status = "Accepted (Automatic)";
+                status = "Approved (Automatic)";
         else
             status = "Screenshot Required";
 

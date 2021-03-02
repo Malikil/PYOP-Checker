@@ -153,62 +153,6 @@ const commands = {
         else
             return msg.channel.send(`Added ${result.added} maps`);
     },
-
-    /**
-     * Adds a pass
-     * @param {Discord.Message} msg 
-     * @param {string[]} args 
-     * @param {Discord.Client} client
-     */
-    async addpass(msg, args, client)
-    {
-        // 2 because some people are including the mod, I'll let them include it,
-        // but if they include more I'll ignore the command
-        if (args.length > 2)
-            return;
-
-        // Make sure there's something to update with
-        if (msg.attachments.size == 0 && (args.length === 1 || !args[1].includes("http")))
-            return msg.channel.send("Please include a link or image attachment");
-        // Get the beatmap id
-        let mapid = helpers.parseMapId(args[0]);
-        if (!mapid)
-            return msg.channel.send(`Couldn't recognise beatmap id`);
-
-        // Forward the screenshot to the proper channel
-        const passChannel = client.channels.get(process.env.CHANNEL_SCREENSHOTS);
-        let passReference;
-        if (passChannel && passChannel.type === "text")
-        {
-            // Always include the attachment if there is one
-            if (msg.attachments.size > 0)
-            {
-                let attach = msg.attachments.first();
-                let attachment = new Discord.Attachment(attach.url, attach.filename);
-                passReference = await passChannel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${msg.author.username}`,
-                    attachment);
-            }
-            else
-                // Copy the link/image to the screenshots channel
-                passReference = await passChannel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${msg.author.username}\n` +
-                    args[1]);
-        }
-        else
-            return msg.channel.send("Couldn't find screenshots channel. " +
-                `Found ${passChannel} instead.\n` +
-                "This is not a good thing, please tell Malikil.");
-
-        // Attempt to update the map status
-        let result = await Command.addPass(mapid, msg.author.id, passReference.url);
-        if (result.error)
-            return msg.channel.send(result.error);
-
-        // Screenshot should be updated by this point
-        if (result.added)
-            return msg.channel.send("Screenshot added");
-        else
-            return msg.channel.send("Screenshot updated");
-    },
     //#endregion
     //#region ============================== Approver ==============================
     /**
@@ -383,7 +327,6 @@ const commands = {
 
 //#region Command permissions
 commands.addbulk.permissions = "player";
-commands.addpass.permissions = "player";
 
 commands.approve.permissions = "approver";
 commands.pending.permissions = "approver";
@@ -395,7 +338,6 @@ commands.autoapproved.permissions = "approver";
 //#region Aliases
 // ========== Player ==========
 commands.bulkadd = commands.addbulk;
-commands.pass = commands.addpass;
 // ========== Approver ==========
 commands.accept = commands.approve;
 //#endregion
@@ -418,13 +360,6 @@ commands.register.help = "Format:\n" +
 commands.addbulk.help = "Use !addbulk, then include map id/links and mods one per line. eg:\n" +
     "    !addbulk <https://osu.ppy.sh/b/8708> NM\n    <https://osu.ppy.sh/b/8708> HD\n" +
     "    <https://osu.ppy.sh/b/75> HR\n    <https://osu.ppy.sh/b/75> DT\n";
-commands.addpass.help = "Usage: !addpass <map> [screenshot]\n" +
-    "map: A map link or beatmap id\n" +
-    "screenshot: A link to a screenshot of your pass on the map\n" +
-    "You can upload your screenshot as a message attachment in discord " +
-    "instead of using a link if you prefer. You still need to include " +
-    "the map link/id regardless.\n" +
-    "Aliases: !pass";
 // ============================== Approver ==============================
 commands.approve.help = "Usage: !approve <map> [mod]\n" +
     "Map: Map link or id to approve\n" +

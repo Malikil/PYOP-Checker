@@ -258,40 +258,6 @@ async function addBulk(maps, discordid) {
     };
 }
 
-/**
- * Adds a pass to a map in the player's team's pool
- * @param {number} mapid
- * @param {string} discordid 
- * @param {string} referenceLink
- * 
- * @returns {Promise<{
- *  added: boolean,
- *  error?: string,
- *  player?: string
- * }>}
- */
-async function addPass(mapid, discordid, referenceLink)
-{
-    // Get which team the player is on
-    let team = await db.getTeamByPlayerid(discordid);
-    if (!team)
-        return {
-            added: false,
-            error: "Couldn't find team"
-        };
-
-    // Update the status
-    let result = await db.pendingMap(discordid, mapid, referenceLink);
-    if (!result.matched)
-        return {
-            added: false,
-            error: "Couldn't find map"
-        };
-    return {
-        added: !!result.added
-    };
-}
-
 //#endregion
 //#region Approver Commands
 // ============================================================================
@@ -423,7 +389,6 @@ module.exports = {
     exportMaps,
     recheckMaps,
     // Maps
-    addPass,
     addBulk,
     viewPending,    // Map approvers
     approveMap,
