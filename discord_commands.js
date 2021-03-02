@@ -117,27 +117,6 @@ const commands = {
     //#endregion
     //#region ============================== Player ==============================
     /**
-     * Updates own osu username or the pinged user's
-     * @param {Discord.Message} msg 
-     */
-    async osuname(msg, args)
-    {
-        let discordid;
-        if (args.length === 1)
-        {
-            let matches = args[0].match(/[0-9]+/);
-            if (!matches)
-                return console.log("Discord id not recognised. Exiting silently");
-            discordid = matches.pop();
-        }
-        else if (args.length === 0)
-            discordid = msg.author.id;
-        
-        if (discordid)
-            return msg.channel.send(await Command.updatePlayerName(discordid));
-    },
-
-    /**
      * Adds multiple maps to the player's pool
      * @param {Discord.Message} msg 
      */
@@ -473,7 +452,6 @@ const commands = {
 }
 
 //#region Command permissions
-commands.osuname.permissions = "player";
 commands.addbulk.permissions = "player";
 commands.remove.permissions = "player";
 commands.addpass.permissions = "player";
@@ -510,8 +488,6 @@ commands.register.help = "Format:\n" +
     "doesn't want their time zone considered while scheduling enter a single underscore instead. Eg " +
     "`@Malikil Malikil _`\nIf you need to make changes to your team, please let Malikil know.";
 // ============================== Player ==============================
-commands.osuname.help = "Usage: !osuname\n" +
-    "Updates your osu username if you've changed it";
 commands.addbulk.help = "Use !addbulk, then include map id/links and mods one per line. eg:\n" +
     "    !addbulk <https://osu.ppy.sh/b/8708> NM\n    <https://osu.ppy.sh/b/8708> HD\n" +
     "    <https://osu.ppy.sh/b/75> HR\n    <https://osu.ppy.sh/b/75> DT\n";

@@ -41,7 +41,7 @@ class ApiPlayer {
             .then(data => data[0]);
         if (player)
             return new ApiPlayer(player);
-        // Undefined if the beatmap doesn't exist
+        // Undefined if the player doesn't exist
     }
 }
 

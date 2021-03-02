@@ -64,6 +64,7 @@ function identify(id)
     ]};
 }
 //#endregion
+//#region ============================== Manage Teams/Players ==============================
 /**
  * Adds a new team with the given players
  * @param {string} teamname 
@@ -170,15 +171,32 @@ async function getPlayer(id)
 {
     console.log(`Finding player with id ${id}`);
     let team = await getTeamByPlayerid(id);
-    // Get the specific player from the team
-    let player = team.players.find(p =>
-        p.discordid === id ||
-        p.osuid === id ||
-        p.osuname.match(regexify(id, 'i')).length > 0
+    if (team) {
+        // Get the specific player from the team
+        let player = team.players.find(p =>
+            p.discordid === id ||
+            p.osuid === id ||
+            p.osuname.match(regexify(id, 'i')).length > 0
+        );
+
+        if (player)
+            return new DbPlayer(player);
+    }
+}
+
+/**
+ * Updates a player with the given info
+ * @param {number} osuid The player's osu id
+ * @param {string} osuname The player's new osu username
+ * @returns Whether a player was updated
+ */
+async function updatePlayerName(osuid, osuname) {
+    let result = await db.collection('teams').updateOne(
+        { 'players.osuid': osuid },
+        { $set: { 'players.$.osuname': osuname } }
     );
 
-    if (player)
-        return new DbPlayer(player);
+    return result.modifiedCount;
 }
 //#endregion
 //#region ============================== Manage Maps ==============================
@@ -501,13 +519,14 @@ async function bulkReject(maps, message, division)
     console.log(`Modified ${result.modifiedCount} documents in bulk update`);
     return result.modifiedCount;
 }
-
+//#endregion
 module.exports = {
     addTeam, // Teams/players
     setNotify,
     getTeamByPlayerid,
     getTeamByPlayerlist,
     getPlayer,
+    updatePlayerName,
     addMap,     // Maps
     removeMap,
     removeAllMaps,
