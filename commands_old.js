@@ -207,28 +207,6 @@ async function recheckMaps()
 // ========================== Player Commands =================================
 // ============================================================================
 /**
- * Updates the osu name of a given player
- * @param {string} playerid Discord id or osuname
- */
-async function updatePlayerName(playerid)
-{
-    // Get the player's current info
-    let player = await db.getPlayer(playerid);
-    if (!player)
-        return "Couldn't find player";
-    let oldname = player.osuname;
-    // Get the player's new info from the server
-    let newp = await helpers.getPlayer(player.osuid);
-    player.osuname = newp.username;
-    // Update in the database
-    let result = await db.updatePlayer(player);
-    if (result)
-        return `Updated name from ${oldname} to ${player.osuname}`;
-    else
-        return `No updates made, found username: ${player.osuname}`;
-}
-
-/**
  * Adds multiple maps at once
  * @param {{
  *  mapid: number,
@@ -312,55 +290,6 @@ async function addPass(mapid, discordid, referenceLink)
     return {
         added: !!result.added
     };
-}
-
-/**
- * Removes a map from a player's team's pool
- * @param {number|"all"} mapid The mapid to remove, or "all" to remove all maps
- * @param {object} p1
- * @param {number} p1.mods
- * @param {boolean} p1.cm
- * @param {string} p1.discordid
- * @param {number} p1.osuid
- * 
- * @returns {Promise<{
- *  error?: string,
- *  removed: DbBeatmap[]
- * }>}
- */
-async function removeMap(mapid, {
-    mods,
-    cm = false,
-    discordid
-}) {
-    // Get which team the player is on
-    let team = await db.getTeamByPlayerid(discordid);
-    if (!team)
-        return {
-            error: "Couldn't find team",
-            removed: []
-        };
-    // Special case for removing all maps
-    if (mapid === "all")
-    {
-        await db.removeAllMaps(team.teamname)
-        return { removed: team.maps };
-    }
-    let modpool = (cm ? "cm" : undefined);
-    console.log(`Removing mapid ${mapid} from ${modpool}`);
-    let result = await db.removeMap(team.teamname, mapid, modpool, mods);
-    if (result)
-    {
-        // Find the map info for this id, for user friendliness' sake
-        let map = team.maps.find(item => 
-            item.bid === mapid &&
-            (!modpool || item.pool === modpool) &&
-            (!mods || item.mods === mods)
-        );
-        return { removed: [ map ] };
-    }
-    else
-        return { removed: [] };
 }
 
 //#endregion
@@ -493,11 +422,8 @@ module.exports = {
     removePlayer,
     exportMaps,
     recheckMaps,
-    // Players
-    updatePlayerName,
     // Maps
     addPass,
-    removeMap,
     addBulk,
     viewPending,    // Map approvers
     approveMap,

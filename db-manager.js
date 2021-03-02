@@ -261,14 +261,18 @@ async function removeMap(team, mapid, modpool, mods)
 {
     // I can't guarantee there will only be one matching map
     // Set one matching map to null, then pull nulls
-    let filter = { teamname: team };
-    filter.maps = { $elemMatch: { bid: mapid } };
+    let filter = {
+        teamname: team,
+        maps: {
+            $elemMatch: { bid: mapid }
+        }
+    };
     if (modpool !== undefined)
         filter.maps.$elemMatch.pool = modpool;
     if (mods !== undefined)
         filter.maps.$elemMatch.mods = mods;
 
-    console.log("Remove map update filter:");
+    console.log("db-manager#removeMap - Remove map update filter:");
     console.log(util.inspect(filter, false, 4, true));
     let result = await db.collection('teams').bulkWrite([
         { updateOne: {

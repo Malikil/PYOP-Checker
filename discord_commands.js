@@ -155,76 +155,6 @@ const commands = {
     },
 
     /**
-     * Removes a map from the player's pool
-     * @param {Discord.Message} msg 
-     * @param {string[]} args 
-     */
-    async remove(msg, args)
-    {
-        // args should be mapid/all, mod
-        if (args.length < 1 || args.length > 2)
-            return;
-        // Special case for removing all maps
-        if (args[0].toLowerCase() === "all" && args.length === 1)
-        {
-            let conf = await getConfirmation(msg,
-                "This will remove __ALL__ maps from your pool, there is no undo. Are you sure?");
-            if (conf.aborted)
-                return msg.channel.send(conf.err + "Maps not removed");
-            else
-            {
-                // Remove all maps and return
-                let result = await Command.removeMap('all', {
-                    discordid: msg.author.id
-                });
-                if (result.error)
-                    return msg.channel.send(result.error);
-                else if (result.removed.length > 0)
-                    return msg.channel.send(`Removed ${result.removed.length} maps`);
-                else
-                    return msg.channel.send("No maps to remove.");
-            }
-        }
-        // Get the map id
-        let mapid = helpers.parseMapId(args[0]);
-        if (!mapid)
-            return msg.channel.send("Couldn't recognise the beatmap id");
-
-        // Get the mod pool and mods
-        let mods;
-        let modpool;
-        if (args.length > 1)
-        {
-            args[1] = args[1].toUpperCase();
-            // If CM is present, regardless of other mods
-            if (args[1].includes("CM"))
-                modpool = "cm";
-            // Only if other mods are present
-            if (args[1] !== "CM")
-                mods = helpers.parseMod(args[1]);
-        }
-
-        let result = await Command.removeMap(mapid, {
-            mods,
-            cm: modpool === 'cm',
-            discordid: msg.author.id
-        });
-        if (result.error)
-            return msg.channel.send(result.error);
-        else if (result.removed.length === 0)
-            return msg.channel.send("Map not found");
-        else
-        {
-            let map = result.removed[0];
-            return msg.channel.send(`Removed ${helpers.mapString(map)}${
-                map.pool === "cm"
-                ? ` +${helpers.modString(map.mods)}`
-                : ""
-            } from ${map.pool.toUpperCase()} pool`);
-        }
-    },
-
-    /**
      * Adds a pass
      * @param {Discord.Message} msg 
      * @param {string[]} args 
@@ -453,7 +383,6 @@ const commands = {
 
 //#region Command permissions
 commands.addbulk.permissions = "player";
-commands.remove.permissions = "player";
 commands.addpass.permissions = "player";
 
 commands.approve.permissions = "approver";
@@ -466,8 +395,6 @@ commands.autoapproved.permissions = "approver";
 //#region Aliases
 // ========== Player ==========
 commands.bulkadd = commands.addbulk;
-commands.removemap = commands.remove;
-commands.rem = commands.remove;
 commands.pass = commands.addpass;
 // ========== Approver ==========
 commands.accept = commands.approve;
@@ -491,15 +418,6 @@ commands.register.help = "Format:\n" +
 commands.addbulk.help = "Use !addbulk, then include map id/links and mods one per line. eg:\n" +
     "    !addbulk <https://osu.ppy.sh/b/8708> NM\n    <https://osu.ppy.sh/b/8708> HD\n" +
     "    <https://osu.ppy.sh/b/75> HR\n    <https://osu.ppy.sh/b/75> DT\n";
-commands.remove.help = "Usage: !remove <map> [mod]\n" +
-    "map: Beatmap link or id. You can specify `all` instead to clear " +
-    "all maps from your pool\n" +
-    "(optional) mod: Which mod pool to remove the map from. Should be " +
-    "some combination of NM|HD|HR|DT|CM. " +
-    "If left blank will remove the first found copy of the map.\n" +
-    "Aliases: !rem, !removemap\n\n"// +
-    //"If you make a mistake you can use !undo within 10 seconds to " +
-    //"return your maps to how they were before.";
 commands.addpass.help = "Usage: !addpass <map> [screenshot]\n" +
     "map: A map link or beatmap id\n" +
     "screenshot: A link to a screenshot of your pass on the map\n" +
