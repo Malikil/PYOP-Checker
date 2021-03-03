@@ -380,10 +380,6 @@ commands.pending.help = "Usage: !pending [pool]\n" +
 commands.missing.help = "Usage: !missing\n" +
     "Shows how many map slots need to be filled for each mod " +
     "in either division.";
-commands.manualadd.help = "Usage: !manualadd <player> <map> [mods]\n" +
-    "Adds the map to the player's pool, bypassing map checks and automatically " +
-    "approving it. This should only be used for cases such as the bot is " +
-    "calculating a different star rating from what's shown in-game.";
 //#endregion
 
 /**

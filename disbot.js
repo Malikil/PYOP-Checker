@@ -44,16 +44,16 @@ client.on('message', msg => {
         || client.commands.find(comm => comm.alias && comm.alias.includes(commandName));
 
     if (command) {
-        // Validate args
-        const validation = validator.validateArgs(command.args, msg.content);
-        if (validation.rejected)
-            return msg.channel.send(`${validation.error || ""}\n\n${validator.usageString(command)}`);
         // Verify permissions
         if (command.permissions && command.permissions.length > 0) {
             const roles = msg.member.roles.cache;
             if (!command.permissions.every(perm => roles.has(perm)))
                 return msg.channel.send("You don't have the required role to access this command");
         }
+        // Validate args
+        const validation = validator.validateArgs(command.args, msg.content);
+        if (validation.rejected)
+            return msg.channel.send(`${validation.error || ""}\n\n${validator.usageString(command)}`);
         // Run command
         command.run(msg, validation.args)
         .catch(err => {

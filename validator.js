@@ -173,6 +173,13 @@ const valid = {
             else
                 return undefined;
         }
+    },
+    playerid: {
+        description: "A ping for a player, or the player's osu id or username",
+        error: "Not implemented yet",
+        validate(arg) {
+
+        }
     }
 }
 
