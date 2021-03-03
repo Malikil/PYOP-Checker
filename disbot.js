@@ -5,7 +5,6 @@ the 'commands' module, but those methods will be called from here.
 */
 const fs = require('fs');
 const Discord = require('discord.js');
-const commands = require('./discord_commands');
 const validator = require('./validator');
 const util = require('util');
 const client = new Discord.Client();
@@ -63,20 +62,6 @@ client.on('message', msg => {
                 "```" + util.inspect(err).slice(0, 1000) + "...```");
         });
     }
-
-    let commandNames = Object.keys(commands.commands);
-    let commandArgs = msg.content.split(' ');
-    let commandN = commandArgs[0].slice(1);
-    if (commandNames.includes(commandN))
-        // Check if this is a help message or not
-        if (commandArgs[1] === '?')
-            msg.channel.send(commands.commands[commandN].help)
-                .catch(() => msg.channel.send("No help available"));
-        else
-            commands.run(commandN, msg, client)
-                .catch(reason => msg.channel.send("Malikil did a stupid, and so the bot broke. " +
-                    "Please tell him what you were trying to do and send him this:\n" +
-                    "```" + util.inspect(reason).slice(0, 1000) + "...```"));
 });
 
 /*/ ============================================================================
