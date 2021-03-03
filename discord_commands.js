@@ -4,42 +4,6 @@ const Command = require('./commands_old');
 const { inspect } = require('util');
 const divInfo = require('./divisions.json');
 
-//#region Helper functions
-/**
- * Will ask for confirmation in the channel of a received message,
- * from the user who sent that message
- * @param {Discord.Message} msg 
- * @param {string} prompt
- */
-async function getConfirmation(msg, prompt = undefined, accept = ['y', 'yes'], reject = ['n', 'no'])
-{
-    // Prepare the accept/reject values
-    let waitFor = accept.concat(reject);
-    let waitForStr = waitFor.reduce((p, v) => p + `/${v}`, "").slice(1);
-    if (prompt)
-        await msg.channel.send(`${prompt} (${waitForStr})`);
-    let err = "";
-    let aborted = await msg.channel.awaitMessages(
-        message => message.author.equals(msg.author)
-            && waitFor.includes(message.content.toLowerCase()),
-        { maxMatches: 1, time: 10000, errors: ['time'] }
-    ).then(results => {
-        console.log(results);
-        let response = results.first();
-        return reject.includes(response.content.toLowerCase());
-    }).catch(reason => {
-        console.log("Response timer expired");
-        err = "Timed out. ";
-        return true;
-    });
-    console.log(`Aborted? ${aborted}`);
-    return {
-        aborted,
-        err
-    };
-}
-//#endregion
-
 const commands = {
     //#region ============================== Public ==============================
     /**
@@ -113,45 +77,6 @@ const commands = {
             );
         else
             return msg.channel.send(`Could not add team: ${result.message}`);
-    },
-    //#endregion
-    //#region ============================== Player ==============================
-    /**
-     * Adds multiple maps to the player's pool
-     * @param {Discord.Message} msg 
-     */
-    async addbulk(msg)
-    {
-        // Skip over the !addbulk command and split into lines
-        let lines = msg.content.substr("!addbulk ".length).split('\n');
-        console.log(lines);
-        let maps = lines.reduce((arr, line) => {
-            let lineargs = line.split(' ');
-            // try to get mapid and mods
-            let mapid = helpers.parseMapId(lineargs[0]);
-            let mods, cm;
-            if (mapid)
-            {
-                mods = helpers.parseMod(lineargs[1]);
-                cm = (lineargs[1] || '').toUpperCase().includes("CM");
-            }
-            else
-            {
-                mapid = helpers.parseMapId(lineargs[1]);
-                mods = helpers.parseMod(lineargs[0]);
-                cm = (lineargs[0] || '').toUpperCase().includes("CM");
-            }
-            if (mapid)
-                arr.push({
-                    mapid, mods, cm
-                });
-            return arr;
-        }, []);
-        let result = await Command.addBulk(maps, msg.author.id);
-        if (result.error)
-            return msg.channel.send(result.error);
-        else
-            return msg.channel.send(`Added ${result.added} maps`);
     },
     //#endregion
     //#region ============================== Approver ==============================
@@ -326,8 +251,6 @@ const commands = {
 }
 
 //#region Command permissions
-commands.addbulk.permissions = "player";
-
 commands.approve.permissions = "approver";
 commands.pending.permissions = "approver";
 commands.missing.permissions = "approver";
@@ -336,8 +259,6 @@ commands.manualadd.permissions = "approver";
 commands.autoapproved.permissions = "approver";
 //#endregion
 //#region Aliases
-// ========== Player ==========
-commands.bulkadd = commands.addbulk;
 // ========== Approver ==========
 commands.accept = commands.approve;
 //#endregion
@@ -356,10 +277,6 @@ commands.register.help = "Format:\n" +
     "UTC times should be some sort of offset from utc, eg UTC-7 or just -7. If one of your players " +
     "doesn't want their time zone considered while scheduling enter a single underscore instead. Eg " +
     "`@Malikil Malikil _`\nIf you need to make changes to your team, please let Malikil know.";
-// ============================== Player ==============================
-commands.addbulk.help = "Use !addbulk, then include map id/links and mods one per line. eg:\n" +
-    "    !addbulk <https://osu.ppy.sh/b/8708> NM\n    <https://osu.ppy.sh/b/8708> HD\n" +
-    "    <https://osu.ppy.sh/b/75> HR\n    <https://osu.ppy.sh/b/75> DT\n";
 // ============================== Approver ==============================
 commands.approve.help = "Usage: !approve <map> [mod]\n" +
     "Map: Map link or id to approve\n" +

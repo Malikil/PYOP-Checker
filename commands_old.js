@@ -202,63 +202,6 @@ async function recheckMaps()
     return updateCount;
 }
 //#endregion
-//#region Player Commands
-// ============================================================================
-// ========================== Player Commands =================================
-// ============================================================================
-/**
- * Adds multiple maps at once
- * @param {{
- *  mapid: number,
- *  mods: number,
- *  cm: boolean
- * }[]} maps
- * @param {string} discordid
- * 
- * @returns {Promise<{
- *  error?: string,
- *  added: number
- * }>}
- */
-async function addBulk(maps, discordid) {
-    // Get the user's team
-    let team = await db.getTeamByPlayerid(discordid);
-    if (!team)
-        return {
-            error: "Team not found",
-            added: 0
-        };
-    console.log(`commands.js:addBulk - Found ${team.teamname}`);
-    let added = await maps.reduce(async (count, map) => {
-        console.log(`Checking map ${map.mapid} +${map.mods}${map.cm ? " CM" : ""}`);
-        // Get the map
-        let beatmap = await ApiBeatmap.buildFromApi(map.mapid, map.mods);
-        let checkResult = await checkers[team.division].check(beatmap);
-        if (!checkResult.passed)
-            return count;
-        let status;
-        if (checkResult.approved)
-            if (beatmap.version === "Aspire" || beatmap.approved > 3)
-                status = "Pending";
-            else
-                status = "Accepted (Automatic)";
-        else
-            status = "Screenshot Required";
-        let pool = map.cm ? "cm" : helpers.getModpool(map.mods);
-        let mapitem = beatmap.toDbBeatmap(status, pool);
-        // Add map
-        let added = await db.addMap(team.teamname, mapitem);
-        if (added)
-            return (await count) + 1;
-        else
-            return count;
-    }, Promise.resolve(0));
-    return {
-        added
-    };
-}
-
-//#endregion
 //#region Approver Commands
 // ============================================================================
 // ======================== Approver Commands =================================
@@ -388,8 +331,6 @@ module.exports = {
     removePlayer,
     exportMaps,
     recheckMaps,
-    // Maps
-    addBulk,
     viewPending,    // Map approvers
     approveMap,
     rejectMap,

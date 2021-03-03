@@ -227,7 +227,7 @@ async function addMap(team, map)
         // The first item should be removed.
         // First set a matching element to null, then remove nulls
         idobj['maps.pool'] = map.pool;
-        let result = await db.collection('teams').bulkWrite([
+        db.collection('teams').bulkWrite([
             {
                 updateOne: {
                     filter: idobj,
@@ -241,7 +241,6 @@ async function addMap(team, map)
                 }
             }
         ]);
-        console.log(result);
         // Return the removed item
         return new DbBeatmap(teamobj.value.maps.find(m => m.pool === map.pool));
     }

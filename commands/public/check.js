@@ -16,7 +16,6 @@ module.exports = {
 
     /**
      * @param {Discord.Message} msg 
-     * @param {*} args 
      */
     async run(msg, { map, mods, division }) {
         if (!mods)

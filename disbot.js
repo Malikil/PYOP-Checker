@@ -52,7 +52,7 @@ client.on('message', msg => {
         }
         // Validate args
         const validation = validator.validateArgs(command.args, msg.content);
-        if (validation.rejected)
+        if (validation.rejected && !command.skipValidation)
             return msg.channel.send(`${validation.error || ""}\n\n${validator.usageString(command)}`);
         // Run command
         command.run(msg, validation.args)
