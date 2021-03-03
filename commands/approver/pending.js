@@ -24,13 +24,18 @@ module.exports = {
             if (!mods || mods.mods === modpool._id) {
                 str += `**__${helpers.modString(modpool._id)}:__**\n`;
                 modpool.maps.forEach(map => {
-                    if (str.length < 1800)
+                    if (str.length < 1600) {
                         str += `<${helpers.mapLink(map)}> ${helpers.mapString(map)}\n`
+                        if (map.passes)
+                            map.passes.forEach(pass => {
+                                str += `    <${pass}>\n`;
+                            });
+                    }
                 });
             }
         });
         // Display the string
-        if (str.length >= 1800)
+        if (str.length >= 1600)
             str += "Message too long, some maps skipped...";
         return msg.channel.send(str || "No pending maps");
     }

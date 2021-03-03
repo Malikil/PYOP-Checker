@@ -311,7 +311,8 @@ async function removeAllMaps(teamname)
  *      bid: number,
  *      artist: string,
  *      title: string,
- *      version: string
+ *      version: string,
+ *      passes: string[]
  *  }[]
  * }[]>}
  */
@@ -327,7 +328,8 @@ async function findMapsWithStatus(status)
                 bid: "$maps.bid",
                 artist: "$maps.artist",
                 title: "$maps.title",
-                version: "$maps.version"
+                version: "$maps.version",
+                passes: "$maps.passes"
             } }
         } },
         { $sort: { "_id": 1 } }
