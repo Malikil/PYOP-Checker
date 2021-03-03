@@ -237,17 +237,6 @@ async function viewMissingMaps()
 }
 
 /**
- * Approves a map
- * @param {number} mapid
- * @param {number} mods
- */
-async function approveMap(mapid, mods)
-{
-    // You ever feel like a function is kind of pointless?
-    return db.approveMap(mapid, mods);
-}
-
-/**
  * Rejects a map and provides a reason for rejection
  * @param {number} mapid
  * @param {number} mods
@@ -266,7 +255,6 @@ module.exports = {
     exportMaps,
     recheckMaps,
     // Map approvers
-    approveMap,
     rejectMap,
     viewMissingMaps
 };

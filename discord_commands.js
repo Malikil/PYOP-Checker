@@ -81,27 +81,6 @@ const commands = {
     //#endregion
     //#region ============================== Approver ==============================
     /**
-     * Approves a map/mod combination
-     * @param {Discord.Message} msg 
-     * @param {string[]} args 
-     */
-    async approve(msg, args)
-    {
-        // Args should me mapid, then mods
-        if (args.length > 2)
-            return;
-
-        let mapid = helpers.parseMapId(args[0]);
-        let mods = helpers.parseMod(args[1] || "NM");
-
-        if (!mapid)
-            return msg.channel.send("Couldn't find beatmap id");
-        
-        let result = await Command.approveMap(mapid, mods);
-        return msg.channel.send(`Approved maps for ${result} teams`);
-    },
-
-    /**
      * Reject a map/mod combination, and notify players if enabled
      * @param {Discord.Message} msg
      * @param {string[]} args
@@ -215,11 +194,6 @@ commands.register.help = "Format:\n" +
     "doesn't want their time zone considered while scheduling enter a single underscore instead. Eg " +
     "`@Malikil Malikil _`\nIf you need to make changes to your team, please let Malikil know.";
 // ============================== Approver ==============================
-commands.approve.help = "Usage: !approve <map> [mod]\n" +
-    "Map: Map link or id to approve\n" +
-    "(optional) mod: What mods are used. Should be some combination of " +
-    "HD|HR|DT|HT|EZ. Default is nomod, unrecognised items are ignored.\n" +
-    "Aliases: !accept";
 commands.reject.help = "Usage: !reject <map> <mod> <message>\n" +
     "Map: Map link or id to reject\n" +
     "mod: What mods are used. Should be some combination of NM|CM|HD|HR|DT|HT|EZ." +
