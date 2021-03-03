@@ -77,63 +77,9 @@ const commands = {
             );
         else
             return msg.channel.send(`Could not add team: ${result.message}`);
-    },
-    //#endregion
-    //#region ============================== Approver ==============================
-    /**
-     * Views maps that got automatically approved
-     * @param {Discord.Message} msg 
-     * @param {string[]} args 
-     */
-    async autoapproved(msg, args)
-    {
-        if (args.length > 1)
-            return;
-
-        let mods;
-        if (args[0])
-        {
-            let modstr = args[0].toLowerCase();
-            mods = ['nm', 'hd', 'hr', 'dt', 'cm'].reduce((arr, mod) => {
-                if (modstr.includes(mod))
-                    arr.push(mod);
-                return arr;
-            }, []);
-        }
-
-        let maps = await Command.viewPending(mods, "Accepted (Automatic)");
-        let str = "";
-        maps.forEach(modpool => {
-            str += `**__${modpool.pool.toUpperCase()}:__**\n`;
-            modpool.maps.forEach(map => {
-                if (str.length < 1800)
-                    str += `<${helpers.mapLink(map)}> ${helpers.mapString(map)}\n`;
-            });
-        });
-        if (str.length >= 1800)
-            str += "Message too long, some maps skipped...";
-        else if (str === "")
-            str = "No auto approved maps";
-        return msg.channel.send(str);
-    },
-
-    /**
-     * Shows how many unfilled slots there are in pools
-     * @param {Discord.Message} msg 
-     */
-    async missing(msg)
-    {
-        // Not much to it, just get the numbers and show them
-        let count = await Command.viewMissingMaps();
-        return msg.channel.send("```" + inspect(count) + "```");
-    },
+    }
     //#endregion
 }
-
-//#region Command permissions
-commands.missing.permissions = "approver";
-commands.autoapproved.permissions = "approver";
-//#endregion
 //#region Help messages
 // ============================== Public ==============================
 commands.register.help = "Format:\n" +
@@ -149,10 +95,6 @@ commands.register.help = "Format:\n" +
     "UTC times should be some sort of offset from utc, eg UTC-7 or just -7. If one of your players " +
     "doesn't want their time zone considered while scheduling enter a single underscore instead. Eg " +
     "`@Malikil Malikil _`\nIf you need to make changes to your team, please let Malikil know.";
-// ============================== Approver ==============================
-commands.missing.help = "Usage: !missing\n" +
-    "Shows how many map slots need to be filled for each mod " +
-    "in either division.";
 //#endregion
 
 /**

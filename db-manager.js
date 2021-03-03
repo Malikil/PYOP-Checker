@@ -354,7 +354,7 @@ async function findMissingMaps()
             { 'maps.status': /^Rejected/ }
         ]
     });
-    return result.toArray();
+    return result.map(team => new DbTeam(team));
 }
 
 /**

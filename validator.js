@@ -133,8 +133,8 @@ const valid = {
             if (modstr.includes('HD'))      mods |= MODS.HD;
             if (modstr.includes('HR'))      mods |= MODS.HR;
             else if (modstr.includes('EZ')) mods |= MODS.EZ;
-            if (modstr.includes('DT'))      mods |= MODS.DT;
-            else if (modstr.includes('NC')) mods |= MODS.NC | MODS.DT;
+            if (modstr.includes('NC'))      mods |= MODS.DT | MODS.NC;
+            else if (modstr.includes('DT')) mods |= MODS.DT;
             else if (modstr.includes('HT')) mods |= MODS.HT;
             
             let pool = 'cm';

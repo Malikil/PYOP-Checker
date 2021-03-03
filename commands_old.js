@@ -202,46 +202,10 @@ async function recheckMaps()
     return updateCount;
 }
 //#endregion
-//#region Approver Commands
-// ============================================================================
-// ======================== Approver Commands =================================
-// ============================================================================
-/**
- * Gets a count of how many maps are needed in each modpool 
- */
-async function viewMissingMaps()
-{
-    let missing = await db.findMissingMaps();
-
-    var counts = {
-        "open": { nm: 0, hd: 0, hr: 0, dt: 0, cm: 0 },
-        "15k": { nm: 0, hd: 0, hr: 0, dt: 0, cm: 0 }
-    };
-    missing.forEach(team => {
-        // Add two maps for each pool
-        counts[team.division].nm += 2;
-        counts[team.division].hd += 2;
-        counts[team.division].hr += 2;
-        counts[team.division].dt += 2;
-        counts[team.division].cm += 2;
-
-        // Remove maps the team already has
-        team.maps.forEach(map => {
-            if (!map.status.startsWith("Rejected"))
-                counts[team.division][map.pool]--;
-        });
-    });
-
-    // Return the results
-    return counts;
-}
-//#endregion
 
 module.exports = {
     addTeam, // Admin
     removePlayer,
     exportMaps,
-    recheckMaps,
-    // Map approvers
-    viewMissingMaps
+    recheckMaps
 };
