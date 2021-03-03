@@ -1,5 +1,4 @@
 const Rule = require('./rule');
-const { ApiBeatmap } = require('../types');
 
 class StarRatingRule extends Rule {
     constructor(rating, checkType) {
@@ -9,19 +8,19 @@ class StarRatingRule extends Rule {
     }
 
     /**
-     * @param {ApiBeatmap} beatmap 
+     * @param {import('../types/apibeatmap')} beatmap 
      */
     async check(beatmap) {
         let result = {
             passed: false,
             limit: this.rating,
-            actual: beatmap.difficultyrating
+            actual: parseFloat(beatmap.difficultyrating.toFixed(2))
         };
 
         if (this.checkType === Rule.MAX)
-            result.passed = beatmap.difficultyrating <= this.rating;
+            result.passed = result.actual <= this.rating;
         else if (this.checkType === Rule.MIN)
-            result.passed = beatmap.difficultyrating >= this.rating;
+            result.passed = result.actual >= this.rating;
 
         return result;
     }
