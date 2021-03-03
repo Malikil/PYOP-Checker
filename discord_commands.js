@@ -81,30 +81,6 @@ const commands = {
     //#endregion
     //#region ============================== Approver ==============================
     /**
-     * Manually add a map to someone's pool, used if the star rating/drain
-     * time is being a big pain
-     * @param {Discord.Message} msg 
-     * @param {string[]} args 
-     */
-    async manualadd(msg, args) {
-        // Args: userid, map, [mods]
-        if (args.length > 3 || args.length < 2)
-            return;
-        let matches = args[0].match(/[0-9]+/);
-        let playerid = args[0];
-        if (matches)
-            playerid = matches.pop();
-        let mapid = helpers.parseMapId(args[1]);
-        let mods = helpers.parseMod(args[2] || 'NM');
-        let cm = (args[2] || '').toUpperCase().includes("CM");
-
-        if (!mapid)
-            return msg.channel.send("Couldn't find beatmap id");
-
-        return msg.channel.send(await Command.manualAddMap(playerid, mapid, mods, cm));
-    },
-    
-    /**
      * Approves a map/mod combination
      * @param {Discord.Message} msg 
      * @param {string[]} args 
@@ -255,7 +231,6 @@ commands.approve.permissions = "approver";
 commands.pending.permissions = "approver";
 commands.missing.permissions = "approver";
 commands.reject.permissions = "approver";
-commands.manualadd.permissions = "approver";
 commands.autoapproved.permissions = "approver";
 //#endregion
 //#region Aliases
