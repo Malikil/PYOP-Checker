@@ -8,7 +8,6 @@ const MODS = {
     DT: 1 << 6,
     HT: 1 << 8,
     NC: 1 << 9,
-    FL: 1 << 10,
     DIFFMODS: 0,
     ALLOWED:  0
 };
