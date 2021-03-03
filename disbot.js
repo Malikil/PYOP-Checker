@@ -83,21 +83,34 @@ client.login(process.env.DISCORD_TOKEN)
     console.error(err);
 })
 .then(() => {
+    // Find the next closing date
+    const closing = new Date(process.env.FIRST_POOLS_DUE);
+    const now = new Date();
+    while (closing < now) {
+        closing.setDate(closing.getDate() + 7);
+        console.log(`Incrementing closing time to ${closing}`);
+    }
+    // Set announcement timers
+    console.log(`Pools closing in ${((closing - now) / (1000 * 60 * 60)).toFixed(2)} hours`);
     setTimeout(() => {
+        console.log("\x1b[33mPools:\x1b[0m Warning of pool closure");
         const announce = client.channels.cache.get(process.env.CHANNEL_ANNOUNCEMENTS);
         if (announce)
             announce.send("Pools closing soon");
         else
             console.error("Announcement channel not found");
-    }, 4000);
+    }, closing - now - (1000 * 60 * 60 * 4));
     setTimeout(() => {
+        console.log("\x1b[33mPools:\x1b[0m Closing pools");
         const announce = client.channels.cache.get(process.env.CHANNEL_ANNOUNCEMENTS);
         if (announce) {
             announce.send("Pools closed");
-            sheet.exportAllMaps();
+            //sheet.exportAllMaps();
         }
         else
             console.error("Announcement channel not found");
-    }, 10000);
-    // Set announcement timers
+    }, closing - now);
+    // I think heroku restarts itself every day, so I can cheat a bit and
+    // not actually add these as recurring intervals.
+    // If it turns out I'm wrong then I'll have to fix it somehow.
 });
