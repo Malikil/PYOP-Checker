@@ -2,8 +2,9 @@ const { Checker, Rule } = require('./beatmap_checker');
 const divInfo = require('./divisions.json');
 const { currentWeek } = require('./helpers/helpers');
 
-// Create map checkers
+/** @type {Object<string, import('./beatmap_checker/checker')>} */
 const checkers = {};
+// Create map checkers
 divInfo.forEach(div => {
     // Create rules initialization array
     let init = [];

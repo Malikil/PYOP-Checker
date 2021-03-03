@@ -13,7 +13,7 @@
     "bancho.js": "^0.9.6",
     "discord.js": "^12.5.1",
     "google-spreadsheet": "^3.1.15",
-    "mongodb": "^3.5.2",
+    "mongodb": "^3.6.4",
     "node-fetch": "^2.6.1",
     "ojsama": "^1.2.5"
   },
@@ -21,6 +21,6 @@
     "node": "11.x"
   },
   "devDependencies": {
-    "nodemon": "^2.0.4"
+    "nodemon": "^2.0.7"
   }
 }

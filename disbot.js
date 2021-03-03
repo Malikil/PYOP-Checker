@@ -8,6 +8,7 @@ const Discord = require('discord.js');
 const validator = require('./validator');
 const util = require('util');
 const client = new Discord.Client();
+const sheet = require('./gsheets');
 
 // Load commands from files
 client.commands = new Discord.Collection();
@@ -81,10 +82,22 @@ client.login(process.env.DISCORD_TOKEN)
     console.error("Discord bot crashed");
     console.error(err);
 })
-/*.then(() => {
-    const announce = client.channels.get(process.env.CHANNEL_ANNOUNCEMENTS);
-    setTimeout(() => announce.send("Pools closing soon"), 5000);
-    setTimeout(() => announce.send("Pools closed"), 20000);
+.then(() => {
+    setTimeout(() => {
+        const announce = client.channels.cache.get(process.env.CHANNEL_ANNOUNCEMENTS);
+        if (announce)
+            announce.send("Pools closing soon");
+        else
+            console.error("Announcement channel not found");
+    }, 4000);
+    setTimeout(() => {
+        const announce = client.channels.cache.get(process.env.CHANNEL_ANNOUNCEMENTS);
+        if (announce) {
+            announce.send("Pools closed");
+            sheet.exportAllMaps();
+        }
+        else
+            console.error("Announcement channel not found");
+    }, 10000);
     // Set announcement timers
-});*/
-
+});

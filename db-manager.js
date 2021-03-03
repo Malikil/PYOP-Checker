@@ -27,15 +27,29 @@ client.connect(err => {
 //#region ============================== Helpers/General ==============================
 /**
  * Performs the given action for each item in the database, and return an array of the results
- * @param {function(DbPlayer) => Promise<*>} action 
+ * @param {function(import('./types/dbteam')):Promise<*>} action 
  * @returns {Promise<*[]>} An array containing return values from each function call
  */
 async function map(action)
 {
     let cursor = db.collection('teams').find();
     let results = [];
-    await cursor.forEach(async p => results.push(await action(new DbPlayer(p))));
+    await cursor.forEach(async p => results.push(await action(new DbTeam(p))));
     return results;
+}
+
+/**
+ * 
+ * @param {function(*, import('./types/dbteam')):Promise<*>} action 
+ */
+async function reduce(action, initial) {
+    const cursor = db.collection('teams').find();
+    let result = initial;
+    while (await cursor.hasNext()) {
+        let team = new DbTeam(await cursor.next());
+        result = await action(result, team);
+    }
+    return result;
 }
 
 /**
@@ -530,5 +544,6 @@ module.exports = {
     rejectMap,
     findMissingMaps,
     bulkReject,  // General management
-    map
+    map,
+    reduce
 };
