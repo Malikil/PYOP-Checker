@@ -34,7 +34,7 @@ function currentWeek(arr) {
 
 /**
  * Converts a mod string into its number equivalent
- * @param {"NM"|"HD"|"HR"|"DT"|"EZ"|"HT"|"FL"} modstr Mods in string form. Case insensitive
+ * @param {"NM"|"HD"|"HR"|"DT"|"EZ"|"HT"} modstr Mods in string form. Case insensitive
  * @returns The bitwise number representation of the selected mods
  */
 function parseMod(modstr)
@@ -51,9 +51,8 @@ function parseMod(modstr)
     if (modstr.includes('DT'))      mod |= MODS.DT;
     else if (modstr.includes('NC')) mod |= MODS.NC | MODS.DT;
     else if (modstr.includes('HT')) mod |= MODS.HT;
-    if (modstr.includes('FL'))      mod |= MODS.FL;
     
-    return mod;
+    return mod & MODS.ALLOWED;
 }
 
 /**

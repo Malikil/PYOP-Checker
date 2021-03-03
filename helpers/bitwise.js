@@ -8,11 +8,10 @@ const MODS = {
     DT: 1 << 6,
     HT: 1 << 8,
     NC: 1 << 9,
-    FL: 1 << 10,
     DIFFMODS: 0,
     ALLOWED:  0
 };
-MODS.DIFFMODS = MODS.HR | MODS.DT | MODS.HT;
-MODS.ALLOWED = MODS.EZ | MODS.HD | MODS.HR | MODS.DT | MODS.HT | MODS.NC | MODS.FL;
+MODS.DIFFMODS = MODS.HR | MODS.DT | MODS.HT | MODS.EZ;
+MODS.ALLOWED = MODS.EZ | MODS.HD | MODS.HR | MODS.DT | MODS.HT | MODS.NC;
 
 module.exports = MODS;
