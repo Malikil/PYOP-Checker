@@ -463,7 +463,7 @@ const commands = {
             return msg.channel.send(`Couldn't recognise beatmap id`);
 
         // Forward the screenshot to the proper channel
-        const passChannel = client.channels.get(process.env.CHANNEL_SCREENSHOTS);
+        const passChannel = client.channels.cache.get(process.env.CHANNEL_SCREENSHOTS);
         let passReference;
         if (passChannel && passChannel.type === "text")
         {
