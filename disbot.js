@@ -45,7 +45,10 @@ client.on('message', msg => {
     if (command) {
         // Verify permissions
         if (command.permissions && command.permissions.length > 0) {
-            const roles = msg.member.roles.cache;
+            const member = msg.member;
+            if (!member)
+                return msg.channel.send("This command is only available in the server");
+            const roles = member.roles.cache;
             if (!command.permissions.every(perm => roles.has(perm)))
                 return msg.channel.send("You don't have the required role to access this command");
         }
