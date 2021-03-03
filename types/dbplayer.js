@@ -14,6 +14,7 @@ module.exports = class DbPlayer {
         this.osuname = osuname;
         this.discordid = discordid;
         this.utc = utc;
-        this.notify = notify;
+        if (notify)
+            this.notify = notify;
     }
 }

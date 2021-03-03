@@ -28,6 +28,7 @@ module.exports = class DbBeatmap {
         this.creator = creator;
         this.mods = mods;
         this.pool = pool;
-        this.passes = passes; // Doesn't create a copy, can use [...passes] if a copy is needed
+        if (passes)
+            this.passes = passes; // Doesn't create a copy, can use [...passes] if a copy is needed
     }
 }
