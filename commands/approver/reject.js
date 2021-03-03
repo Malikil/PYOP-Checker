@@ -15,7 +15,7 @@ module.exports = {
             arg: 'any',
             name: "message",
             description: "The rejection message. Quotes aren't required, " +
-                "everything after the mods will be captured.",
+                "everything after the mods will be used",
             required: true
         }
     ],

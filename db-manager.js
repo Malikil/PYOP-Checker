@@ -304,7 +304,7 @@ async function removeAllMaps(teamname)
 
 /**
  * Finds all maps with a given status, grouped by their mods
- * @param {string} status What status the map should have
+ * @param {string|RegExp} status What status the map should have
  * @returns {Promise<{
  *  _id: number,
  *  maps: {
@@ -445,7 +445,7 @@ async function rejectMap(mapid, mods, message)
             players: { $addToSet: "$players" }
         } }
     ]).toArray();
-    
+
     let playerNotif = playerlist.find(i => i._id);
     if (playerNotif)
         playerNotif = playerNotif.players.map(p => new DbPlayer(p));
