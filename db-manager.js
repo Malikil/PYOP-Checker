@@ -527,6 +527,28 @@ async function bulkReject(maps, message, division)
     console.log(`Modified ${result.modifiedCount} documents in bulk update`);
     return result.modifiedCount;
 }
+
+/**
+ * Move all current maps to the oldmaps list, and clear out the current maps list
+ */
+async function archiveMaps() {
+    db.collection('teams').updateMany(
+        { teamname: "ExampleTeam" },
+        [
+            { $set: {
+                oldmaps: {
+                    $concatArrays: [
+                        "$oldmaps",
+                        [ "$maps" ]
+                    ]
+                }
+            } },
+            { $set: {
+                maps: []
+            } }
+        ]
+    );
+}
 //#endregion
 module.exports = {
     addTeam, // Teams/players
@@ -543,6 +565,7 @@ module.exports = {
     approveMap,
     rejectMap,
     findMissingMaps,
+    archiveMaps,
     bulkReject,  // General management
     map,
     reduce
