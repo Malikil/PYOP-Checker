@@ -140,43 +140,6 @@ const commands = {
     },
 
     /**
-     * Views all currently pending maps
-     * @param {Discord.Message} msg 
-     * @param {string[]} args
-     */
-    async pending(msg, args)
-    {
-        if (args.length > 1)
-            return;
-
-        let mods;
-        if (args[0])
-        {
-            let modstr = args[0].toLowerCase();
-            mods = ['nm', 'hd', 'hr', 'dt', 'cm'].reduce((arr, mod) => {
-                if (modstr.includes(mod))
-                    arr.push(mod);
-                return arr;
-            }, []);
-        }
-
-        let maps = await Command.viewPending(mods);
-        let str = "";
-        maps.forEach(modpool => {
-            str += `**__${modpool.pool.toUpperCase()}:__**\n`;
-            modpool.maps.forEach(map => {
-                if (str.length < 1800)
-                    str += `<${helpers.mapLink(map)}> ${helpers.mapString(map)}\n`;
-            });
-        });
-        if (str.length >= 1800)
-            str += "Message too long, some maps skipped...";
-        else if (str === "")
-            str = "No pending maps";
-        return msg.channel.send(str);
-    },
-
-    /**
      * Views maps that got automatically approved
      * @param {Discord.Message} msg 
      * @param {string[]} args 
@@ -228,7 +191,6 @@ const commands = {
 
 //#region Command permissions
 commands.approve.permissions = "approver";
-commands.pending.permissions = "approver";
 commands.missing.permissions = "approver";
 commands.reject.permissions = "approver";
 commands.autoapproved.permissions = "approver";
@@ -265,10 +227,6 @@ commands.reject.help = "Usage: !reject <map> <mod> <message>\n" +
     "Message: A rejection message so the player knows why the map was rejected. " +
     "Including quotes around the message isn't required, everything after the " +
     "mod string will be captured.";
-commands.pending.help = "Usage: !pending [pool]\n" +
-    "Shows all maps with a pending status, " +
-    "waiting to be approved.\n" +
-    "(optional) pool: Only show maps from the listed modpool. NM|HD|HR|DT|CM";
 commands.missing.help = "Usage: !missing\n" +
     "Shows how many map slots need to be filled for each mod " +
     "in either division.";

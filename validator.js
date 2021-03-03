@@ -146,8 +146,9 @@ const valid = {
                     case MODS.HR: pool = "hr"; break;
                     case MODS.DT: pool = "dt"; break;
                 }
-
-            return { mods, pool };
+            // Only return mods 0 if NM was specified
+            if (mods !== 0 || modstr.includes("NM"))
+                return { mods, pool };
         },
         description: "Some combination of HD|HR|DT|CM|NM|HT|EZ",
         error: "Couldn't parse mod string"

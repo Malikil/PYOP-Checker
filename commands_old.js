@@ -207,41 +207,6 @@ async function recheckMaps()
 // ======================== Approver Commands =================================
 // ============================================================================
 /**
- * Gets a list of maps with a given status
- * @param {("nm"|"hd"|"hr"|"dt"|"cm")[]} mods
- * @param {string} status
- * @returns {Promise<{
- *  pool: "nm"|"hd"|"hr"|"dt"|"cm",
- *  maps: {
- *      bid: number,
- *      artist: string,
- *      title: string,
- *      version: string
- *  }[]
- * }[]>}
- */
-async function viewPending(mods, status = "Pending")
-{
-    console.log("Finding pending maps");
-    let maplist = await db.findMapsWithStatus(status);
-    console.log(maplist);
-    
-    // Add all mods if not otherwise requested
-    if (!mods || mods.length === 0)
-        mods = ['nm', 'hd', 'hr', 'dt', 'cm'];
-        
-    let result = [];
-    maplist.forEach(mod => {
-        if (mods.includes(helpers.getModpool(mod._id)))
-            result.push({
-                pool: helpers.modString(mod._id),
-                maps: mod.maps
-            });
-    });
-    return result;
-}
-
-/**
  * Gets a count of how many maps are needed in each modpool 
  */
 async function viewMissingMaps()
@@ -300,7 +265,7 @@ module.exports = {
     removePlayer,
     exportMaps,
     recheckMaps,
-    viewPending,    // Map approvers
+    // Map approvers
     approveMap,
     rejectMap,
     viewMissingMaps
