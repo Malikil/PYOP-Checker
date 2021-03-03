@@ -14,90 +14,6 @@ const divInfo = require('./divisions.json');
 const MAP_COUNT = 10;
 const DRAIN_BUFFER = parseInt(process.env.DRAIN_BUFFER);
 
-//#region Public Commands
-// ============================================================================
-// ========================= Public Functions =================================
-// ============================================================================
-/**
- * Adds a team
- * @param {string} teamname The team's name
- * @param {string} division Which division to add the team to
- * @param {{
- *  osuid: number|string,
- *  discordid: string,
- *  utc: string
- * }[]} players A list of players on the team
- * @returns {Promise<{
- *  added: boolean,
- *  players?: {
- *      osuid: number,
- *      osuname: string,
- *      discordid: string
- *  }[],
- *  message?: string
- * }>} How many players got added/updated
- */
-async function addTeam(division, teamname, players)
-{
-    // Make sure none of the players are already on a team
-    let team = await db.getTeamByPlayerlist(players);
-    if (team)
-        return {
-            added: false,
-            message: "Some players are already on a team. Please let Malikil know " +
-                "if you need to make changes to an existing team."
-        };
-    // Find division requirements
-    let div = divInfo.find(d => d.division === division);
-    // Verify the players
-    let apiplayers = await Promise.all(
-        players.map(p => ApiPlayer.buildFromApi(p.osuid))
-    );
-    
-    // Make sure the players are in rank range
-    let allowed = apiplayers.reduce((p, c) => p &&
-            c.pp_rank >= div.ranklimits.high &&
-            c.pp_rank < div.ranklimits.low
-    , true);
-    if (!allowed)
-        return {
-            added: false,
-            message: "Some players don't meet rank requirements"
-        };
-    
-    // Convert players to db format
-    let playerlist = apiplayers.map(apip => {
-        let player = players.find(p =>
-            p.osuid.toString().toLowerCase() === apip.username.toLowerCase().replace(/ /g, '_') ||
-            p.osuid === apip.user_id
-        );
-        console.log(`Looking for ${apip.username}`);
-        console.log(player);
-        let obj = {
-            osuid: apip.user_id,
-            osuname: apip.username,
-            discordid: player.discordid
-        };
-        if (player.utc !== "_")
-            obj.utc = player.utc;
-        return obj;
-    });
-    console.log(playerlist);
-
-    // Add the team to the db
-    let result = await db.addTeam(teamname, division, playerlist);
-    if (result)
-        return {
-            added: true,
-            players: playerlist
-        };
-    else
-        return {
-            added: false,
-            message: "Error writing to database"
-        };
-}
-//#endregion
 //#region Admin Commands
 // ============================================================================
 // ========================== Admin Functions =================================
@@ -204,7 +120,7 @@ async function recheckMaps()
 //#endregion
 
 module.exports = {
-    addTeam, // Admin
+    // Admin
     removePlayer,
     exportMaps,
     recheckMaps
