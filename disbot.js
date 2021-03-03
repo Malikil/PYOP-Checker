@@ -105,7 +105,7 @@ client.login(process.env.DISCORD_TOKEN)
         const announce = client.channels.cache.get(process.env.CHANNEL_ANNOUNCEMENTS);
         if (announce) {
             announce.send("Pools closed");
-            //sheet.exportAllMaps();
+            sheet.exportAllMaps();
         }
         else
             console.error("Announcement channel not found");
