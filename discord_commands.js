@@ -81,44 +81,6 @@ const commands = {
     //#endregion
     //#region ============================== Approver ==============================
     /**
-     * Reject a map/mod combination, and notify players if enabled
-     * @param {Discord.Message} msg
-     * @param {string[]} args
-     * @param {Discord.Client} client
-     */
-    async reject(msg, args, client)
-    {
-        // Need mapid, mods, and message
-        if (args.length < 3)
-            return;
-
-        // Get map id
-        let mapid = helpers.parseMapId(args.shift());
-        if (!mapid)
-            return msg.channel.send("Map id not recognised");
-        // Get mod
-        let mods = helpers.parseMod(args[0]);
-        if (mods === 0 && args.shift().toUpperCase() !== "NM")
-            return msg.channel.send("Mod not recognised");
-        // Combine message back into a single string
-        let message = args.reduce((p, s) => `${p} ${s}`, '').slice(1);
-        if (!message)
-            return msg.channel.send("Please include a reject message");
-        let result = await Command.rejectMap(mapid, mods, message);
-        // Get the list of players, and send them a message if they're in the server
-        const guild = client.guilds.get(process.env.DISCORD_GUILD);
-        let dms = result.playerNotif.map(player => {
-            let member = guild.members.get(player.discordid);
-            if (member)
-                return member.send("A map in your pool was rejected:\n" +
-                    `**__Map:__** https://osu.ppy.sh/b/${mapid} +${helpers.modString(mods)}\n` +
-                    `**__Message:__** ${message}`);
-        });
-        dms.push(msg.channel.send(`Rejected ${mapid} +${helpers.modString(mods)} from ${result.modified} pools`));
-        return Promise.all(dms);
-    },
-
-    /**
      * Views maps that got automatically approved
      * @param {Discord.Message} msg 
      * @param {string[]} args 
@@ -169,14 +131,8 @@ const commands = {
 }
 
 //#region Command permissions
-commands.approve.permissions = "approver";
 commands.missing.permissions = "approver";
-commands.reject.permissions = "approver";
 commands.autoapproved.permissions = "approver";
-//#endregion
-//#region Aliases
-// ========== Approver ==========
-commands.accept = commands.approve;
 //#endregion
 //#region Help messages
 // ============================== Public ==============================
@@ -194,13 +150,6 @@ commands.register.help = "Format:\n" +
     "doesn't want their time zone considered while scheduling enter a single underscore instead. Eg " +
     "`@Malikil Malikil _`\nIf you need to make changes to your team, please let Malikil know.";
 // ============================== Approver ==============================
-commands.reject.help = "Usage: !reject <map> <mod> <message>\n" +
-    "Map: Map link or id to reject\n" +
-    "mod: What mods are used. Should be some combination of NM|CM|HD|HR|DT|HT|EZ." +
-    " It is required even for nomod.\n" +
-    "Message: A rejection message so the player knows why the map was rejected. " +
-    "Including quotes around the message isn't required, everything after the " +
-    "mod string will be captured.";
 commands.missing.help = "Usage: !missing\n" +
     "Shows how many map slots need to be filled for each mod " +
     "in either division.";

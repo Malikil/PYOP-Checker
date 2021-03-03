@@ -420,22 +420,18 @@ async function approveMap(mapid, mods)
  * @param {Number} mapid The map id to update
  * @param {Number} mods The mods the map uses
  * @param {string} message The reject message to add to the end
- * @returns {Promise<{
- *  playerNotif: *[],
- *  modified: number
- * }>} A list of players to notify of the change, plus the number of
+ * @returns A list of players to notify of the change, along with the number of
  * updated teams
  */
 async function rejectMap(mapid, mods, message)
 {
     console.log(`Rejecting mapid ${mapid} +${mods}`);
-    // Get a list of players on teams with maps to be rejected
-    // ========== Keeping for if I decide to do another teams tourney ==========
-    /*let playerlist = db.collection('teams').aggregate([
+    // Get a list of notification players on teams with maps to be rejected
+    const playerlist = await db.collection('teams').aggregate([
         { $match: {
             maps: { $elemMatch: {
-                id: mapid,
-                mod: mods,
+                bid: mapid,
+                mods,
                 status: { $not: /^Rejected/ }
             } }
         } },
@@ -445,23 +441,17 @@ async function rejectMap(mapid, mods, message)
         } },
         { $unwind: "$players" },
         { $group: {
-            _id: "$players.notif",
+            _id: "$players.notify",
             players: { $addToSet: "$players" }
         } }
-    ]);
-    let parr = (await playerlist.toArray()).find(i => i._id === null);
-    let players = [];
-    if (parr)
-        players = parr.players;
-    console.log(players);*/
-    let playerNotif = await db.collection('teams').find({
-        maps: { $elemMatch: {
-            bid: mapid,
-            mods,
-            status: { $not: /^Rejected/ }
-        } },
-        notif: true
-    }).toArray();
+    ]).toArray();
+    
+    let playerNotif = playerlist.find(i => i._id);
+    if (playerNotif)
+        playerNotif = playerNotif.players.map(p => new DbPlayer(p));
+    else
+        playerNotif = [];
+    console.log(playerNotif);
     // Update the status
     // Not limiting to pending maps here because it's conceivable that a
     // screenshot required map can be rejected, and maps that are rejected
@@ -469,9 +459,10 @@ async function rejectMap(mapid, mods, message)
     let result = await db.collection('teams').updateMany(
         { maps: { $elemMatch: {
             bid: mapid,
-            mods
+            mods,
+            'map.status': { $not: /^Rejected/ }
         } } },
-        { $set: { 'maps.$[map].status': "Rejected - " + message } },
+        { $set: { 'maps.$[map].status': `Rejected - ${message}` } },
         { arrayFilters: [
             {
                 'map.bid': mapid,

@@ -235,18 +235,6 @@ async function viewMissingMaps()
     // Return the results
     return counts;
 }
-
-/**
- * Rejects a map and provides a reason for rejection
- * @param {number} mapid
- * @param {number} mods
- * @param {string} desc A reject message for the map
- */
-async function rejectMap(mapid, mods, desc)
-{
-    console.log(`Mod: ${mods}, Message: ${desc}`);
-    return db.rejectMap(mapid, mods, desc);
-}
 //#endregion
 
 module.exports = {
@@ -255,6 +243,5 @@ module.exports = {
     exportMaps,
     recheckMaps,
     // Map approvers
-    rejectMap,
     viewMissingMaps
 };
