@@ -15,16 +15,15 @@ async function getConfirmation(msg, prompt = undefined, accept = ['y', 'yes'], r
 {
     // Prepare the accept/reject values
     let waitFor = accept.concat(reject);
-    let waitForStr = waitFor.reduce((p, v) => p + `/${v}`, "").slice(1);
+    let waitForStr = waitFor.reduce((p, v) => `${p}/${v}`);
     if (prompt)
         await msg.channel.send(`${prompt} (${waitForStr})`);
     let err = "";
     let aborted = await msg.channel.awaitMessages(
         message => message.author.equals(msg.author)
             && waitFor.includes(message.content.toLowerCase()),
-        { maxMatches: 1, time: 10000, errors: ['time'] }
+        { max: 1, time: 10000, errors: ['time'] }
     ).then(results => {
-        console.log(results);
         let response = results.first();
         return reject.includes(response.content.toLowerCase());
     }).catch(reason => {
@@ -470,8 +469,7 @@ const commands = {
             // Always include the attachment if there is one
             if (msg.attachments.size > 0)
             {
-                let attach = msg.attachments.first();
-                let attachment = new Discord.Attachment(attach.url, attach.filename);
+                const attachment = msg.attachments.first();
                 passReference = await passChannel.send(`Screenshot for https://osu.ppy.sh/b/${mapid} from ${msg.author.username}`,
                     attachment);
             }
