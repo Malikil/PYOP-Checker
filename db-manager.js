@@ -291,7 +291,7 @@ async function removeMap(team, mapid, modpool, mods)
 
 /**
  * Removes all maps from the given team's pool
- * @param {string|number} teamname Team name
+ * @param {string} teamname Team name
  * @returns The number of teams modified
  */
 async function removeAllMaps(teamname)
