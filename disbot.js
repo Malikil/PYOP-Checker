@@ -84,6 +84,7 @@ client.login(process.env.DISCORD_TOKEN)
 })
 .then(() => {
     // Find the next closing date
+    // DEBUG: process.env.FIRST_POOLS_DUE  "2021-03-03T20:00:00Z"
     const closing = new Date(process.env.FIRST_POOLS_DUE);
     const now = new Date();
     while (closing < now) {
@@ -94,17 +95,27 @@ client.login(process.env.DISCORD_TOKEN)
     console.log(`Pools closing in ${((closing - now) / (1000 * 60 * 60)).toFixed(2)} hours`);
     setTimeout(() => {
         console.log("\x1b[33mPools:\x1b[0m Warning of pool closure");
-        const announce = client.channels.cache.get(process.env.CHANNEL_ANNOUNCEMENTS);
-        if (announce)
-            announce.send("Pools closing soon");
+        const guild = client.guilds.cache.get(process.env.DISCORD_GUILD);
+        const announceChannel = guild.channels.cache.get(process.env.CHANNEL_ANNOUNCEMENTS);
+        const playerRole = guild.roles.cache.get(process.env.ROLE_PLAYER);
+        const announcement = `${playerRole} Pools will be closing in 6 hours. Make sure to ` +
+            `submit your pools if you haven't done so already. Also don't forget to submit ` +
+            `screenshots for any unranked maps or maps without enough scores on the leaderboard.\n` +
+            `If some of your maps needed screenshots of passes and you didn't submit passes from ` +
+            `two different players. There is no guarantee that `
+        if (announceChannel)
+            announceChannel.send(announcement);
         else
             console.error("Announcement channel not found");
-    }, closing - now - (1000 * 60 * 60 * 4));
+    }, closing - now - (1000 * 60 * 60 * 6));
     setTimeout(() => {
         console.log("\x1b[33mPools:\x1b[0m Closing pools");
-        const announce = client.channels.cache.get(process.env.CHANNEL_ANNOUNCEMENTS);
-        if (announce) {
-            announce.send("Pools closed");
+        const guild = client.guilds.cache.get(process.env.DISCORD_GUILD);
+        const announceChannel = guild.channels.cache.get(process.env.CHANNEL_ANNOUNCEMENTS);
+        const playerRole = guild.roles.cache.get(process.env.ROLE_PLAYER);
+        const announcement = `${playerRole} Pools are now closed! Any maps that `
+        if (announceChannel) {
+            announceChannel.send(announcement);
             sheet.exportAllMaps();
         }
         else

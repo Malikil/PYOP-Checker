@@ -7,7 +7,7 @@ const MAP_COUNT = 10;
 module.exports = {
     name: "viewpool",
     description: "View maps in your pool and their statuses.",
-    alias: [ 'view', 'list', 'pool' ],
+    alias: [ 'view', 'list', 'pool', 'mappool' ],
 
     /**
      * 
