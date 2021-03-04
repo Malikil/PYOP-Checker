@@ -5,7 +5,6 @@
             "low": 100000, "high": 0
         },
         "starlimits": [
-			{ "low": 5.3, "high": 6.25 },
             { "low": 5.3, "high": 6.25 },
             { "low": 5.45, "high": 6.5 },
             { "low": 5.6, "high": 6.75 },
@@ -29,7 +28,6 @@
             "low": 100000, "high": 10000
         },
         "starlimits": [
-			{ "low": 4.5, "high": 5.4 },
             { "low": 4.5, "high": 5.4 },
             { "low": 4.7, "high": 5.7 },
             { "low": 4.9, "high": 6 },
