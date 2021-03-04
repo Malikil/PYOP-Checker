@@ -402,7 +402,7 @@ async function approveMap(mapid, mods)
             bid: mapid,
             mods
         } } },
-        { $set: { 'maps.$[pendmap].status': "Accepted" } },
+        { $set: { 'maps.$[pendmap].status': "Approved" } },
         { arrayFilters: [
             {
                 'pendmap.bid': mapid,
