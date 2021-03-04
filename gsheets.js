@@ -70,7 +70,7 @@ async function exportAllMaps() {
     return Promise.all([
         sheet.saveUpdatedCells(),
         db.archiveMaps(),
-        new Promise(() => refreshCheckers())
+        new Promise((resolve) => resolve(refreshCheckers()))
     ]);
 }
 
