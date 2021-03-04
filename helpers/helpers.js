@@ -32,6 +32,23 @@ function currentWeek(arr) {
         return week;
 }
 
+function closingTimes() {
+    const lastClose = new Date(process.env.FIRST_POOLS_DUE);
+    const now = new Date();
+    // While it's more than an hour since pools should have closed
+    while (now > lastClose) {
+        lastClose.setDate(lastClose.getDate() + 7);
+        console.log(`Incrementing closing time to ${lastClose}`);
+    }
+    const nextClose = new Date(lastClose);
+    lastClose.setDate(lastClose.getDate() - 7);
+    return {
+        lastClose,
+        nextClose,
+        now
+    };
+}
+
 /**
  * Converts a mod string into its number equivalent
  * @param {"NM"|"HD"|"HR"|"DT"|"EZ"|"HT"} modstr Mods in string form. Case insensitive
@@ -372,6 +389,7 @@ module.exports = {
     mapString,
     mapLink,
     convertSeconds,
+    closingTimes,
     getPlayer,
     getBeatmap,
     getLeaderboard,

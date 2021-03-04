@@ -21,6 +21,16 @@ module.exports = {
         const team = await db.getTeamByPlayerid(msg.author.id);
         if (!team)
             return msg.channel.send("Couldn't find team");
+
+        // Make sure pools aren't closed
+        const { lastClose, now } = helpers.closingTimes();
+        // If it's less than 16 hours since closing
+        if ((now - lastClose) < (1000 * 60 * 60 * 16))
+            return msg.channel.send(
+                "Pools are closed, please allow an hour for processing before " +
+                "submitting new maps. If you are replacing a map which was " +
+                "rejected please send your replacement to Malikil directly."
+            );
         
         console.log(`Removing mapid ${map} from ${mods.pool}`);
         let result = await db.removeMap(team.teamname, map, mods.pool, mods.mods);

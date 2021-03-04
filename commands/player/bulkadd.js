@@ -2,7 +2,7 @@ const Discord = require('discord.js');
 const helpers = require('../../helpers/helpers');
 const db = require('../../db-manager');
 const ApiBeatmap = require('../../types/apibeatmap');
-const checkers = require('../../checkers');
+const { checkers } = require('../../checkers');
 
 module.exports = {
     name: "bulkadd",
@@ -29,6 +29,17 @@ module.exports = {
         const team = await db.getTeamByPlayerid(msg.author.id);
         if (!team)
             return msg.channel.send("Player not found");
+
+        // Make sure pools aren't closed
+        const { lastClose, now } = helpers.closingTimes();
+        // If it's less than a 16 hours since closing
+        if ((now - lastClose) < (1000 * 60 * 60 * 16))
+            return msg.channel.send(
+                "Pools are closed, please allow an hour for processing before " +
+                "submitting new maps. If you are replacing a map which was " +
+                "rejected please send your replacement to Malikil directly."
+            );
+
         console.log(`bulkadd: Adding maps to team ${team.teamname}`);
         // Skip over the !addbulk command and split into lines
         let lines = msg.content.substr("!addbulk ".length).split('\n');

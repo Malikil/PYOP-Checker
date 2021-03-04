@@ -3,7 +3,7 @@ const { GoogleSpreadsheet } = require('google-spreadsheet');
 const doc = new GoogleSpreadsheet(process.env.SPREADSHEET_ID);
 const helpers = require('./helpers/helpers');
 const db = require('./db-manager');
-const checkers = require('./checkers');
+const { checkers, refreshCheckers } = require('./checkers');
 
 var loaded = doc.useServiceAccountAuth(
     JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS)
@@ -25,8 +25,9 @@ async function exportAllMaps() {
             title: "Exported"
         });
     // Do I need to load cells twice?
-    await sheet.loadCells();
+    //await sheet.loadCells();
     await sheet.clear();
+    await sheet.loadCells();
     // Parse players into the sheet
     // Insert into two sets of columns
     await db.reduce(async (rows, team) => {
@@ -37,8 +38,6 @@ async function exportAllMaps() {
             row = rows.div2;
         }
         console.log(team.teamname);
-        console.log(`${team.division} division`);
-        console.log(`Starting at row ${row}`);
 
         // Verify the pool doesn't have any issues
         const check = await checkers[team.division].checkPool(team.maps);
@@ -70,7 +69,8 @@ async function exportAllMaps() {
     // Save the sheet values and move maps to archive
     return Promise.all([
         sheet.saveUpdatedCells(),
-        db.archiveMaps()
+        db.archiveMaps(),
+        new Promise(() => refreshCheckers())
     ]);
 }
 

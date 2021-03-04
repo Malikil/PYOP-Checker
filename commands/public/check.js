@@ -1,4 +1,4 @@
-const checkers = require('../../checkers');
+const { checkers } = require('../../checkers');
 const db = require('../../db-manager');
 const ApiBeatmap = require('../../types/apibeatmap');
 const Discord = require('discord.js');

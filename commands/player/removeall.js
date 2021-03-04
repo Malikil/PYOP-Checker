@@ -15,6 +15,16 @@ module.exports = {
         if (!team)
             return msg.channel.send("Player not found");
 
+        // Make sure pools aren't closed
+        const { lastClose, now } = helpers.closingTimes();
+        // If it's less than 16 hours since closing
+        if ((now - lastClose) < (1000 * 60 * 60 * 16))
+            return msg.channel.send(
+                "Pools are closed, please allow an hour for processing before " +
+                "submitting new maps. If you are replacing a map which was " +
+                "rejected please send your replacement to Malikil directly."
+            );
+
         // Make sure the command will actually do something
         if (team.maps.length < 1)
             return msg.channel.send("No maps to remove");

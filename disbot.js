@@ -8,6 +8,7 @@ const Discord = require('discord.js');
 const validator = require('./validator');
 const util = require('util');
 const client = new Discord.Client();
+const { closingTimes } = require('./helpers/helpers');
 const sheet = require('./gsheets');
 
 // Load commands from files
@@ -68,9 +69,7 @@ client.on('message', msg => {
     }
 });
 
-/*/ ============================================================================
-// ======================== Set up the osu client here ========================
-// ============================================================================
+/*/ Set up the osu client here
 new (require('./boat'))(
     process.env.BANCHO_USER,
     process.env.BANCHO_PASS
@@ -84,43 +83,58 @@ client.login(process.env.DISCORD_TOKEN)
 })
 .then(() => {
     // Find the next closing date
-    // DEBUG: process.env.FIRST_POOLS_DUE  "2021-03-03T20:00:00Z"
-    const closing = new Date(process.env.FIRST_POOLS_DUE);
-    const now = new Date();
-    while (closing < now) {
-        closing.setDate(closing.getDate() + 7);
-        console.log(`Incrementing closing time to ${closing}`);
-    }
+    const { lastClose, nextClose, now } = closingTimes();
     // Set announcement timers
-    console.log(`Pools closing in ${((closing - now) / (1000 * 60 * 60)).toFixed(2)} hours`);
-    setTimeout(() => {
-        console.log("\x1b[33mPools:\x1b[0m Warning of pool closure");
-        const guild = client.guilds.cache.get(process.env.DISCORD_GUILD);
-        const announceChannel = guild.channels.cache.get(process.env.CHANNEL_ANNOUNCEMENTS);
-        const playerRole = guild.roles.cache.get(process.env.ROLE_PLAYER);
-        const announcement = `${playerRole} Pools will be closing in 6 hours. Make sure to ` +
-            `submit your pools if you haven't done so already. Also don't forget to submit ` +
-            `screenshots for any unranked maps or maps without enough scores on the leaderboard.\n` +
-            `If some of your maps needed screenshots of passes and you didn't submit passes from ` +
-            `two different players. There is no guarantee that `
-        if (announceChannel)
-            announceChannel.send(announcement);
-        else
-            console.error("Announcement channel not found");
-    }, closing - now - (1000 * 60 * 60 * 6));
-    setTimeout(() => {
-        console.log("\x1b[33mPools:\x1b[0m Closing pools");
-        const guild = client.guilds.cache.get(process.env.DISCORD_GUILD);
-        const announceChannel = guild.channels.cache.get(process.env.CHANNEL_ANNOUNCEMENTS);
-        const playerRole = guild.roles.cache.get(process.env.ROLE_PLAYER);
-        const announcement = `${playerRole} Pools are now closed! Any maps that `
-        if (announceChannel) {
-            announceChannel.send(announcement);
-            sheet.exportAllMaps();
-        }
-        else
-            console.error("Announcement channel not found");
-    }, closing - now);
+    console.log(`Pools closing in ${((nextClose - now) / (1000 * 60 * 60)).toFixed(2)} hours`);
+    const warnTimer = nextClose - now - (1000 * 60 * 60 * 6);
+    if (warnTimer > 0)
+        setTimeout(() => {
+            console.log("\x1b[33mPools:\x1b[0m Warning of pool closure");
+            const guild = client.guilds.cache.get(process.env.DISCORD_GUILD);
+            const announceChannel = guild.channels.cache.get(process.env.CHANNEL_ANNOUNCEMENTS);
+            const playerRole = guild.roles.cache.get(process.env.ROLE_PLAYER);
+            const announcement = `${playerRole} Pools will be closing in 6 hours. Make sure to submit ` +
+                `your pools if you haven't done so already. Also don't forget to submit screenshots ` +
+                `for any unranked maps or maps without enough scores on the leaderboard.\nIf some of ` +
+                `your maps needed screenshots of passes and you didn't submit passes from two ` +
+                `different players, there is no guarantee that we will include them in your final pool.`;
+            if (announceChannel)
+                announceChannel.send(announcement);
+            else
+                console.error("Announcement channel not found");
+        }, warnTimer);
+    const closeTimer = nextClose - now;
+    if (closeTimer > 0)
+        setTimeout(() => {
+            console.log("\x1b[33mPools:\x1b[0m Closing pools");
+            const guild = client.guilds.cache.get(process.env.DISCORD_GUILD);
+            const announceChannel = guild.channels.cache.get(process.env.CHANNEL_ANNOUNCEMENTS);
+            //const playerRole = guild.roles.cache.get(process.env.ROLE_PLAYER);
+            const announcement = `Pools are now closed! You can still submit passes ` +
+                `through the bot for another hour, but current maps are locked. If a map gets rejected ` +
+                `you will still have the opportunity to replace it. If a map that needed screenshots ` +
+                `gets rejected we'll just replace it, you won't get to pick a new map.\n` +
+                `Pools will be released around 18:00.`;
+            if (announceChannel)
+                announceChannel.send(announcement);
+            else
+                console.error("Announcement channel not found");
+        }, closeTimer);
+    // Allow two hours after pools close for more approving, then push maps to the
+    // sheet and clear team pools for the next week's maps
+    let exportTimer = closeTimer + (1000 * 60 * 60 * 2);
+    if ((now - lastClose) < (1000 * 60 * 60 * 2))
+        // If we're already past closing time for this week fix the timer
+        exportTimer -= 1000 * 60 * 60 * 24 * 7;
+    console.log(`Exporting maps in ${(exportTimer / (1000 * 60 * 60)).toFixed(2)} hours`);
+    if (exportTimer > 0)
+        setTimeout(() => {
+            sheet.exportAllMaps()
+            .catch(err => {
+                console.error(err);
+            });
+        }, exportTimer);
+
     // I think heroku restarts itself every day, so I can cheat a bit and
     // not actually add these as recurring intervals.
     // If it turns out I'm wrong then I'll have to fix it somehow.

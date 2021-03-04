@@ -1,6 +1,6 @@
 const Discord = require('discord.js');
 const helpers = require('../../helpers/helpers');
-const checkers = require('../../checkers');
+const { checkers } = require('../../checkers');
 const db = require('../../db-manager');
 const MAP_COUNT = 10;
 
