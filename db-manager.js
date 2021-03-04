@@ -539,7 +539,7 @@ async function archiveMaps() {
                 oldmaps: {
                     $concatArrays: [
                         "$oldmaps",
-                        [ "$maps" ]
+                        "$maps"
                     ]
                 }
             } },
