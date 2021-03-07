@@ -36,7 +36,10 @@ module.exports = {
                 strs[map.pool] = modNames[map.pool];
             // Add the map's info to the proper string
             strs[map.pool] += `${helpers.mapString(map)} ${map.pool === 'cm' ? `+${helpers.modString(map.mods)} ` : ""}<${helpers.mapLink(map)}>\n`;
-            strs[map.pool] += `\tDrain: ${helpers.convertSeconds(map.drain)}, Stars: ${map.stars}, Status: ${map.status}\n`;
+            strs[map.pool] += `\tDrain: ${helpers.convertSeconds(map.drain)}, Stars: ${map.stars}, Status: ${map.status}`;
+            if (map.status === "Screenshot Required")
+                strs[map.pool] += ` (${(map.passes || []).length} / 2)`;
+            strs[map.pool] += "\n";
 
             pool.push(map);
         });

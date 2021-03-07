@@ -46,6 +46,10 @@ module.exports = {
         const beatmap = await ApiBeatmap.buildFromApi(map, mods.mods);
         if (!beatmap)
             return msg.channel.send(`Could not find map with id ${map}`);
+        // Make sure a team member didn't map it
+        if (beatmap.approved < 1 && team.players.find(p => p.osuid === beatmap.creator_id))
+            return msg.channel.send("You cannot use your own maps unless they're ranked");
+            
         let checkResult = await checkers[team.division].check(beatmap);
         console.log("Result of map check:");
         console.log(checkResult);
