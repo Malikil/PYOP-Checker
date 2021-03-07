@@ -20,9 +20,10 @@ module.exports = {
             
         // Generate the output string
         let str = "";
+        let skipped = 0;
         maplist.forEach(modpool => {
             if (!mods || mods.mods === modpool._id) {
-                str += `**__${helpers.modString(modpool._id)}:__**\n`;
+                str += `**__${helpers.modString(modpool._id)}:__** (${modpool.maps.length})\n`;
                 modpool.maps.forEach(map => {
                     if (str.length < 1600) {
                         str += `<${helpers.mapLink(map)}> ${helpers.mapString(map)}\n`
@@ -31,12 +32,14 @@ module.exports = {
                                 str += `    <${pass}>\n`;
                             });
                     }
+                    else
+                        skipped++;
                 });
             }
         });
         // Display the string
         if (str.length >= 1600)
-            str += "Message too long, some maps skipped...";
+            str += `Message too long, ${skipped} maps skipped...`;
         return msg.channel.send(str || "No pending maps");
     }
 }
