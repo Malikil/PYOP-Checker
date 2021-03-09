@@ -1,11 +1,11 @@
 /*
 This module should handle connecting to the database and all the CRUD operations
 */
-const { MongoClient, Db } = require('mongodb');
+//const { MongoClient, Db } = require('mongodb');
 const util = require('util');
-const { DbBeatmap, DbPlayer, DbTeam } = require('./types');
+const { DbBeatmap, DbPlayer, DbTeam } = require('../types');
 
-const mongoUser = process.env.MONGO_USER;
+/*const mongoUser = process.env.MONGO_USER;
 const mongoPass = process.env.MONGO_PASS;
 const mongoUri = process.env.MONGO_URI;
 const uri = `mongodb+srv://${mongoUser}:${mongoPass}@${mongoUri}`;
@@ -15,7 +15,7 @@ const client = new MongoClient(uri, {
 });
 
 /** @type {Db} */
-var db;
+/*var db;
 client.connect(err => {
     if (err)
         return console.log(err);
@@ -23,7 +23,9 @@ client.connect(err => {
         console.log("Connected to mongodb");
 
     db = client.db('pyopdb');
-});
+});//*/
+
+const db = require('./mdb').instance;
 //#region ============================== Helpers/General ==============================
 /**
  * Performs the given action for each item in the database, and return an array of the results

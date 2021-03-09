@@ -1,5 +1,5 @@
 const { checkers } = require('../../checkers');
-const db = require('../../db-manager');
+const db = require('../../database/db-manager');
 const ApiBeatmap = require('../../types/apibeatmap');
 const Discord = require('discord.js');
 const util = require('util');

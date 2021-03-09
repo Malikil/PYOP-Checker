@@ -1,7 +1,7 @@
 const Discord = require('discord.js');
 const helpers = require('../../helpers/helpers');
 const { checkers } = require('../../checkers');
-const db = require('../../db-manager');
+const db = require('../../database/db-manager');
 const MAP_COUNT = 10;
 
 module.exports = {
