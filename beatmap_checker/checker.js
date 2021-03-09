@@ -1,4 +1,5 @@
 const helpers = require('./../helpers/helpers.js');
+const { inspect } = require('util');
 const Rules = {
     StarRatingRule: require('./star-rule'),
     DrainTimeRule: require('./drain-rule'),
@@ -38,6 +39,7 @@ class Checker {
             let result = await this.rules[i].check(beatmap);
             if (!result.passed)
             {
+                console.log(`checker.js:41 - ${this.rules[i].constructor.name} failed: ${inspect(result)}`);
                 // Special rejection cases
                 if (this.rules[i] instanceof Rules.LeaderboardRule)
                 { // Leaderboard isn't an automatic rejection

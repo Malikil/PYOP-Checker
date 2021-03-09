@@ -231,7 +231,7 @@ async function getBeatmap(mapid, mods)
 
 async function getLeaderboard(mapid, mods = 0)
 {
-    let response = await fetch(`https://osu.ppy.sh/api/get_scores?k=${key}&b=${mapid}&m=0&mods=${mods & MODS.DIFFMODS}`);
+    let response = await fetch(`https://osu.ppy.sh/api/get_scores?k=${key}&b=${mapid}&m=0&mods=${mods}`);
     return response.json();
 }
 
