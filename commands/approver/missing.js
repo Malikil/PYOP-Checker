@@ -24,7 +24,7 @@ module.exports = {
                 cm: 0
             }
         );
-        missing.forEach(team => {
+        await missing.forEach(team => {
             // Add two maps for each pool
             counts[team.division].nm += 2;
             counts[team.division].hd += 2;
