@@ -1,4 +1,4 @@
-const { MongoClient } = require('mongodb');
+const { MongoClient, Db } = require('mongodb');
 
 const DB_KEY = Symbol.for("PYOP.db");
 const globalSymbols = Object.getOwnPropertySymbols(global);
@@ -14,26 +14,20 @@ if (!hasDb) {
         useUnifiedTopology: true
     });
 
-    global[DB_KEY] = new Promise((resolve, reject) => {
-        client.connect(err => {
-            if (err)
-                reject(err);
-            else {
-                console.log("Connected to mongodb");
-                resolve(client.db('pyopdb'));
-            }
-        });
-    })
+    client.connect(err => {
+        if (err)
+            return console.error(err);
+        else
+            console.log("Connected to mongodb");
+    });
+
+    global[DB_KEY] = client;
 }
 
-const singleton = {
-    
+module.exports = {
+    collection(coll) {
+        /** @type {Db} */
+        const db = global[DB_KEY].db('pyopdb');
+        return db.collection(coll);
+    }
 };
-/*Object.defineProperty(singleton, "instance", {
-    get: () => global[DB_KEY]
-});//*/
-Object.freeze(singleton);
-
-module.exports = singleton;
-
-/** @type {Db} */

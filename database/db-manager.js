@@ -25,7 +25,7 @@ client.connect(err => {
     db = client.db('pyopdb');
 });//*/
 
-const db = require('./mdb').instance;
+const db = require('./mdb');
 //#region ============================== Helpers/General ==============================
 /**
  * Performs the given action for each item in the database, and return an array of the results
