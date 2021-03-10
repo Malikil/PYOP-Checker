@@ -37,7 +37,7 @@ function closingTimes() {
     const now = new Date();
     // While it's more than an hour since pools should have closed
     while (now > lastClose) {
-        lastClose.setDate(lastClose.getDate() + 7);
+        lastClose.setUTCDate(lastClose.getUTCDate() + 7);
         console.log(`Incrementing closing time to ${lastClose}`);
     }
     const nextClose = new Date(lastClose);

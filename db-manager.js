@@ -533,7 +533,7 @@ async function bulkReject(maps, message, division)
  */
 async function archiveMaps() {
     db.collection('teams').updateMany(
-        { teamname: "ExampleTeam" },
+        { },
         [
             { $set: {
                 oldmaps: {
