@@ -41,7 +41,7 @@ function closingTimes() {
         console.log(`Incrementing closing time to ${lastClose}`);
     }
     const nextClose = new Date(lastClose);
-    lastClose.setDate(lastClose.getDate() - 7);
+    lastClose.setUTCDate(lastClose.getUTCDate() - 7);
     return {
         lastClose,
         nextClose,
