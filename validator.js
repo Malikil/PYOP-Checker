@@ -35,19 +35,32 @@ function validateArgs(expected, actual) {
             // Special 'any' argument type doesn't need to be validated
             if (arg.arg !== 'any') {
                 const value = valid[arg.arg].validate(cmdargs[i]);
-                if (value)
-                    validation.args[arg.arg] = value;
+                if (value) {
+                    // If we haven't seen this arg yet, add it
+                    if (!validation.args[arg.arg])
+                        validation.args[arg.arg] = [ value ];
+                    else
+                        validation.args[arg.arg].push(value);
+                }
                 else {
                     validation.rejected = true;
                     validation.error = valid[arg.arg].error;
                 }
             }
             // 'any' argument type
+            else if (!validation.args[arg.name])
+                validation.args[arg.name] = [ cmdargs[i] ];
             else
-                validation.args[arg.name] = cmdargs[i];
+                validation.args[arg.name].push(cmdargs[i]);
         }
         else if (arg.required)
             validation.rejected = true;
+    });
+
+    // Run through the args and take singles out of their arrays
+    Object.keys(validation.args).forEach(key => {
+        if (validation.args[key].length < 2)
+            validation.args[key] = validation.args[key][0];
     });
     
     return validation;
@@ -68,34 +81,45 @@ function validateArgs(expected, actual) {
  * }} command Name of the command
  */
 function usageString(command) {
+    const seen = [];
     let header = "";
     let description = "";
     let alias = "";
     if (command.args)
         command.args.forEach(arg => {
             // Special 'any' arg type will come with its own description
-            if (arg.arg !== "any")
-                if (arg.required) {
+            if (arg.arg !== "any") {
+                if (arg.required)
                     header += ` <${arg.arg}>`;
-                    description += `\n${arg.arg}: ${valid[arg.arg].description}`;
-                }
                 else {
                     header += ` [${arg.arg}]`;
-                    description += `\n(Optional) ${arg.arg}: ${valid[arg.arg].description}`;
+                    if (!seen.includes(arg.arg))
+                        description += `(Optional) `;
                 }
+                if (!seen.includes(arg.arg)) {
+                    description += `${arg.arg}: ${valid[arg.arg].description}\n`;
+                    seen.push(arg.arg);
+                }
+            }
             // 'any' argument type
             else if (arg.required) {
                 header += ` <${arg.name}>`;
-                description += `\n${arg.name}: ${arg.description}`;
+                if (!seen.includes(arg.name)) {
+                    description += `${arg.name}: ${arg.description}\n`;
+                    seen.push(arg.name);
+                }
             }
             else {
                 header += ` [${arg.name}]`;
-                description += `\n(Optional) ${arg.name}: ${arg.description}`;
+                if (!seen.includes(arg.name)) {
+                    description += `(Optional) ${arg.name}: ${arg.description}\n`;
+                    seen.push(arg.name);
+                }
             }
         });
     if (command.alias)
-        alias = "\nAliases: " + command.alias.reduce((p, c) => `${p}, ${c}`);
-    return `Usage: !${command.name}${header}\n${command.description}${description}${alias}`;
+        alias = "Aliases: " + command.alias.reduce((p, c) => `${p}, ${c}`);
+    return `Usage: !${command.name}${header}\n${command.description}\n${description}${alias}`;
 }
 
 const valid = {
@@ -170,6 +194,18 @@ const valid = {
             arg = arg.toLowerCase();
             if (["on", "off"].includes(arg))
                 return arg;
+        }
+    },
+    playerid: {
+        description: "A player ping or osu id or username",
+        error: "Could not parse player id",
+        validate(playerid) {
+            // Id could be a discord mention/ping
+            const matches = playerid.match(/^<@!?([0-9]+)>$/);
+            if (matches)
+                playerid = matches[1];
+            // Otherwise just return it as-is. We can't really do anything extra
+            return playerid;
         }
     }
 }

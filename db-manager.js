@@ -105,6 +105,15 @@ async function addTeam(teamname, division, players)
     return !!result.result.ok;
 }
 
+async function eliminateTeam(teamname) {
+    const result = await db.collection('teams').updateOne(
+        { teamname },
+        { $set: { eliminated: true } }
+    );
+
+    return result.modifiedCount;
+}
+
 /**
  * Toggles whether the player wants to receive notifications of map updates
  * @param {string} discordid The Discord id of the player to update
@@ -173,6 +182,12 @@ async function getTeamByPlayerlist(players)
     let team = await db.collection('teams').findOne({
         $or: filter
     });
+    if (team)
+        return new DbTeam(team);
+}
+
+async function getTeamByName(teamname) {
+    const team = await db.collection('teams').findOne({ teamname });
     if (team)
         return new DbTeam(team);
 }
@@ -552,9 +567,11 @@ async function archiveMaps() {
 //#endregion
 module.exports = {
     addTeam, // Teams/players
+    eliminateTeam,
     setNotify,
     getTeamByPlayerid,
     getTeamByPlayerlist,
+    getTeamByName,
     getPlayer,
     updatePlayerName,
     addMap,     // Maps
