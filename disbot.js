@@ -97,9 +97,10 @@ client.login(process.env.DISCORD_TOKEN)
     console.log(`Exporting maps in ${timeDiff(exportTimer)}`);
     // If the export hasn't happened yet, we need to update this value
     console.log(`Last pools closed ${timeDiff(now - lastClose)} ago`);
-    if ((now - lastClose) < (1000 * 60 * 60 * 2))
+    if ((now - lastClose) < (1000 * 60 * 60 * 2)) {
         exportTimer -= (1000 * 60 * 60 * 24 * 7);
-    console.log(`Exporting maps in ${timeDiff(exportTimer)}`);
+        console.log(`Exporting maps in ${timeDiff(exportTimer)}`);
+    }
     
     // Set up timers
     if (warnTimer > 0)
