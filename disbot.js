@@ -129,7 +129,7 @@ client.login(process.env.DISCORD_TOKEN)
                 `through the bot for another hour, but current maps are locked. If a map gets rejected ` +
                 `you will still have the opportunity to replace it. If a map that needed screenshots ` +
                 `gets rejected we'll just replace it, you won't get to pick a new map.\n` +
-                `Pools will be released around 18:00.`;
+                `Pools will be released around 17:00.`;
             if (announceChannel)
                 announceChannel.send(announcement);
             else

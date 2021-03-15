@@ -38,7 +38,7 @@ module.exports = {
         // If it's less than 16 hours since closing
         if ((now - lastClose) < (1000 * 60 * 60 * 16))
             return msg.channel.send(
-                "Pools are closed, please allow an hour for processing before " +
+                "Pools are closed, please wait until pools release before " +
                 "submitting new maps. If you are replacing a map which was " +
                 "rejected please send your replacement to Malikil directly."
             );
