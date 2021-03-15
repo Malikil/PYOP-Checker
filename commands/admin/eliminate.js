@@ -17,9 +17,11 @@ module.exports = {
      * @param {import('discord.js').Message} msg 
      */
     async run(msg, { teamname }) {
-        const team = await db.getTeamByName(teamname);
+        const team = await db.eliminateTeam(teamname);
         if (!team)
             return msg.channel.send("Could not find team");
+        else if (team.eliminated)
+            return msg.channel.send(`${team.teamname} is already eliminated`);
         
         // Get the guild members for managing roles
         const members = msg.guild.members;
@@ -33,7 +35,6 @@ module.exports = {
         });
 
         // Mark the team as eliminated in the db
-        promiseResults.push(db.eliminateTeam(teamname));
         promiseResults.push(msg.channel.send(`Eliminated ${teamname}`));
         return Promise.all(promiseResults);
     }

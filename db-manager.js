@@ -106,12 +106,17 @@ async function addTeam(teamname, division, players)
 }
 
 async function eliminateTeam(teamname) {
-    const result = await db.collection('teams').updateOne(
-        { teamname },
-        { $set: { eliminated: true } }
-    );
+    console.log(`\x1b[32mdb-manager.js#eliminateTeam \x1b[0m Eliminating team ${teamname}`);
+    const result = await db.collection('teams')
+        .findOneAndUpdate(
+            { teamname },
+            { $set: { eliminated: true } },
+            { returnOriginal: true }
+        );
 
-    return result.modifiedCount;
+    console.log(result.value);
+    if (result.value)
+        return new DbTeam(result.value);
 }
 
 /**
@@ -548,7 +553,7 @@ async function bulkReject(maps, message, division)
  */
 async function archiveMaps() {
     db.collection('teams').updateMany(
-        { teamname: "ExampleTeam" },
+        { },
         [
             { $set: {
                 oldmaps: {
