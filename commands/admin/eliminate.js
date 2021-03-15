@@ -25,15 +25,13 @@ module.exports = {
             return msg.channel.send(`${team.teamname} is already eliminated`);
         
         // Get the guild members for managing roles
-        const members = msg.guild.members;
+        const guild = msg.guild;
 
         // Remove player role from the players
         const playerRole = process.env.ROLE_PLAYER;
         await Promise.all(team.players.map(async player => {
-            let member = members.cache.get(player.discordid);
+            let member = guild.member(player.discordid);
             // If the member isn't cached, attempt to fetch them
-            if (!member)
-                member = await members.fetch(player.discordid);
             Logger.log(`Removing ${playerRole} from ${member}`, "eliminate.js");
 
             if (member)
