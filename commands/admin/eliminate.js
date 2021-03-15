@@ -32,7 +32,7 @@ module.exports = {
         const promiseResults = team.players.map(player => {
             const member = members.cache.get(player.discordid);
             Logger.log(`Removing ${playerRole} from ${member}`);
-            Logger.log(member);
+            Logger.log(member.roles);
             if (member) {
                 return member.roles.remove(playerRole);
             }
