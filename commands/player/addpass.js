@@ -27,6 +27,8 @@ module.exports = {
         const team = await db.getTeamByPlayerid(msg.author.id);
         if (!team)
             return msg.channel.send("Couldn't find team");
+        else if (team.eliminated)
+            return msg.channel.send(`${team.teamname} has been eliminated. Maps cannot be added.`);
 
         const player = team.players.find(p => p.discordid === msg.author.id);
         // Make sure the map exists and needs a pass

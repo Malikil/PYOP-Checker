@@ -29,6 +29,8 @@ module.exports = {
         const team = await db.getTeamByPlayerid(msg.author.id);
         if (!team)
             return msg.channel.send("Player not found");
+        else if (team.eliminated)
+            return msg.channel.send(`${team.teamname} has been eliminated. Maps cannot be added.`);
 
         // Make sure pools aren't closed
         const { lastClose, now } = helpers.closingTimes();
