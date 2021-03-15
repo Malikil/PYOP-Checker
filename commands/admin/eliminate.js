@@ -21,8 +21,8 @@ module.exports = {
         const team = await db.eliminateTeam(teamname);
         if (!team)
             return msg.channel.send("Could not find team");
-        //else if (team.eliminated)
-            //return msg.channel.send(`${team.teamname} is already eliminated`);
+        else if (team.eliminated)
+            return msg.channel.send(`${team.teamname} is already eliminated`);
         
         // Get the guild members for managing roles
         const members = msg.guild.members;
