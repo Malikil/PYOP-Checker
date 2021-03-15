@@ -1,5 +1,6 @@
 const db = require('../../db-manager');
 const Logger = require('../../helpers/logger');
+const util = require('util');
 
 module.exports = {
     name: "eliminate",
@@ -21,25 +22,24 @@ module.exports = {
         const team = await db.eliminateTeam(teamname);
         if (!team)
             return msg.channel.send("Could not find team");
-        else if (team.eliminated)
-            return msg.channel.send(`${team.teamname} is already eliminated`);
+        //else if (team.eliminated)
+            //return msg.channel.send(`${team.teamname} is already eliminated`);
         
         // Get the guild members for managing roles
-        const members = msg.guild.members;
+        const guild = msg.guild;
+        const members = guild.members;
+        const playerRole = guild.roles.cache.get(process.env.ROLE_PLAYER);
 
         // Remove player role from the players
-        const playerRole = process.env.ROLE_PLAYER;
-        const promiseResults = team.players.map(player => {
+        await Promise.all(team.players.map(player => {
             const member = members.cache.get(player.discordid);
             Logger.log(`Removing ${playerRole} from ${member}`);
-            Logger.log(member.roles);
+            console.log(util.inspect(member.roles.cache, false, 1, true));
             if (member) {
                 return member.roles.remove(playerRole);
             }
-        });
-
-        // Mark the team as eliminated in the db
-        promiseResults.push(msg.channel.send(`Eliminated ${teamname}`));
-        return Promise.all(promiseResults);
+        }));
+        
+        return msg.channel.send(`Eliminated ${teamname}`);
     }
 }
