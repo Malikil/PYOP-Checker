@@ -35,7 +35,7 @@ module.exports = {
                 try {
                     member = await members.fetch(player.discordid);
                 } catch (err) {
-                    console.error(err);
+                    console.log(typeof err);
                 }
             // If the member isn't cached, attempt to fetch them
             Logger.log(`Removing ${playerRole} from ${member}`, "eliminate.js");
