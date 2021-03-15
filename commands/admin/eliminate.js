@@ -1,4 +1,5 @@
 const db = require('../../db-manager');
+const Logger = require('../../helpers/logger');
 
 module.exports = {
     name: "eliminate",
@@ -30,8 +31,10 @@ module.exports = {
         const playerRole = process.env.ROLE_PLAYER;
         const promiseResults = team.players.map(player => {
             const member = members.cache.get(player.discordid);
-            if (member)
+            if (member) {
+                Logger.log(`Removing ${playerRole} from ${member}`);
                 return member.roles.remove(playerRole);
+            }
         });
 
         // Mark the team as eliminated in the db
