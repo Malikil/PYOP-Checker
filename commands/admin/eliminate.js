@@ -1,6 +1,5 @@
 const db = require('../../db-manager');
 const Logger = require('../../helpers/logger');
-const util = require('util');
 
 module.exports = {
     name: "eliminate",
@@ -26,18 +25,19 @@ module.exports = {
             //return msg.channel.send(`${team.teamname} is already eliminated`);
         
         // Get the guild members for managing roles
-        const guild = msg.guild;
-        const members = guild.members;
-        const playerRole = guild.roles.cache.get(process.env.ROLE_PLAYER);
+        const members = msg.guild.members;
 
         // Remove player role from the players
-        await Promise.all(team.players.map(player => {
-            const member = members.cache.get(player.discordid);
-            Logger.log(`Removing ${playerRole} from ${member}`);
-            console.log(util.inspect(member.roles.cache, false, 1, true));
-            if (member) {
+        const playerRole = process.env.ROLE_PLAYER;
+        await Promise.all(team.players.map(async player => {
+            let member = members.cache.get(player.discordid);
+            // If the member isn't cached, attempt to fetch them
+            if (!member)
+                member = await members.fetch(player.discordid);
+            Logger.log(`Removing ${playerRole} from ${member}`, "eliminate.js");
+
+            if (member)
                 return member.roles.remove(playerRole);
-            }
         }));
         
         return msg.channel.send(`Eliminated ${teamname}`);
