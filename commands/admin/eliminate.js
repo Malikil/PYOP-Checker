@@ -31,8 +31,9 @@ module.exports = {
         const playerRole = process.env.ROLE_PLAYER;
         const promiseResults = team.players.map(player => {
             const member = members.cache.get(player.discordid);
+            Logger.log(`Removing ${playerRole} from ${member}`);
+            Logger.log(member);
             if (member) {
-                Logger.log(`Removing ${playerRole} from ${member}`);
                 return member.roles.remove(playerRole);
             }
         });
