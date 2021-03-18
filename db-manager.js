@@ -210,7 +210,7 @@ async function getPlayer(id)
         let player = team.players.find(p =>
             p.discordid === id ||
             p.osuid === id ||
-            p.osuname.match(regexify(id, 'i')).length > 0
+            p.osuname.match(regexify(id, 'i'))
         );
 
         if (player)

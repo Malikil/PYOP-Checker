@@ -42,6 +42,9 @@ module.exports = {
                 "submitting new maps. If you are replacing a map which was " +
                 "rejected please send your replacement to Malikil directly."
             );
+        // Maps can't be used more than once
+        if (team.oldmaps.find(m => m.bid === map))
+            return msg.channel.send("You can't reuse a map you've picked in a previous week.");
 
         // Check beatmap approval
         console.log(`Looking for map with id ${map} and mod ${mods.mods}`);
