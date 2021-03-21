@@ -84,9 +84,25 @@ client.login(process.env.DISCORD_TOKEN)
 .then(() => {
     // Find the next closing date
     const { lastClose, nextClose, now } = closingTimes();
+    
+    const timeDiff = (ms) => `${(ms / (1000 * 60 * 60)).toFixed(2)} hours`; // Debug
     // Set announcement timers
-    console.log(`Pools closing in ${((nextClose - now) / (1000 * 60 * 60)).toFixed(2)} hours`);
-    const warnTimer = nextClose - now - (1000 * 60 * 60 * 6);
+    const closeTimer = nextClose - now;
+    console.log(`Pools closing in ${timeDiff(closeTimer)}`);
+    // Warn of pools 6 hours earlier
+    const warnTimer = closeTimer - (1000 * 60 * 60 * 6);
+    console.log(`Warning of pool closure in ${timeDiff(warnTimer)}`);
+    // Export maps 2 hours later
+    let exportTimer = closeTimer + (1000 * 60 * 60 * 2);
+    console.log(`Exporting maps in ${timeDiff(exportTimer)}`);
+    // If the export hasn't happened yet, we need to update this value
+    console.log(`Last pools closed ${timeDiff(now - lastClose)} ago`);
+    if ((now - lastClose) < (1000 * 60 * 60 * 2)) {
+        exportTimer -= (1000 * 60 * 60 * 24 * 7);
+        console.log(`Exporting maps in ${timeDiff(exportTimer)}`);
+    }
+    
+    // Set up timers
     if (warnTimer > 0)
         setTimeout(() => {
             console.log("\x1b[33mPools:\x1b[0m Warning of pool closure");
@@ -103,7 +119,6 @@ client.login(process.env.DISCORD_TOKEN)
             else
                 console.error("Announcement channel not found");
         }, warnTimer);
-    const closeTimer = nextClose - now;
     if (closeTimer > 0)
         setTimeout(() => {
             console.log("\x1b[33mPools:\x1b[0m Closing pools");
@@ -114,24 +129,28 @@ client.login(process.env.DISCORD_TOKEN)
                 `through the bot for another hour, but current maps are locked. If a map gets rejected ` +
                 `you will still have the opportunity to replace it. If a map that needed screenshots ` +
                 `gets rejected we'll just replace it, you won't get to pick a new map.\n` +
-                `Pools will be released around 18:00.`;
+                `Pools will be released around 17:00.`;
             if (announceChannel)
                 announceChannel.send(announcement);
             else
                 console.error("Announcement channel not found");
         }, closeTimer);
-    // Allow two hours after pools close for more approving, then push maps to the
-    // sheet and clear team pools for the next week's maps
-    let exportTimer = closeTimer + (1000 * 60 * 60 * 2);
-    if ((now - lastClose) < (1000 * 60 * 60 * 2))
-        // If we're already past closing time for this week fix the timer
-        exportTimer -= 1000 * 60 * 60 * 24 * 7;
-    console.log(`Exporting maps in ${(exportTimer / (1000 * 60 * 60)).toFixed(2)} hours`);
     if (exportTimer > 0)
         setTimeout(() => {
+            console.log("\x1b[33mPools:\x1b[0m Exporting maps");
+            const guild = client.guilds.cache.get(process.env.DISCORD_GUILD);
+            const mappoolChannel = guild.channels.cache.get(process.env.CHANNEL_MAPPOOLS);
+            const announcement = `Exporting maps to sheets and clearing current pools.`;
+            if (mappoolChannel)
+                mappoolChannel.send(announcement);
+            else
+                console.error("Mappools channel not found");
+            // Export the maps
             sheet.exportAllMaps()
             .catch(err => {
                 console.error(err);
+                if (mappoolChannel)
+                    mappoolChannel.send(`\`\`\`${util.inspect(err).slice(0, 1200)}\`\`\``);
             });
         }, exportTimer);
 

@@ -29,13 +29,15 @@ module.exports = {
         const team = await db.getTeamByPlayerid(msg.author.id);
         if (!team)
             return msg.channel.send("Player not found");
+        else if (team.eliminated)
+            return msg.channel.send(`${team.teamname} has been eliminated. Maps cannot be added.`);
 
         // Make sure pools aren't closed
         const { lastClose, now } = helpers.closingTimes();
         // If it's less than a 16 hours since closing
         if ((now - lastClose) < (1000 * 60 * 60 * 16))
             return msg.channel.send(
-                "Pools are closed, please allow an hour for processing before " +
+                "Pools are closed, please wait until pools release before " +
                 "submitting new maps. If you are replacing a map which was " +
                 "rejected please send your replacement to Malikil directly."
             );

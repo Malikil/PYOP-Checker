@@ -11,12 +11,7 @@ module.exports = {
         "rating than what is shown in-game.",
     permissions: [ process.env.ROLE_MAP_APPROVER ],
     args: [
-        {
-            arg: 'any',
-            name: 'playerid',
-            description: 'A player ping or osu id or username',
-            required: true
-        },
+        { arg: 'playerid', required: true },
         { arg: 'map', required: true },
         { arg: 'mods', required: false }
     ],
@@ -25,12 +20,6 @@ module.exports = {
      * @param {Discord.Message} msg 
      */
     async run(msg, { playerid, map, mods }) {
-        // Parse the player id
-        const matches = playerid.match(/^<@!?([0-9]+)>$/);
-        if (matches)
-            playerid = matches[1];
-        // Else try to use playerid as-is
-
         const team = await db.getTeamByPlayerid(playerid);
         if (!team)
             return "Player not found";

@@ -37,11 +37,11 @@ function closingTimes() {
     const now = new Date();
     // While it's more than an hour since pools should have closed
     while (now > lastClose) {
-        lastClose.setDate(lastClose.getDate() + 7);
+        lastClose.setUTCDate(lastClose.getUTCDate() + 7);
         console.log(`Incrementing closing time to ${lastClose}`);
     }
     const nextClose = new Date(lastClose);
-    lastClose.setDate(lastClose.getDate() - 7);
+    lastClose.setUTCDate(lastClose.getUTCDate() - 7);
     return {
         lastClose,
         nextClose,
@@ -231,7 +231,7 @@ async function getBeatmap(mapid, mods)
 
 async function getLeaderboard(mapid, mods = 0)
 {
-    let response = await fetch(`https://osu.ppy.sh/api/get_scores?k=${key}&b=${mapid}&m=0&mods=${mods & MODS.DIFFMODS}`);
+    let response = await fetch(`https://osu.ppy.sh/api/get_scores?k=${key}&b=${mapid}&m=0&mods=${mods}`);
     return response.json();
 }
 

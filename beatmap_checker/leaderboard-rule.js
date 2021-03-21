@@ -21,7 +21,7 @@ class LeaderboardRule extends Rule {
         // Leaderboard statuses are above 0, wip statuses are below or equal
         if (beatmap.approved > 0)
         {
-            let leaderboard = await helpers.getLeaderboard(beatmap.beatmap_id, beatmap.mods);
+            const leaderboard = await helpers.getLeaderboard(beatmap.beatmap_id, beatmap.mods);
             result.actual = leaderboard.length;
             result.passed = leaderboard.length >= this.count;
         }

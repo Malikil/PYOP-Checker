@@ -107,6 +107,20 @@ async function addTeam(teamname, division, players)
     return !!result.result.ok;
 }
 
+async function eliminateTeam(teamname) {
+    console.log(`\x1b[32mdb-manager.js#eliminateTeam \x1b[0m Eliminating team ${teamname}`);
+    const result = await db.collection('teams')
+        .findOneAndUpdate(
+            { teamname },
+            { $set: { eliminated: true } },
+            { returnOriginal: true }
+        );
+
+    console.log(result.value);
+    if (result.value)
+        return new DbTeam(result.value);
+}
+
 /**
  * Toggles whether the player wants to receive notifications of map updates
  * @param {string} discordid The Discord id of the player to update
@@ -179,6 +193,12 @@ async function getTeamByPlayerlist(players)
         return new DbTeam(team);
 }
 
+async function getTeamByName(teamname) {
+    const team = await db.collection('teams').findOne({ teamname });
+    if (team)
+        return new DbTeam(team);
+}
+
 /**
  * Gets a player based on their osu id or discord id
  * @param {string|number} id The player's id, either discord or osu id, or osu username
@@ -192,7 +212,7 @@ async function getPlayer(id)
         let player = team.players.find(p =>
             p.discordid === id ||
             p.osuid === id ||
-            p.osuname.match(regexify(id, 'i')).length > 0
+            p.osuname.match(regexify(id, 'i'))
         );
 
         if (player)
@@ -535,7 +555,7 @@ async function bulkReject(maps, message, division)
  */
 async function archiveMaps() {
     db.collection('teams').updateMany(
-        { teamname: "ExampleTeam" },
+        { },
         [
             { $set: {
                 oldmaps: {
@@ -554,9 +574,11 @@ async function archiveMaps() {
 //#endregion
 module.exports = {
     addTeam, // Teams/players
+    eliminateTeam,
     setNotify,
     getTeamByPlayerid,
     getTeamByPlayerlist,
+    getTeamByName,
     getPlayer,
     updatePlayerName,
     addMap,     // Maps
