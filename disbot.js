@@ -140,7 +140,7 @@ client.login(process.env.DISCORD_TOKEN)
             console.log("\x1b[33mPools:\x1b[0m Exporting maps");
             const guild = client.guilds.cache.get(process.env.DISCORD_GUILD);
             const mappoolChannel = guild.channels.cache.get(process.env.CHANNEL_MAPPOOLS);
-            const announcement = `Exporting maps to sheets and clearing current pools.`;
+            const announcement = `Exporting maps to sheets.`;
             if (mappoolChannel)
                 mappoolChannel.send(announcement);
             else

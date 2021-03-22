@@ -69,7 +69,6 @@ async function exportAllMaps() {
     // Save the sheet values and move maps to archive
     return Promise.all([
         sheet.saveUpdatedCells(),
-        db.archiveMaps(),
         new Promise((resolve) => resolve(refreshCheckers()))
     ]);
 }
