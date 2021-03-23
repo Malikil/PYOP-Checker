@@ -96,8 +96,8 @@ client.login(process.env.DISCORD_TOKEN)
     // Export maps 2 hours later
     let exportTimer = closeTimer + (1000 * 60 * 60 * 2);
     console.log(`Exporting maps in ${timeDiff(exportTimer)}`);
-    // Clear pools 15 hours after closing
-    let clearTimer = closeTimer + (1000 * 60 * 60 * 15);
+    // Clear pools 16 hours after closing
+    let clearTimer = closeTimer + (1000 * 60 * 60 * 16);
     console.log(`Clearing pools in ${timeDiff(clearTimer)}`);
 
     // If these timers haven't happened yet, we need to update the values
@@ -106,7 +106,7 @@ client.login(process.env.DISCORD_TOKEN)
         exportTimer -= (1000 * 60 * 60 * 24 * 7);
         console.log(`Exporting maps in ${timeDiff(exportTimer)}`);
     }
-    if ((now - lastClose) < (1000 * 60 * 60 * 15)) {
+    if ((now - lastClose) < (1000 * 60 * 60 * 16)) {
         clearTimer -= (1000 * 60 * 60 * 24 * 7);
         console.log(`Clearing pools in ${timeDiff(clearTimer)}`);
     }
