@@ -10,6 +10,7 @@ const util = require('util');
 const client = new Discord.Client();
 const { closingTimes } = require('./helpers/helpers');
 const sheet = require('./gsheets');
+const { archiveMaps } = require('./db-manager');
 
 // Load commands from files
 client.commands = new Discord.Collection();
@@ -95,11 +96,19 @@ client.login(process.env.DISCORD_TOKEN)
     // Export maps 2 hours later
     let exportTimer = closeTimer + (1000 * 60 * 60 * 2);
     console.log(`Exporting maps in ${timeDiff(exportTimer)}`);
-    // If the export hasn't happened yet, we need to update this value
+    // Clear pools 15 hours after closing
+    let clearTimer = closeTimer + (1000 * 60 * 60 * 15);
+    console.log(`Clearing pools in ${timeDiff(clearTimer)}`);
+
+    // If these timers haven't happened yet, we need to update the values
     console.log(`Last pools closed ${timeDiff(now - lastClose)} ago`);
     if ((now - lastClose) < (1000 * 60 * 60 * 2)) {
         exportTimer -= (1000 * 60 * 60 * 24 * 7);
         console.log(`Exporting maps in ${timeDiff(exportTimer)}`);
+    }
+    if ((now - lastClose) < (1000 * 60 * 60 * 15)) {
+        clearTimer -= (1000 * 60 * 60 * 24 * 7);
+        console.log(`Clearing pools in ${timeDiff(clearTimer)}`);
     }
     
     // Set up timers
@@ -153,6 +162,25 @@ client.login(process.env.DISCORD_TOKEN)
                     mappoolChannel.send(`\`\`\`${util.inspect(err).slice(0, 1200)}\`\`\``);
             });
         }, exportTimer);
+    if (clearTimer > 0)
+        setTimeout(() => {
+            console.log("\x1b[33mPools:\x1b[0m Clearing pools");
+            const guild = client.guilds.cache.get(process.env.DISCORD_GUILD);
+            const mappoolChannel = guild.channels.cache.get(process.env.CHANNEL_MAPPOOLS);
+            const announcement = "Clearing old pools";
+            if (mappoolChannel)
+                mappoolChannel.send(announcement);
+            else
+                console.error("Mappools channel not found");
+
+            // Clear the pools
+            archiveMaps()
+            .catch(err => {
+                console.error(err);
+                if (mappoolChannel)
+                    mappoolChannel.send(`\`\`\`${util.inspect(err).slice(0, 1200)}\`\`\``);
+            });
+        }, clearTimer);
 
     // I think heroku restarts itself every day, so I can cheat a bit and
     // not actually add these as recurring intervals.
