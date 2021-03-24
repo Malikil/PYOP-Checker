@@ -72,6 +72,9 @@ module.exports = {
         // Add all the maps
         let added = await maps.reduce(async (count, map) => {
             console.log(`Checking map ${map.mapid} +${map.mods}${map.cm ? " CM" : ""}`);
+            // Don't add a map that has already been used
+            if (team.oldmaps.find(m => m.bid === map.mapid))
+                return count;
             // Get the map
             const beatmap = await ApiBeatmap.buildFromApi(map.mapid, map.mods);
             let checkResult = await checkers[team.division].check(beatmap);
