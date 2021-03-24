@@ -17,7 +17,7 @@ module.exports = {
         let drains = helpers.currentWeek(defaultDiv.drainlimits);
         let maxLength = helpers.currentWeek(defaultDiv.lengthlimits).high;
 
-        return msg.channel.send("Requirements for this week:\n" +
+        return msg.channel.send(`Requirements for week ${helpers.currentWeek([1, 2, 3, 4, 5, 6])}:\n` +
             "Star rating:\n" + divInfo.reduce((p, c) => {
                 let sr = helpers.currentWeek(c.starlimits);
                 return p + `    ${c.division}: ${sr.low.toFixed(2)} - ${sr.high.toFixed(2)}\n`
