@@ -68,17 +68,6 @@ function regexify(str, options)
     return new RegExp(`^${str}$`, options);
 }
 
-/**
- * Convenience function for wrapping an id in an or check on osuid or discordid
- * @param {string|number} id Player's osu or discord id
- */
-function identify(id)
-{
-    return { $or: [
-        { osuid: id },
-        { discordid: id }
-    ]};
-}
 //#endregion
 //#region ============================== Manage Teams/Players ==============================
 /**
