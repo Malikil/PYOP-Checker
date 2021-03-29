@@ -44,7 +44,7 @@ module.exports = {
             );
         // Maps can't be used more than once
         if (team.oldmaps.find(m => m.bid === map))
-            return msg.channel.send("You can't reuse a map you've picked in a previous week.");
+            return msg.channel.send("You can't reuse maps you've picked before.");
 
         // Check beatmap approval
         console.log(`Looking for map with id ${map} and mod ${mods.mods}`);
@@ -72,8 +72,13 @@ module.exports = {
             status = "Screenshot Required";
 
         // Check if a map should be removed to make room for this one
-        // We need the first rejected map, and a count of maps in the modpool
+        // We need to see if there's an available spot for this map, and which
+        // modpool it's in. If there aren't enough spaces a map should be removed
+        // to make space
         let rejected;
+        const modMaps = team.maps.filter(m => m.pool === mods.pool);
+        const cmMaps = team.maps.filter(m => m.pool === 'cm');
+        // There is an available spot
         let count = team.maps.reduce((n, m) => {
             if (m.pool === mods.pool)
             {
