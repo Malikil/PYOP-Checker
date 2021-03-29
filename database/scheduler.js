@@ -7,7 +7,7 @@ const db = require('./mdb');
 function verifyOffsets(offsets) {
     return offsets.map(n => parseInt(n))
         .reduce((p, c) => {
-            if (!!c && !p.includes(c))
+            if (!isNaN(c) && !p.includes(c))
                 p.push(c);
             return p;
         }, [])
