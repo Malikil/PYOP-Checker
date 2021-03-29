@@ -26,6 +26,7 @@ module.exports = {
         // easier to count. Even though that's probably wrong.
         // Start the count with colour and title
         let skipped = 0;
+        let total = 0;
         const pendingEmbed = new Discord.MessageEmbed();
         pendingEmbed
             .setColor("#a0ffff")
@@ -33,6 +34,8 @@ module.exports = {
             .addFields(
                 maplist.filter(m => !mods || m._id === mods.mods)
                     .map(modpool => {
+                        // Update the total count
+                        total += modpool.maps.length;
                         // Each pool can only have 1k characters
                         let poolChars = 0;
                         // Prepare the field for each modpool
@@ -63,8 +66,8 @@ module.exports = {
                     })
             );
         if (skipped > 0)
-            pendingEmbed.setFooter(`${skipped} maps skipped`);
+            pendingEmbed.setFooter(`${total} maps - ${skipped} maps skipped`);
             
-        return msg.channel.send(pendingEmbed);
+        return msg.channel.send(pendingEmbed.setTimestamp());
     }
 }
