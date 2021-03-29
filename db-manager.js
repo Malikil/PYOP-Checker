@@ -353,7 +353,10 @@ async function removeAllMaps(teamname)
 async function findMapsWithStatus(status)
 {
     let cursor = db.collection('teams').aggregate([
-        { $match: { 'maps.status': status } },
+        { $match: {
+            'maps.status': status,
+            eliminated: { $ne: true }
+        } },
         { $unwind: "$maps" },
         { $match: { 'maps.status': status } },
         { $group: {
@@ -377,6 +380,7 @@ async function findMapsWithStatus(status)
 async function findMissingMaps()
 {
     let result = db.collection('teams').find({
+        eliminated: { $ne: true },
         $or: [
             {
                 maps: {
