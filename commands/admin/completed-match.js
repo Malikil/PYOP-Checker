@@ -1,6 +1,7 @@
 const scheduler = require('../../database/scheduler');
 const db = require('../../database/db-manager');
 const util = require('util');
+const Discord = require('discord.js');
 
 module.exports = {
     name: "played",
@@ -19,7 +20,7 @@ module.exports = {
     ],
 
     /**
-     * @param {import('discord.js').Message} msg 
+     * @param {Discord.Message} msg 
      */
     async run(msg, { team, time }) {
         // Make sure time is in a valid format
@@ -37,10 +38,13 @@ module.exports = {
             .concat(team2.players.map(p => p.utc));
 
         const result = await scheduler.setTime(offsets, timeval);
-        return msg.channel.send(
-            `Using offsets: ${util.inspect(offsets)}\n` +
-            `\`\`\`\nOld time:\n${util.inspect(result.oldTime)}\n\n` +
-            `New time:\n${util.inspect(result.newTime)}\n\`\`\``
-        );
+        // Construct an embed for the result
+        const embed = new Discord.MessageEmbed()
+            .setTitle("Updated Scheduler Times")
+            .setDescription(`Using offsets:\n${util.inspect(offsets)}`)
+            .addField("Old Time", "```js\n" + util.inspect(result.oldTime) + "\n```")
+            .addField("New Time", "```js\n" + util.inspect(result.newTime) + "\n```");
+
+        return msg.channel.send(embed.setTimestamp());
     }
 }

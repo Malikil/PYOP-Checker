@@ -1,5 +1,6 @@
 const db = require('../../database/db-manager');
 const scheduler = require('../../database/scheduler');
+const Discord = require('discord.js');
 
 module.exports = {
     name: "schedule",
@@ -10,17 +11,25 @@ module.exports = {
     ],
     
     /**
-     * @param {import('discord.js').Message} msg 
+     * @param {Discord.Message} msg 
      */
     async run(msg, { team }) {
         const team1 = await db.getTeamByName(team[0]);
         const team2 = await db.getTeamByName(team[1]);
-
         if (!team1 || !team2)
             return msg.channel.send("Teams not found");
 
-        const str1 = team1.teamname + team1.players.reduce((p, c) => `${p} ${c.utc}`, '');
-        const str2 = team2.teamname + team2.players.reduce((p, c) => `${p} ${c.utc}`, '');
+        const resultEmbed = new Discord.MessageEmbed()
+            .setTitle("Generated Match Time")
+            .addField(
+                team1.teamname,
+                team1.players.reduce((p, c) => `${p} ${c.utc || ''}`, '').trim(),
+                true
+            ).addField(
+                team2.teamname,
+                team2.players.reduce((p, c) => `${p} ${c.utc || ''}`, '').trim(),
+                true
+            );
 
         // Get offsets
         const offsets = team1.players.map(p => p.utc)
@@ -28,14 +37,20 @@ module.exports = {
 
         const time = await scheduler.getTime(offsets);
         console.log(time);
-        let result = "No time available";
         if (time) {
             const timestamp = t => {
                 const hours = t | 0;
-                const minutes = Math.round((t - hours) * 60);
+                const minutes = ((t - hours) * 60) | 0;
                 return `${hours}:${minutes < 10 ? "0" : ""}${minutes}`;
             }
-            result = `Time: ${timestamp(time.time)} ±${timestamp(time.stdev)}`;
+            // Only add a time range if enough matches have been played
+            const range = time.stdev ?
+                ` ±${timestamp(time.stdev)}` :
+                ""
+            resultEmbed.addField(
+                "Scheduled Time",
+                `${timestamp(time.time)}${range}`
+            );
         }
         else {
             // Try finding a range of possible times
@@ -55,7 +70,7 @@ module.exports = {
                 })
             
             let base = -1;
-            // Move to a bad time to start searching
+            // Move to a bad time before starting to search
             while (goodTime(++base));
 
             // Find a starting offset
@@ -69,10 +84,19 @@ module.exports = {
                     end++;
 
                 // Display the found time range
-                result = `${(base + start) % 24} - ${(base + start + end - 1) % 24}`;
+                resultEmbed.addField(
+                    "Time Range",
+                    `${(base + start) % 24}:00 - ${(base + start + end - 1) % 24}:00 UTC`
+                );
             }
+            else
+                resultEmbed.addField(
+                    "No Time Found",
+                    "The UTC offsets given couldn't generate a time under the current " +
+                        "restrictions. This match should probably be scheduled manually."
+                );
         }
 
-        return msg.channel.send(`${str1}\n${str2}\n${result}`);
+        return msg.channel.send(resultEmbed.setTimestamp());
     }
 }
