@@ -10,7 +10,6 @@ module.exports = {
     alias: [ 'view', 'list', 'pool', 'mappool' ],
 
     /**
-     * 
      * @param {Discord.Message} msg 
      */
     async run(msg) {
@@ -19,48 +18,59 @@ module.exports = {
         if (!team)
             return msg.channel.send("Could not find player");
 
-        let strs = {};
-        let pool = [];
+        // Prepare the message embed
+        const resultEmbed = new Discord.MessageEmbed()
+            .setTitle(`Mappool for ${team.teamname}`)
+            .setColor("#00ffa0");
+
+        let pool = {};
         const modNames = {
-            nm: "**__No Mod:__**\n",
-            hd: "**__Hidden:__**\n",
-            hr: "**__Hard Rock:__**\n",
-            dt: "**__Double Time:__**\n",
-            cm: "**__Custom Mod:__**\n"
+            nm: "No Mod",
+            hd: "Hidden",
+            hr: "Hard Rock",
+            dt: "Double Time",
+            cm: "Custom Mod"
         };
         // Loop over all the maps, add them to the proper output string,
         // and add them to the pool for checking.
         team.maps.forEach(map => {
             // If the mod hasn't been seen yet, add it to the output
-            if (!strs[map.pool])
-                strs[map.pool] = modNames[map.pool];
+            if (!pool[map.pool])
+                pool[map.pool] = "";
             // Add the map's info to the proper string
-            strs[map.pool] += `${helpers.mapString(map)} ${map.pool === 'cm' ? `+${helpers.modString(map.mods)} ` : ""}<${helpers.mapLink(map)}>\n`;
-            strs[map.pool] += `\tDrain: ${helpers.convertSeconds(map.drain)}, Stars: ${map.stars}, Status: ${map.status}`;
-            if (map.status === "Screenshot Required")
-                strs[map.pool] += ` (${(map.passes || []).length}/2)`;
-            strs[map.pool] += "\n";
-
-            pool.push(map);
+            pool[map.pool] += `[${helpers.mapString(map)}](${helpers.mapLink(map)}) ${map.bid} ${map.pool === 'cm' ? `+${helpers.modString(map.mods)} ` : ""}\n`;
+            pool[map.pool] += `\u2003Drain: ${helpers.convertSeconds(map.drain)}, Stars: ${map.stars}\n\u2003Status: ${map.status}`;
+            if (map.status === "Screenshot Required") {
+                let passes = (map.passes || []).length;
+                let missing = 2 - passes;
+                pool[map.pool] += ` - ${passes} submitted, ${missing} missing`;
+            }
+            pool[map.pool] += "\n";
         });
         // Put all the output strings together in order
-        let str = ['nm', 'hd', 'hr', 'dt', 'cm'].reduce((s, m) => s + (strs[m] || ""), '');
+        resultEmbed.addFields(
+            ['nm', 'hd', 'hr', 'dt', 'cm'].map(m => ({
+                name: modNames[m],
+                value: pool[m]
+            })).filter(f => f.value)
+        );
         // Check the pool as a whole
-        let result = await checkers[team.division].checkPool(pool);
+        let result = await checkers[team.division].checkPool(team.maps);
         // Display pool stats
-        str += `\nTotal drain: ${helpers.convertSeconds(result.totalDrain)}`;
-        str += `\n${result.overUnder} maps are within ${process.env.DRAIN_BUFFER} seconds of drain time limit`;
+        let footer = `Total drain: ${helpers.convertSeconds(result.totalDrain)}\n` +
+            `${result.overUnder} maps are within ${process.env.DRAIN_BUFFER} seconds of drain time limit\n` +
+            `There are ${MAP_COUNT - team.maps.length} unfilled slots\n`;
         // Show pool problems
-        str += `\nThere are ${MAP_COUNT - team.maps.length} unfilled slots\n`;
         if (result.messages.length > 0)
-            result.messages.forEach(item => str += `\n${item}`);
+            result.messages.forEach(item => footer += `\n${item}`);
 
         if (result.duplicates.length > 0)
         {
-            str += "\nThe following maps were found more than once:";
-            result.duplicates.forEach(dupe => str += `\n\t${helpers.mapString(dupe)}`);
+            footer += "\nThe following maps were found more than once:";
+            result.duplicates.forEach(dupe => footer += `\n\u2003${helpers.mapString(dupe)}`);
         }
+        resultEmbed.addField("\u200b", footer);
 
-        return msg.channel.send(str || "Nothing to display");
+        return msg.channel.send(resultEmbed.setTimestamp());
     }
 }
