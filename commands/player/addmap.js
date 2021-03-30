@@ -54,14 +54,22 @@ module.exports = {
         // Make sure a team member didn't map it
         if (beatmap.approved < 1 && team.players.find(p => p.osuid === beatmap.creator_id))
             return msg.channel.send("You cannot use your own maps unless they're ranked");
+
+        // Prepare the message embed
+        const resultEmbed = new Discord.MessageEmbed()
+            .setAuthor(`${helpers.mapString(beatmap)}`, null, helpers.mapLink(beatmap))
+            //.setURL(helpers.mapLink(beatmap))
+            .setColor("#00ffa0");
             
         let checkResult = await checkers[team.division].check(beatmap);
         console.log("Result of map check:");
         console.log(checkResult);
         if (!checkResult.passed)
             return msg.channel.send(
-                `Rejected ${helpers.mapString(beatmap)}:\n` +
-                `Message: ${checkResult.message}`
+                resultEmbed.addField(
+                    "Rejected",
+                    checkResult.message
+                ).setTimestamp()
             );
         else if (checkResult.approved)
             if (beatmap.version === "Aspire" || beatmap.approved > 3)
@@ -122,20 +130,29 @@ module.exports = {
             let replaced = rejected;
             if (result.bid)
                 replaced = result;
-            
-            return msg.channel.send((replaced ? `Replaced ${helpers.mapString(replaced)} (${replaced.bid})\n` : "") +
-                `Added ${helpers.mapString(mapitem)} to ${mapitem.pool.toUpperCase()} mod pool.\n` +
-                `Map approval status: ${mapitem.status}\n` +
-                `Current __${helpers.modString(mapitem.mods)}__ maps:` +
+
+            resultEmbed.addField(
+                `Added to ${mapitem.pool.toUpperCase()} mod pool`,
+                `Map approval status: ${mapitem.status}${
+                    replaced
+                    ? `\nReplaced [${helpers.mapString(replaced)}](${helpers.mapLink(replaced)}) ${replaced.bid}`
+                    : ""
+                }`
+            ).addField(
+                `Current ${helpers.modString(mapitem.mods)} maps`,
                 cur.reduce((str, map) =>
-                    `${str}\n${helpers.mapString(map)} ${map.pool === "cm" ? "CM" : ""}`
+                    `${str}[${helpers.mapString(map)}](${helpers.mapLink(map)}) ${map.pool === "cm" ? "CM" : ""}\n`
                 , '')
             );
+            
+            return msg.channel.send(resultEmbed.setTimestamp());
         }
         else
             return msg.channel.send(
-                `Couldn't add ${beatmap ? helpers.mapString(beatmap) : "unknown beatmap"}\n` +
-                `Message: ${result.message}`
+                resultEmbed.addField(
+                    "Error",
+                    "Couldn't add beatmap"
+                ).setTimestamp()
             );
     }
 }
