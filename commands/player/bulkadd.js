@@ -43,43 +43,50 @@ module.exports = {
             );
 
         console.log(`bulkadd: Adding maps to team ${team.teamname}`);
+        const resultEmbed = new Discord.MessageEmbed()
+            .setTitle("Adding multiple maps")
+            .setColor("#a0ffa0");
         // Skip over the !addbulk command and split into lines
         let lines = msg.content.substr("!addbulk ".length).split('\n');
         console.log(lines);
-        let maps = lines.reduce((arr, line) => {
-            let lineargs = line.split(/ +/);
+        const maps = lines.reduce((arr, line) => {
+            let lineargs = line.trim().split(/\s+/);
             // try to get mapid and mods
             let mapid = helpers.parseMapId(lineargs[0]);
-            let mods, cm;
+            let mods;
             if (mapid)
-            {
                 mods = helpers.parseMod(lineargs[1]);
-                cm = (lineargs[1] || '').toUpperCase().includes("CM");
-            }
             else
             {
                 mapid = helpers.parseMapId(lineargs[1]);
                 mods = helpers.parseMod(lineargs[0]);
-                cm = (lineargs[0] || '').toUpperCase().includes("CM");
             }
             if (mapid)
                 arr.push({
-                    mapid, mods, cm
+                    mapid, mods
                 });
             return arr;
         }, []);
 
         // Add all the maps
-        let added = await maps.reduce(async (count, map) => {
-            console.log(`Checking map ${map.mapid} +${map.mods}${map.cm ? " CM" : ""}`);
+        let addStr = await maps.reduce(async (res, map) => {
+            console.log(`Checking map ${map.mapid} +${map.mods}`);
+            let prev = await res;
+            let adding = `[${map.mapid}](https://osu.ppy.sh/b/${map.mapid}) +${helpers.modString(map.mods)} => `;
             // Don't add a map that has already been used
             if (team.oldmaps.find(m => m.bid === map.mapid))
-                return count;
+                return {
+                    str: `${prev.str}${adding}You can't reuse maps you've picked before\n`,
+                    count: prev.count
+                };
             // Get the map
             const beatmap = await ApiBeatmap.buildFromApi(map.mapid, map.mods);
             let checkResult = await checkers[team.division].check(beatmap);
             if (!checkResult.passed)
-                return count;
+                return {
+                    str: `${prev.str}${adding}${checkResult.message}\n`,
+                    count: prev.count
+                };
             let status;
             if (checkResult.approved)
                 if (beatmap.version === "Aspire" || beatmap.approved > 3)
@@ -88,17 +95,32 @@ module.exports = {
                     status = "Approved (Automatic)";
             else
                 status = "Screenshot Required";
-            let pool = map.cm ? "cm" : helpers.getModpool(map.mods);
-            let mapitem = beatmap.toDbBeatmap(status, pool);
+            const mapitem = beatmap.toDbBeatmap(status);
             // Add map
             let added = await db.addMap(team.teamname, mapitem);
-            if (added)
-                return (await count) + 1;
+            if (added) {
+                if (added.bid)
+                    return {
+                        str: `${prev.str}${adding}Replaced [${helpers.mapString(added)}](${helpers.mapLink(added)}) ${added.bid}\n`,
+                        count: prev.count + 1
+                    };
+                else
+                    return {
+                        str: `${prev.str}${adding}Added map\n`,
+                        count: prev.count + 1
+                    };
+            }
             else
-                return count;
-        }, Promise.resolve(0));
+                return {
+                    str: `${prev.str}${adding}Something went wrong\n`,
+                    count: prev.count
+                };
+        }, Promise.resolve({ str: '', count: 0 }));
+        resultEmbed.setDescription(addStr.str)
+            .setFooter(`Added ${addStr.count} maps`)
+            .setTimestamp();
 
         // Display success
-        return msg.channel.send(`Added ${added} maps`);
+        return msg.channel.send(resultEmbed);
     }
 }

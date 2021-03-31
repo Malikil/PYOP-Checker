@@ -7,10 +7,9 @@ const helpers = require('../../helpers/helpers');
 module.exports = {
     name: "addmap",
     description: "Adds a map to your pool. " +
-        "If there are already two maps in the selected mod pool, the first map " +
-        "will be removed when adding a new one. To replace a specific map, " +
-        "remove it first before adding another. Rejected maps will be " +
-        "replaced in preference to pending/accepted.",
+        "If there aren't any available spaces for the new map, the first map " +
+        "added will be removed to make space for the new one. To replace a " +
+        "specific map, remove it first before adding another.",
     args: [
         { arg: "map", required: true },
         { arg: "mods", required: false }
