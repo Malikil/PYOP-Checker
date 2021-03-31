@@ -161,19 +161,9 @@ const valid = {
             else if (modstr.includes('DT')) mods |= MODS.DT;
             else if (modstr.includes('HT')) mods |= MODS.HT;
             
-            let pool = 'cm';
-            if (!modstr.includes("CM"))
-                switch (mods)
-                {
-                    case 0:       pool = "nm"; break;
-                    case MODS.HD: pool = "hd"; break;
-                    case MODS.HR: pool = "hr"; break;
-                    case MODS.DT: pool = "dt"; break;
-                }
-            // Only return mods 0 if NM was specified
-            return { mods, pool };
+            return mods;
         },
-        description: "Some combination of HD|HR|DT|CM|NM|HT|EZ",
+        description: "Some combination of HD|HR|DT|NM|HT|EZ",
         error: "Couldn't parse mod string"
     },
     division: {

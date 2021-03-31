@@ -75,6 +75,8 @@ function parseMod(modstr)
 /**
  * Gets a mod pool string from a mod combination
  * @param {number} bitwise The bitwise number representation of the mods
+ * @deprecated The concept of dedicated pools is deprecated.
+ * Actual mods value should be preferred
  */
 function getModpool(bitwise)
 {

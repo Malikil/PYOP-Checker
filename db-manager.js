@@ -270,8 +270,12 @@ async function addMap(team, map)
         if (m.mods === 0 || (((m.mods - 1) & m.mods) === 0 && (m.mods & MODS.DEFAULT))) {
             // If there are more than the minimum for this modcount,
             // then the map is a candidate for removal
-            if (++pa[m.mods] > 2)
+            if (++pa[m.mods] > 2) {
+                // When there's more than two of a certain mod the extras
+                // are actually a part of custom mod
+                pa.cm++;
                 pa.remover = m;
+            }
         }
         else {
             pa.cm++;
@@ -279,7 +283,7 @@ async function addMap(team, map)
             pa.remover = m;
         }
         return pa;
-    }, { 0: 0, [MODS.HD]: 0, [MODS.HR]: 0, [MODS.DT]: 0, cm: 0, remover: new DbBeatmap() })
+    }, { 0: 0, [MODS.HD]: 0, [MODS.HR]: 0, [MODS.DT]: 0, cm: 0, remover: new DbBeatmap({}) })
     // If a modpool is overfilled, then a map should be removed
     if (teamobj.maps.length > 10 ||
             poolAccumulator[0] > 4 ||

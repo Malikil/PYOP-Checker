@@ -23,36 +23,58 @@ module.exports = {
             .setTitle(`Mappool for ${team.teamname}`)
             .setColor("#00ffa0");
 
-        let pool = {};
         const modNames = {
-            nm: "No Mod",
-            hd: "Hidden",
-            hr: "Hard Rock",
-            dt: "Double Time",
-            cm: "Custom Mod"
+            NM: "No Mod",
+            HD: "Hidden",
+            HR: "Hard Rock",
+            DT: "Double Time",
+            NC: "Nightcore",
+            HT: "Half Time",
+            EZ: "Easy"
         };
         // Loop over all the maps, add them to the proper output string,
         // and add them to the pool for checking.
-        team.maps.forEach(map => {
-            // If the mod hasn't been seen yet, add it to the output
-            if (!pool[map.pool])
-                pool[map.pool] = "";
-            // Add the map's info to the proper string
-            pool[map.pool] += `[${helpers.mapString(map)}](${helpers.mapLink(map)}) ${map.bid} ${map.pool === 'cm' ? `+${helpers.modString(map.mods)} ` : ""}\n`;
-            pool[map.pool] += `\u2003Drain: ${helpers.convertSeconds(map.drain)}, Stars: ${map.stars}\n\u2003Status: ${map.status}`;
+        const fieldinfo = team.maps.map(map => {
+            // Prepare basic info
+            let mapinfo = {
+                mods: map.mods,
+                str: ""
+            };
+            // Convert the map to a string
+            mapinfo.str += `[${helpers.mapString(map)}](${helpers.mapLink(map)}) ${map.bid}\n`;
+            mapinfo.str += `\u2003Drain: ${helpers.convertSeconds(map.drain)}, Stars: ${map.stars}\n\u2003Status: ${map.status}`;
             if (map.status === "Screenshot Required") {
                 let passes = (map.passes || []).length;
                 let missing = 2 - passes;
-                pool[map.pool] += ` - ${passes} submitted, ${missing} missing`;
+                mapinfo.str += ` - ${passes} submitted, ${missing} missing`;
             }
-            pool[map.pool] += "\n";
-        });
-        // Put all the output strings together in order
+            return mapinfo;
+        }).sort((a, b) => a.mods - b.mods)
+            .reduce((p, c) => {
+                // Combine same mods into one string
+                let last = p[p.length - 1];
+                if (last.mods === c.mods)
+                    last.str += `\n${c.str}`;
+                else
+                    p.push(c);
+                return p;
+            }, [{ mods: 0, str: '' }])
+            .filter(f => f.str); // So it doesn't try to create an empty field when there aren't any NM maps
+        // Put all the output strings together into fields
         resultEmbed.addFields(
-            ['nm', 'hd', 'hr', 'dt', 'cm'].map(m => ({
-                name: modNames[m],
-                value: pool[m]
-            })).filter(f => f.value)
+            fieldinfo.map(info => {
+                // Get the mod string from the mods
+                let shortmod = helpers.modString(info.mods);
+                let header = Object.keys(modNames).reduce((head, short) => {
+                    if (shortmod.includes(short))
+                        head += `${modNames[short]}, `;
+                    return head;
+                }, '');
+                return {
+                    name: header.slice(0, -2),
+                    value: info.str
+                };
+            })
         );
         // Check the pool as a whole
         let result = await checkers[team.division].checkPool(team.maps);

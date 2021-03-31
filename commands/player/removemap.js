@@ -4,7 +4,8 @@ const helpers = require('../../helpers/helpers');
 
 module.exports = {
     name: "removemap",
-    description: "Remove a map from your pool. If there's more than one matching map the first one will be removed.",
+    description: "Remove a map from your pool. " +
+        "If there's more than one matching map the first one will be removed.",
     args: [
         { arg: 'map', required: true },
         { arg: 'mods', required: false }
@@ -15,8 +16,6 @@ module.exports = {
      * @param {Discord.Message} msg 
      */
     async run(msg, { map, mods }) {
-        if (!mods)
-            mods = {};
         // Get which team the player is on
         const team = await db.getTeamByPlayerid(msg.author.id);
         if (!team)
@@ -32,21 +31,18 @@ module.exports = {
                 "rejected please send your replacement to Malikil directly."
             );
         
-        console.log(`Removing mapid ${map} from ${mods.pool}`);
-        let result = await db.removeMap(team.teamname, map, mods.pool, mods.mods);
+        console.log(`Removing mapid ${map} +${mods}`);
+        const result = await db.removeMap(team.teamname, map, mods);
         if (result)
         {
             // Find the map info for this id, for user friendliness' sake
             let removed = team.maps.find(item => 
                 item.bid === map &&
-                (!mods.pool || item.pool === mods.pool) &&
-                (!mods.mods || item.mods === mods.mods)
+                (mods === undefined || item.mods === mods)
             );
-            return msg.channel.send(`Removed ${helpers.mapString(removed)}${
-                removed.pool === "cm"
-                ? ` +${helpers.modString(removed.mods)}`
-                : ""
-            } from ${removed.pool.toUpperCase()} pool`);
+            return msg.channel.send(
+                `Removed ${helpers.mapString(removed)} +${helpers.modString(removed.mods)}`
+            );
         }
         else
             return msg.channel.send("Map not found");

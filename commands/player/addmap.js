@@ -117,10 +117,10 @@ module.exports = {
             
             // Send status and current pool info
             resultEmbed.addField(
-                `Added to ${mapitem.pool.toUpperCase()} mod pool`,
+                `Added to ${helpers.modString(mapitem.mods)} mod pool`,
                 `Map approval status: ${mapitem.status}${
                     result.bid
-                    ? `\nReplaced [${helpers.mapString(result)}](${helpers.mapLink(result)}) ${result.bid}`
+                    ? `\nReplaced [${helpers.mapString(result)}](${helpers.mapLink(result)}) +${helpers.modString(result.mods)} ${result.bid}`
                     : ""
                 }`
             ).addField(
