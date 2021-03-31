@@ -18,6 +18,8 @@ module.exports = {
      * @param {Discord.Message} msg 
      */
     async run(msg, { map, mods, division }) {
+        if (division)
+            division = division.division;
         if (!mods)
             mods = 0;
         else

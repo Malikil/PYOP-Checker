@@ -29,7 +29,7 @@ const db = require('./mdb');
 //#region ============================== Helpers/General ==============================
 /**
  * Performs the given action for each item in the database, and return an array of the results
- * @param {function(import('./types/dbteam')):Promise<*>} action 
+ * @param {function(DbTeam):Promise<*>} action 
  * @returns {Promise<*[]>} An array containing return values from each function call
  */
 async function map(action)
@@ -42,7 +42,7 @@ async function map(action)
 
 /**
  * 
- * @param {function(*, import('./types/dbteam')):Promise<*>} action 
+ * @param {function(*, import('../types/dbteam')):Promise<*>} action 
  */
 async function reduce(action, initial) {
     const cursor = db.collection('teams').find();

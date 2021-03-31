@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "bancho.js": "^0.9.6",
+    "challonge": "^2.2.0",
     "discord.js": "^12.5.1",
     "google-spreadsheet": "^3.1.15",
     "mongodb": "^3.6.4",

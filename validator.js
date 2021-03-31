@@ -1,4 +1,5 @@
 const MODS = require('./helpers/bitwise');
+const divInfo = require('./divisions.json');
 
 /**
  * Validates and converts a string into an args object based on the provided
@@ -179,10 +180,7 @@ const valid = {
     division: {
         validate(arg) {
             arg = arg.toLowerCase();
-            if (["open", "10k"].includes(arg))
-                return arg;
-            else
-                return undefined;
+            return divInfo.find(div => div.division === arg);
         },
         description: "open or 10k",
         error: "Invalid division"

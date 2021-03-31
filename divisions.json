@@ -1,6 +1,7 @@
 [
     {
         "division": "open",
+		"url": "pyop2v2nd_open",
         "ranklimits": {
             "low": 100000, "high": 0
         },
@@ -24,6 +25,7 @@
     },
     {
         "division": "10k",
+		"url": "pyop2v2nd_10k",
         "ranklimits":{
             "low": 100000, "high": 10000
         },

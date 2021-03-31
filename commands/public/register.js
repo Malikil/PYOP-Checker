@@ -19,7 +19,7 @@ module.exports = {
     async run(msg) {
         return msg.channel.send("Registrations are closed");
 
-        // !!!!!!!!!!!!!! NOT UPDATED FROM OLD SYSTEM !!!!!!!!!!!!!!!
+        // !!!!!!!!!!!!!! NOT UPDATED FROM OLD SYSTEM !!!! VERY BROKEN !!!!!!!!!!!!!!!
 
         // Verify arguments
         let division = args[0].toLowerCase();
