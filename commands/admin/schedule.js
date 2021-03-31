@@ -64,9 +64,9 @@ module.exports = {
             // Start from 0, move up until an invalid time is found
             const goodTime = utc =>
                 offs.every(off => {
-                    // The time is good if it's between 9am - 10pm
+                    // The time is good if it's between 10am - 10pm
                     const localTime = ((utc + off) % 24 + 24) % 24;
-                    return localTime >= 9 && localTime <= 22;
+                    return localTime >= 10 && localTime <= 22;
                 })
             
             let base = -1;
