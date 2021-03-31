@@ -106,9 +106,8 @@ class ApiBeatmap {
 
     /**
      * @param {string} status 
-     * @param {"nm"|"hd"|"hr"|"dt"|"cm"} pool 
      */
-    toDbBeatmap(status, pool) {
+    toDbBeatmap(status) {
         let obj = new DbBeatmap({
             bid: this.beatmap_id,
             drain: this.hit_length,
@@ -119,7 +118,7 @@ class ApiBeatmap {
             version: this.version,
             creator: this.creator,
             mods: this.mods,
-            status, pool
+            status
         });
         return obj;
     }

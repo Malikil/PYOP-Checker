@@ -4,6 +4,8 @@ This module should handle connecting to the database and all the CRUD operations
 const { MongoClient, Db } = require('mongodb');
 const util = require('util');
 const { DbBeatmap, DbPlayer, DbTeam } = require('./types');
+const MODS = require('./helpers/bitwise');
+MODS.DEFAULT = MODS.HD | MODS.HR | MODS.DT; // Does this modify MODS everywhere?
 
 const mongoUser = process.env.MONGO_USER;
 const mongoPass = process.env.MONGO_PASS;
@@ -244,23 +246,54 @@ async function updatePlayerName(osuid, osuname) {
  */
 async function addMap(team, map)
 {
-    console.log(`Adding map ${map.bid} to ${team}'s ${map.pool} pool`);
+    console.log(`Adding map ${map.bid} to ${team}'s pool`);
     // let updateobj = { $push: {}};
     // updateobj.$push[`maps.${mod}`] = map;
-    let idobj = { teamname: team };
-    let teamobj = await db.collection('teams').findOneAndUpdate(
+    const idobj = { teamname: team };
+    const findUpdateResult = await db.collection('teams').findOneAndUpdate(
         idobj,
         { $push: { maps: { ...map } } },
         { returnOriginal: false }
     );
-    console.log(`Team ok: ${teamobj.ok}`);
-    // Count how many maps are of the given mod
-    let count = teamobj.value.maps.reduce((n, m) => n + (m.pool === map.pool), 0);
-    if (count > 2)
-    {
-        // The first item should be removed.
-        // First set a matching element to null, then remove nulls
-        idobj['maps.pool'] = map.pool;
+    const teamobj = new DbTeam(findUpdateResult.value);
+    console.log(`Team ok: ${findUpdateResult.ok}`);
+    // Find a count of CM maps, and the map that should be removed
+    // if the pool is full
+    const poolAccumulator = teamobj.maps.reduceRight((pa, m) => {
+        // By starting from the right, we're going from newest to oldest.
+        // That way whenever the next map is found that meets criteria, it
+        // will be an 'older' map in pool terms. So it can overwrite what was
+        // in the variable before
+        
+        // Increment count
+        // If only a single mod is selected, and that mod is a default mod
+        if (m.mods === 0 || (((m.mods - 1) & m.mods) === 0 && (m.mods & MODS.DEFAULT))) {
+            // If there are more than the minimum for this modcount,
+            // then the map is a candidate for removal
+            if (++pa[m.mods] > 2)
+                pa.remover = m;
+        }
+        else {
+            pa.cm++;
+            // CM is always a candidate for removal
+            pa.remover = m;
+        }
+        return pa;
+    }, { 0: 0, [MODS.HD]: 0, [MODS.HR]: 0, [MODS.DT]: 0, cm: 0, remover: new DbBeatmap() })
+    // If a modpool is overfilled, then a map should be removed
+    if (teamobj.maps.length > 10 ||
+            poolAccumulator[0] > 4 ||
+            poolAccumulator[MODS.HD] > 4 ||
+            poolAccumulator[MODS.HR] > 4 ||
+            poolAccumulator[MODS.DT] > 4 ||
+            poolAccumulator.cm > 2) {
+        // Remove the map
+        idobj.maps = {
+            $elemMatch: {
+                bid: poolAccumulator.remover.bid,
+                mods: poolAccumulator.remover.mods
+            }
+        };
         db.collection('teams').bulkWrite([
             {
                 updateOne: {
@@ -275,10 +308,9 @@ async function addMap(team, map)
                 }
             }
         ]);
-        // Return the removed item
-        return new DbBeatmap(teamobj.value.maps.find(m => m.pool === map.pool));
+        return poolAccumulator.remover;
     }
-    return teamobj.ok;
+    return findUpdateResult.ok;
 }
 
 /**
@@ -286,11 +318,10 @@ async function addMap(team, map)
  * will be removed.
  * @param {string} team Which team to remove the map from
  * @param {Number} mapid The beatmap id to remove
- * @param {"nm"|"hd"|"hr"|"dt"|"cm"} modpool The modpool for the map
  * @param {number} mods Which mods the map uses
  * @returns The number of modified documents
  */
-async function removeMap(team, mapid, modpool, mods)
+async function removeMap(team, mapid, mods)
 {
     // I can't guarantee there will only be one matching map
     // Set one matching map to null, then pull nulls
@@ -300,8 +331,6 @@ async function removeMap(team, mapid, modpool, mods)
             $elemMatch: { bid: mapid }
         }
     };
-    if (modpool !== undefined)
-        filter.maps.$elemMatch.pool = modpool;
     if (mods !== undefined)
         filter.maps.$elemMatch.mods = mods;
 

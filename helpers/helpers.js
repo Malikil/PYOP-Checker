@@ -1,7 +1,7 @@
 const fetch = require('node-fetch');
 const ojsama = require('ojsama');
 const readline = require('readline');
-const { CheckableMap } = require('./../types');
+const { CheckableMap, DbBeatmap } = require('./../types');
 const MODS = require('./bitwise');
 
 const osuapi = "https://osu.ppy.sh/api";
@@ -138,8 +138,13 @@ function parseMapId(mapString = '')
  * Converts a map object to the artist - title [version] format
  */
 const mapString = map => `${map.artist} - ${map.title} [${map.version}]`;
-/** osu.ppy.sh/b/${dbmap.bid} */
-const mapLink = dbmap => `https://osu.ppy.sh/b/${dbmap.bid}`;
+/** osu.ppy.sh/b/${beatmap id} */
+const mapLink = map => {
+    if (map instanceof DbBeatmap)
+        return `https://osu.ppy.sh/b/${map.bid}`;
+    else
+        return `https://osu.ppy.sh/b/${map.beatmap_id}`;
+};
 
 /**
  * Converts from integer seconds to mm:ss time format

@@ -22,10 +22,7 @@ module.exports = {
      */
     async run(msg, { map, mods }) {
         if (!mods)
-            mods = {
-                mods: 0,
-                pool: 'nm'
-            };
+            mods = 0;
 
         const team = await db.getTeamByPlayerid(msg.author.id);
         if (!team)
@@ -42,26 +39,37 @@ module.exports = {
                 "submitting new maps. If you are replacing a map which was " +
                 "rejected please send your replacement to Malikil directly."
             );
-        // Maps can't be used more than once
-        if (team.oldmaps.find(m => m.bid === map))
-            return msg.channel.send("You can't reuse maps you've picked before.");
-
-        // Check beatmap approval
-        console.log(`Looking for map with id ${map} and mod ${mods.mods}`);
-        const beatmap = await ApiBeatmap.buildFromApi(map, mods.mods);
-        if (!beatmap)
-            return msg.channel.send(`Could not find map with id ${map}`);
-        // Make sure a team member didn't map it
-        if (beatmap.approved < 1 && team.players.find(p => p.osuid === beatmap.creator_id))
-            return msg.channel.send("You cannot use your own maps unless they're ranked");
 
         // Prepare the message embed
-        const resultEmbed = new Discord.MessageEmbed()
-            .setAuthor(`${helpers.mapString(beatmap)}`, null, helpers.mapLink(beatmap))
-            //.setURL(helpers.mapLink(beatmap))
-            .setColor("#00ffa0");
+        const resultEmbed = new Discord.MessageEmbed().setColor("#00ffa0");
+
+        // Maps can't be used more than once
+        const oldmap = team.oldmaps.find(m => m.bid === map);
+        if (oldmap)
+            return msg.channel.send(
+                resultEmbed.addField(
+                    "Rejected",
+                    "You can't reuse maps you've picked before."
+                ).setAuthor(`${helpers.mapString(oldmap)}`, null, helpers.mapLink(oldmap))
+                .setTimestamp()
+            );
+
+        // Check beatmap approval
+        console.log(`Looking for map with id ${map} and mod ${mods}`);
+        const beatmap = await ApiBeatmap.buildFromApi(map, mods);
+        if (!beatmap)
+            return msg.channel.send(`Could not find map with id ${map}`);
+        resultEmbed.setAuthor(`${helpers.mapString(beatmap)}`, null, helpers.mapLink(beatmap))
+        // Make sure a team member didn't map it
+        if (beatmap.approved < 1 && team.players.find(p => p.osuid === beatmap.creator_id))
+            return msg.channel.send(
+                resultEmbed.addField(
+                    "Rejected",
+                    "You cannot use your own maps unless they're ranked"
+                ).setTimestamp()
+            );
             
-        let checkResult = await checkers[team.division].check(beatmap);
+        const checkResult = await checkers[team.division].check(beatmap);
         console.log("Result of map check:");
         console.log(checkResult);
         if (!checkResult.passed)
@@ -79,31 +87,15 @@ module.exports = {
         else
             status = "Screenshot Required";
 
-        // Check if a map should be removed to make room for this one
-        // We need to see if there's an available spot for this map, and which
-        // modpool it's in. If there aren't enough spaces a map should be removed
-        // to make space
-        let rejected;
-        const modMaps = team.maps.filter(m => m.pool === mods.pool);
-        const cmMaps = team.maps.filter(m => m.pool === 'cm');
-        // There is an available spot
-        let count = team.maps.reduce((n, m) => {
-            if (m.pool === mods.pool)
-            {
-                if (!rejected && m.status.startsWith("Rejected"))
-                    rejected = m;
-                return n + 1;
-            }
-            else return n;
-        }, 0);
-        if (rejected && count > 1)
-            await db.removeMap(team.teamname, rejected.bid, rejected.pool, rejected.mods);
-        else // We don't need to remove a map, because there's still an empty space
-            rejected = undefined;
-
-        let mapitem = beatmap.toDbBeatmap(status, mods.pool);
+        // If the current pool is full, look for a rejected map first
+        if (team.maps.length >= 10) {
+            let rejected = team.maps.find(m => m.status.startsWith("Rejected"));
+            if (rejected)
+                await db.removeMap(team.teamname, rejected.bid, rejected.mods);
+        }
         
-        let result = await db.addMap(team.teamname, mapitem);
+        const mapitem = beatmap.toDbBeatmap(status);
+        const result = await db.addMap(team.teamname, mapitem);
         if (result)
         {
             // Prepare the current pool state
@@ -111,13 +103,10 @@ module.exports = {
             let skipped = false; // Whether we've skipped a map yet
             team.maps.forEach(m => {
                 // Get maps with matching mods
-                if (m.mods === mods.mods)
+                if (m.mods === mods)
                 {
                     // Make sure it's not the removed map
-                    if (skipped || (m.bid !== result.bid)
-                        && (rejected
-                            ? m.bid !== rejected.bid
-                            : true))
+                    if (skipped || (m.bid !== result.bid))
                         cur.push(m);
                     else
                         skipped = true;
@@ -127,21 +116,17 @@ module.exports = {
             cur.push(mapitem);
             
             // Send status and current pool info
-            let replaced = rejected;
-            if (result.bid)
-                replaced = result;
-
             resultEmbed.addField(
                 `Added to ${mapitem.pool.toUpperCase()} mod pool`,
                 `Map approval status: ${mapitem.status}${
-                    replaced
-                    ? `\nReplaced [${helpers.mapString(replaced)}](${helpers.mapLink(replaced)}) ${replaced.bid}`
+                    result.bid
+                    ? `\nReplaced [${helpers.mapString(result)}](${helpers.mapLink(result)}) ${result.bid}`
                     : ""
                 }`
             ).addField(
                 `Current ${helpers.modString(mapitem.mods)} maps`,
                 cur.reduce((str, map) =>
-                    `${str}[${helpers.mapString(map)}](${helpers.mapLink(map)}) ${map.pool === "cm" ? "CM" : ""}\n`
+                    `${str}[${helpers.mapString(map)}](${helpers.mapLink(map)})\n`
                 , '')
             );
             
