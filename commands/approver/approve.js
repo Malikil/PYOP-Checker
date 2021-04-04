@@ -17,11 +17,9 @@ module.exports = {
      */
     async run(msg, { map, mods }) {
         if (!mods)
-            mods = {
-                mods: 0
-            };
+            mods = 0;
         
-        let result = await db.approveMap(map, mods.mods);
+        let result = await db.approveMap(map, mods);
         return msg.channel.send(`Approved maps for ${result} teams`);
     }
 }
