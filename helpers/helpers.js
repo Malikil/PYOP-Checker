@@ -141,12 +141,7 @@ function parseMapId(mapString = '')
  */
 const mapString = map => `${map.artist} - ${map.title} [${map.version}]`;
 /** osu.ppy.sh/b/${beatmap id} */
-const mapLink = map => {
-    if (map instanceof DbBeatmap)
-        return `https://osu.ppy.sh/b/${map.bid}`;
-    else
-        return `https://osu.ppy.sh/b/${map.beatmap_id}`;
-};
+const mapLink = map => `https://osu.ppy.sh/b/${map.bid || map.beatmap_id}`;
 
 /**
  * Converts from integer seconds to mm:ss time format
