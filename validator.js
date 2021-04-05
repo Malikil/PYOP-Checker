@@ -35,7 +35,7 @@ function validateArgs(expected, actual) {
             // Special 'any' argument type doesn't need to be validated
             if (arg.arg !== 'any') {
                 const value = valid[arg.arg].validate(cmdargs[i]);
-                if (value) {
+                if (value || value === 0) {
                     // If we haven't seen this arg yet, add it
                     if (!validation.args[arg.arg])
                         validation.args[arg.arg] = [ value ];
