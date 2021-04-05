@@ -7,14 +7,22 @@ module.exports = {
     name: "generate-schedule",
     description: "Generates times for all pending matches in the given division",
     permissions: [ process.env.ROLE_ADMIN ],
-    args: [{ arg: 'division', required: true }],
+    args: [
+        { arg: 'division', required: true },
+        {
+            arg: 'any',
+            name: "set",
+            description: '"potential" if potential losers matches should be scheduled',
+            required: false
+        }
+    ],
     alias: [ "schedgen" ],
     
     /**
      * @param {Discord.Message} msg 
      */
-    async run(msg, { division }) {
-        const matches = await challonge.getOpenMatches(division.url);
+    async run(msg, { division, set }) {
+        const matches = await getMatches(division.url, set === "potential");
         const teams = challonge.getParticipants(division.division);
         const dbTeams = await db.map(async t => t);
         const resultEmbed = new Discord.MessageEmbed()
@@ -67,3 +75,31 @@ module.exports = {
         return msg.channel.send(resultEmbed.setTimestamp());
     }
 };
+
+async function getMatches(div, pending) {
+    if (!pending)
+        return challonge.getOpenMatches(div);
+
+    const pend = await challonge.getNextMatches(div)
+        .then(pend => pend.filter(m =>
+            // We only want the losers bracket potential matches
+            !m.player1IsPrereqMatchLoser &&
+            !m.player2IsPrereqMatchLoser &&
+            m.round < 0
+        ));
+    
+    // Create dummy matches based on the potential ones
+    return pend.reduce((res, m) => {
+        // Create four matches for each one match
+        m.player1Id = m.player1PrereqMatch.player1Id;
+        m.player2Id = m.player2PrereqMatch.player1Id;
+        res.push({ ...m }); // P1 v P1
+        m.player2Id = m.player2PrereqMatch.player2Id;
+        res.push({ ...m }); // P1 v P2
+        m.player1Id = m.player1PrereqMatch.player2Id;
+        res.push({ ...m }); // P2 v P2
+        m.player2Id = m.player2PrereqMatch.player1Id;
+        res.push({ ...m }); // P2 v P1
+        return res;
+    }, []);
+}

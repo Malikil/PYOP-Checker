@@ -35,7 +35,12 @@ module.exports = {
         
         // Get offsets
         const offsets = team1.players.map(p => p.utc)
-            .concat(team2.players.map(p => p.utc));
+            .concat(team2.players.map(p => p.utc))
+            .reduce((arr, t) => {
+                if (!arr.includes(t))
+                    arr.push(t);
+                return arr;
+            }, []);
 
         const result = await scheduler.setTime(offsets, timeval);
         // Construct an embed for the result

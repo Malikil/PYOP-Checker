@@ -52,7 +52,43 @@ function getOpenMatches(divId) {
     );
 }
 
+async function getNextMatches(divId) {
+    const matches = await new Promise((resolve, reject) =>
+        challonge.matches.index({
+            id: divId,
+            callback: (err, data) => {
+                if (err)
+                    reject(err);
+                else
+                    resolve(Object.keys(data).map(i => data[i].match));
+            }
+        })
+    );
+
+    // Split into current matches and pending matches
+    // We don't care about past matches
+    const open = {};
+    const pending = [];
+    matches.forEach(match => {
+        if (match.state === "open")
+            open[match.id] = match;
+        else if (match.state === "pending")
+            pending.push(match);
+    });
+    console.log(pending);
+    // We only care about the pending matches that lead directly
+    // from a currently open match.
+    // That's actually the result of the call, so we can just return it
+    return pending.filter(m => open[m.player1PrereqMatchId] || open[m.player2PrereqMatchId])
+                .map(m => {
+                    m.player1PrereqMatch = open[m.player1PrereqMatchId];
+                    m.player2PrereqMatch = open[m.player2PrereqMatchId];
+                    return m;
+                });
+}
+
 module.exports = {
     getParticipants,
-    getOpenMatches
-}
+    getOpenMatches,
+    getNextMatches
+};
