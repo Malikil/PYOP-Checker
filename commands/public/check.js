@@ -20,8 +20,6 @@ module.exports = {
     async run(msg, { map, mods, division }) {
         if (!mods)
             mods = 0;
-        else
-            mods = mods.mods;
         console.log(`Checking map ${map} with mods ${mods} using ${division} division`);
         // If division is included, use that. Otherwise try to
         // get the division based on who sent the message
