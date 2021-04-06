@@ -24,11 +24,11 @@ module.exports = {
         if (!team)
             return "Player not found";
 
-        const beatmap = await ApiBeatmap.buildFromApi(map, mods.mods);
+        const beatmap = await ApiBeatmap.buildFromApi(map, mods);
         if (!beatmap)
             return "No beatmap found";
         
-        let result = await db.addMap(team.teamname, beatmap.toDbBeatmap("Approved", mods.pool));
+        let result = await db.addMap(team.teamname, beatmap.toDbBeatmap("Approved"));
         if (result)
         {
             if (result instanceof DbBeatmap)
