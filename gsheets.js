@@ -2,7 +2,7 @@ const { GoogleSpreadsheet } = require('google-spreadsheet');
 //const util = require('util');
 const doc = new GoogleSpreadsheet(process.env.SPREADSHEET_ID);
 const helpers = require('./helpers/helpers');
-const db = require('./db-manager');
+const db = require('./database/db-manager');
 const { checkers, refreshCheckers } = require('./checkers');
 
 var loaded = doc.useServiceAccountAuth(

@@ -1,5 +1,5 @@
 const { checkers } = require('../../checkers');
-const db = require('../../db-manager');
+const db = require('../../database/db-manager');
 const ApiBeatmap = require('../../types/apibeatmap');
 const Discord = require('discord.js');
 const util = require('util');
@@ -18,6 +18,8 @@ module.exports = {
      * @param {Discord.Message} msg 
      */
     async run(msg, { map, mods, division }) {
+        if (division)
+            division = division.division;
         if (!mods)
             mods = 0;
         console.log(`Checking map ${map} with mods ${mods} using ${division} division`);

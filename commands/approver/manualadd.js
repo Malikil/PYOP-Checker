@@ -1,6 +1,6 @@
 const Discord = require('discord.js');
 const { ApiBeatmap, DbBeatmap } = require('../../types');
-const db = require('../../db-manager');
+const db = require('../../database/db-manager');
 const helpers = require('../../helpers/helpers');
 
 module.exports = {

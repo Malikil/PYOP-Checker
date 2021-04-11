@@ -1,13 +1,13 @@
 /*
 This module should handle connecting to the database and all the CRUD operations
 */
-const { MongoClient, Db } = require('mongodb');
+//const { MongoClient, Db } = require('mongodb');
 const util = require('util');
-const { DbBeatmap, DbPlayer, DbTeam } = require('./types');
-const MODS = require('./helpers/bitwise');
+const { DbBeatmap, DbPlayer, DbTeam } = require('../types');
+const MODS = require('../helpers/bitwise');
 MODS.DEFAULT = MODS.HD | MODS.HR | MODS.DT; // Does this modify MODS everywhere?
 
-const mongoUser = process.env.MONGO_USER;
+/*const mongoUser = process.env.MONGO_USER;
 const mongoPass = process.env.MONGO_PASS;
 const mongoUri = process.env.MONGO_URI;
 const uri = `mongodb+srv://${mongoUser}:${mongoPass}@${mongoUri}`;
@@ -17,7 +17,7 @@ const client = new MongoClient(uri, {
 });
 
 /** @type {Db} */
-var db;
+/*var db;
 client.connect(err => {
     if (err)
         return console.log(err);
@@ -25,11 +25,13 @@ client.connect(err => {
         console.log("Connected to mongodb");
 
     db = client.db('pyopdb');
-});
+});//*/
+
+const db = require('./mdb');
 //#region ============================== Helpers/General ==============================
 /**
  * Performs the given action for each item in the database, and return an array of the results
- * @param {function(import('./types/dbteam')):Promise<*>} action 
+ * @param {function(DbTeam):Promise<*>} action 
  * @returns {Promise<*[]>} An array containing return values from each function call
  */
 async function map(action)
@@ -42,7 +44,7 @@ async function map(action)
 
 /**
  * 
- * @param {function(*, import('./types/dbteam')):Promise<*>} action 
+ * @param {function(*, import('../types/dbteam')):Promise<*>} action 
  */
 async function reduce(action, initial) {
     const cursor = db.collection('teams').find();
@@ -68,17 +70,6 @@ function regexify(str, options)
     return new RegExp(`^${str}$`, options);
 }
 
-/**
- * Convenience function for wrapping an id in an or check on osuid or discordid
- * @param {string|number} id Player's osu or discord id
- */
-function identify(id)
-{
-    return { $or: [
-        { osuid: id },
-        { discordid: id }
-    ]};
-}
 //#endregion
 //#region ============================== Manage Teams/Players ==============================
 /**

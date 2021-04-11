@@ -1,5 +1,5 @@
 const Discord = require('discord.js');
-const db = require('../../db-manager');
+const db = require('../../database/db-manager');
 const helpers = require('../../helpers/helpers');
 const util = require('util');
 

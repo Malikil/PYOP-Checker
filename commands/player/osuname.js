@@ -1,5 +1,5 @@
 const Discord = require('discord.js');
-const db = require('../../db-manager');
+const db = require('../../database/db-manager');
 const { ApiPlayer } = require('../../types');
 
 module.exports = {

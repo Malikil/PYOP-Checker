@@ -10,7 +10,7 @@ const util = require('util');
 const client = new Discord.Client();
 const { closingTimes } = require('./helpers/helpers');
 const sheet = require('./gsheets');
-const { archiveMaps } = require('./db-manager');
+const { archiveMaps } = require('./database/db-manager');
 
 // Load commands from files
 client.commands = new Discord.Collection();
