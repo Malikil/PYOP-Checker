@@ -22,8 +22,10 @@ module.exports = {
      * @param {Discord.Message} msg 
      */
     async run(msg, { division, set }) {
+        console.log(`Looking for matches from ${division.url}`);
         const matches = await getMatches(division.url, set === "potential");
         const teams = challonge.getParticipants(division.division);
+        console.log(`Got ${matches.length} matches for ${teams.length} teams`);
         const dbTeams = await db.map(async t => t);
         const resultEmbed = new Discord.MessageEmbed()
             .setTitle(`Scheduling ${division.division} matches`)
@@ -76,6 +78,11 @@ module.exports = {
     }
 };
 
+/**
+ * @param {string} div Division url
+ * @param {boolean} pending Should pending matches be found
+ * @returns {Promise<any[]>}
+ */
 async function getMatches(div, pending) {
     if (!pending)
         return challonge.getOpenMatches(div);

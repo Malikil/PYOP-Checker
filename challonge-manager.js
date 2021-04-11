@@ -75,7 +75,6 @@ async function getNextMatches(divId) {
         else if (match.state === "pending")
             pending.push(match);
     });
-    console.log(pending);
     // We only care about the pending matches that lead directly
     // from a currently open match.
     // That's actually the result of the call, so we can just return it
