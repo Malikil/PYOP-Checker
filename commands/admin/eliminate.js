@@ -30,18 +30,20 @@ module.exports = {
         // Remove player role from the players
         const playerRole = process.env.ROLE_PLAYER;
         await Promise.all(team.players.map(async player => {
-            let member = members.cache.get(player.discordid);
-            if (!member && player.discordid)
-                try {
-                    member = await members.fetch(player.discordid);
-                } catch (err) {
-                    console.log(typeof err);
-                }
-            // If the member isn't cached, attempt to fetch them
-            Logger.log(`Removing ${playerRole} from ${member}`, "eliminate.js");
+            try {
+                let member = members.cache.get(player.discordid);
+                if (!member && player.discordid)
+                        member = await members.fetch(player.discordid);
 
-            if (member)
-                return member.roles.remove(playerRole);
+                // If the member isn't cached, attempt to fetch them
+                Logger.log(`Removing ${playerRole} from ${member}`, "eliminate.js");
+
+                if (member)
+                    return member.roles.remove(playerRole);
+            } catch (err) {
+                console.log(typeof err);
+                console.log(err);
+            }
         }));
         
         return msg.channel.send(`Eliminated ${teamname}`);
