@@ -162,7 +162,7 @@ client.login(process.env.DISCORD_TOKEN)
                     mappoolChannel.send(`\`\`\`${util.inspect(err).slice(0, 1200)}\`\`\``);
             });
         }, exportTimer);
-    if (clearTimer > 0)
+    if (clearTimer > 0 && false) // Don't clear pools anymore
         setTimeout(() => {
             console.log("\x1b[33mPools:\x1b[0m Clearing pools");
             const guild = client.guilds.cache.get(process.env.DISCORD_GUILD);
