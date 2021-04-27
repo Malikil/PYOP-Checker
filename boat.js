@@ -1,5 +1,4 @@
 const Banchojs = require('bancho.js');
-const helpers = require('./helpers');
 const commands = require('./bancho_commands');
 const util = require('util');
 

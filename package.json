@@ -4,20 +4,24 @@
   "description": "Check maps for PYOP, send rejections to discord",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "echo \"Don't use npm to start\""
+    "test": "nodemon --exec \"heroku local -f Procfile.test\" -e js",
+    "start": "nodemon --exec \"heroku local\" -e js"
   },
   "author": "Eric",
   "license": "ISC",
   "dependencies": {
     "bancho.js": "^0.9.6",
-    "discord.js": "^11.5.1",
-    "google-spreadsheet": "^3.0.11",
-    "mongodb": "^3.5.2",
-    "node-fetch": "^2.6.0",
+    "challonge": "^2.2.0",
+    "discord.js": "^12.5.1",
+    "google-spreadsheet": "^3.1.15",
+    "mongodb": "^3.6.4",
+    "node-fetch": "^2.6.1",
     "ojsama": "^1.2.5"
   },
   "engines": {
     "node": "11.x"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.7"
   }
 }

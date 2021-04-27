@@ -1,5 +1,8 @@
 module.exports = {
     DbBeatmap: require('./dbbeatmap'),
     DbPlayer: require('./dbplayer'),
-    CheckableMap: require('./checkablemap')
+    DbTeam: require('./dbteam'),
+    CheckableMap: require('./checkablemap'),
+    ApiBeatmap: require('./apibeatmap'),
+    ApiPlayer: require('./apiplayer')
 };

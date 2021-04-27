@@ -1,31 +1,57 @@
 const fetch = require('node-fetch');
 const ojsama = require('ojsama');
 const readline = require('readline');
-const { CheckableMap } = require('./types');
+const { CheckableMap, DbBeatmap } = require('./../types');
+const MODS = require('./bitwise');
 
 const osuapi = "https://osu.ppy.sh/api";
 const key = process.env.OSUKEY;
 
 /**
- * Mods bitwise
+ * Gets which week the tournament is currently in
+ * @param {*[]} arr An array of objects to return from
+ * @returns {Number|*} If an array is given, the object at this week's index will
+ * be returned. Otherwise the index for this week will be given
  */
-const MODS = {
-    EZ: 1 << 1,
-    HD: 1 << 3,
-    HR: 1 << 4,
-    DT: 1 << 6,
-    HT: 1 << 8,
-    NC: 1 << 9,
-    FL: 1 << 10,
-    DIFFMODS: 0,
-    ALLOWED:  0
-};
-MODS.DIFFMODS = MODS.HR | MODS.DT | MODS.HT;
-MODS.ALLOWED = MODS.EZ | MODS.HD | MODS.HR | MODS.DT | MODS.HT | MODS.NC | MODS.FL;
+function currentWeek(arr) {
+    // The date will determine which week we're in
+    const firstDue = new Date(process.env.FIRST_POOLS_DUE);
+    let now = new Date();
+    // Add one because firstDue marks the end of week 1 rather than the beginning
+    let week = ((now - firstDue) / (1000 * 60 * 60 * 24 * 7) + 1) | 0;
+    if (arr)
+    {
+        if (week < 0)
+            return arr[0];
+        else if (week < arr.length)
+            return arr[week];
+        else
+            return arr[arr.length - 1];
+    }
+    else
+        return week;
+}
+
+function closingTimes() {
+    const lastClose = new Date(process.env.FIRST_POOLS_DUE);
+    const now = new Date();
+    // While it's more than an hour since pools should have closed
+    while (now > lastClose) {
+        lastClose.setUTCDate(lastClose.getUTCDate() + 7);
+        console.log(`Incrementing closing time to ${lastClose}`);
+    }
+    const nextClose = new Date(lastClose);
+    lastClose.setUTCDate(lastClose.getUTCDate() - 7);
+    return {
+        lastClose,
+        nextClose,
+        now
+    };
+}
 
 /**
  * Converts a mod string into its number equivalent
- * @param {"NM"|"HD"|"HR"|"DT"|"EZ"|"HT"|"FL"} modstr Mods in string form. Case insensitive
+ * @param {"NM"|"HD"|"HR"|"DT"|"EZ"|"HT"} modstr Mods in string form. Case insensitive
  * @returns The bitwise number representation of the selected mods
  */
 function parseMod(modstr)
@@ -40,16 +66,17 @@ function parseMod(modstr)
     if (modstr.includes('HR'))      mod |= MODS.HR;
     else if (modstr.includes('EZ')) mod |= MODS.EZ;
     if (modstr.includes('DT'))      mod |= MODS.DT;
-    else if (modstr.includes('NC')) mod |= MODS.NC;
+    else if (modstr.includes('NC')) mod |= MODS.NC | MODS.DT;
     else if (modstr.includes('HT')) mod |= MODS.HT;
-    if (modstr.includes('FL'))      mod |= MODS.FL;
     
-    return mod;
+    return mod & MODS.ALLOWED;
 }
 
 /**
  * Gets a mod pool string from a mod combination
  * @param {number} bitwise The bitwise number representation of the mods
+ * @deprecated The concept of dedicated pools is deprecated.
+ * Actual mods value should be preferred
  */
 function getModpool(bitwise)
 {
@@ -76,8 +103,7 @@ function modString(mod)
     else if (mod & MODS.HT) str += 'HT';
     if (mod & MODS.HR)      str += 'HR';
     else if (mod & MODS.EZ) str = 'EZ' + str;
-    if (mod & MODS.FL)      str += 'FL';
-    if (str == '')          str = 'NoMod';
+    if (str == '')          str = 'NM';
     return str;
 }
 
@@ -93,6 +119,8 @@ function parseMapId(mapString = '')
     {
         // If the link isn't to a beatmap, then ignore it
         // If the link is a /s/ link, ignore it
+        // ...ppy.sh/beatmapsets...
+        // ...ppy.sh/b/###
         if (mapString && mapString.includes("sh/b"))
         {
             // Get everything after the last slash, this should be the beatmap id
@@ -112,7 +140,8 @@ function parseMapId(mapString = '')
  * Converts a map object to the artist - title [version] format
  */
 const mapString = map => `${map.artist} - ${map.title} [${map.version}]`;
-const mapLink = dbmap => `https://osu.ppy.sh/b/${dbmap.bid}`;
+/** osu.ppy.sh/b/${beatmap id} */
+const mapLink = map => `https://osu.ppy.sh/b/${map.bid || map.beatmap_id}`;
 
 /**
  * Converts from integer seconds to mm:ss time format
@@ -131,6 +160,7 @@ function convertSeconds(length)
 /**
  * Gets a single player from the osu server based on id or username
  * @param {String|Number} osuid 
+ * @deprecated Use ApiPlayer
  */
 async function getPlayer(osuid)
 {
@@ -146,48 +176,65 @@ async function getPlayer(osuid)
 /**
  * Gets a single beatmap from the server, and verifies all values are proper
  * @param {Number} mapid The map id to get info for
- * @param {Number} mod The bitwise value of the selected mods
+ * @param {Number} mods The bitwise value of the selected mods
  * @returns {Promise<CheckableMap>} A promise which will resolve to a beatmap object, or undefined if
  *     no beatmap was found
- * @deprecated Try to use beatmapObject instead
+ * @deprecated Use ApiBeatmap
  */
-async function apiBeatmap(mapid, mod)
+async function getBeatmap(mapid, mods)
 {
-    let response = await fetch(`${osuapi}/get_beatmaps?k=${key}&b=${mapid}&mods=${mod & MODS.DIFFMODS}`);
+    console.log(`Getting map with id ${mapid} and mods ${mods}`);
+    let response = await fetch(`${osuapi}/get_beatmaps?k=${key}&b=${mapid}&m=0&mods=${mods & MODS.DIFFMODS}`);
     let data = await response.json();
     let beatmap = data[0];
     if (!beatmap)
-        return undefined;
+        return;
     let map = new CheckableMap({
         bid: parseInt(beatmap.beatmap_id),
         artist: beatmap.artist,
         title: beatmap.title,
         version: beatmap.version,
         creator: beatmap.creator,
-        mods: mod & MODS.ALLOWED,
+        mods: mods & MODS.ALLOWED,
         drain: parseInt(beatmap.hit_length),
         bpm: parseFloat(beatmap.bpm),
         stars: parseFloat(parseFloat(beatmap.difficultyrating).toFixed(2)),
         data: {
-            total_length: parseInt(beatmap.total_length),
-            ar_delay: -1,
-            objects: []
+            total_length: parseInt(beatmap.total_length)
         }
-    })
+    });
+    // Find the ms delay
+    let ar = beatmap.diff_approach;
+    if (mods & MODS.HR)
+        ar = Math.min(ar * 1.4, 10);
+    else if (mods & MODS.EZ)
+        ar /= 2;
+    let arscale = 750;
+    if (ar < 5)
+        arscale = 600;
+    map.data.ar_delay = 1200 + (arscale * (5 - ar) / 5);
     // Update length/bpm if DT/HT
-    if (mod & (MODS.DT | MODS.NC))
+    if (mods & MODS.DT)
     {
-        map.bpm = parseFloat((map.bpm * (3.0 / 2.0)).toFixed(3));
-        map.drain = (map.drain * (2.0 / 3.0)) | 0;
         map.data.total_length = (map.data.total_length * (2.0 / 3.0)) | 0;
+        map.drain = (map.drain * (2.0 / 3.0)) | 0;
+        map.data.ar_delay *= (2.0 / 3.0);
+        map.bpm = parseFloat((map.bpm * (3.0 / 2.0)).toFixed(3));
     }
-    else if (mod & MODS.HT)
+    else if (mods & MODS.HT)
     {
-        map.bpm = parseFloat((map.bpm * (3.0 / 4.0)).toFixed(3));
-        map.drain = (map.drain * (4.0 / 3.0)) | 0;
         map.data.total_length = (map.data.total_length * (4.0 / 3.0)) | 0;
+        map.drain = (map.drain * (4.0 / 3.0)) | 0;
+        map.data.ar_delay *= (4.0 / 3.0);
+        map.bpm = parseFloat((map.bpm * (3.0 / 4.0)).toFixed(3));
     }
     return map;
+}
+
+async function getLeaderboard(mapid, mods = 0)
+{
+    let response = await fetch(`https://osu.ppy.sh/api/get_scores?k=${key}&b=${mapid}&m=0&mods=${mods}`);
+    return response.json();
 }
 
 /**
@@ -195,6 +242,7 @@ async function apiBeatmap(mapid, mod)
  * @param {number} mapid The beatmap id to get info for
  * @param {number} mods The mods to use when parsing the map
  * @returns {Promise<CheckableMap>}
+ * @deprecated Go back to using getBeatmap
  */
 function beatmapObject(mapid, mods = 0)
 {
@@ -210,10 +258,7 @@ function beatmapObject(mapid, mods = 0)
             try
             {
                 if (parser.map.objects.length < 1)
-                    return reject("Map doesn't exist");
-                // Make sure the map is for std, otherwise star calculation breaks
-                if (parser.map.mode !== 0)
-                    return reject("Map is not a std map");
+                    return reject({ error: "Map doesn't exist" });
                 let map = new CheckableMap({
                     bid: mapid,
                     artist: parser.map.artist,
@@ -222,6 +267,12 @@ function beatmapObject(mapid, mods = 0)
                     creator: parser.map.creator,
                     data: {}
                 });
+                // Make sure the map is for std, otherwise star calculation breaks
+                if (parser.map.mode !== 0)
+                    return reject({
+                        error: "Map is not a std map",
+                        map
+                    });
                 // Convert hit objects
                 // Assume timing points are in order
                 let timingindex = 0;
@@ -332,7 +383,7 @@ function beatmapObject(mapid, mods = 0)
 }
 
 module.exports = {
-    MODS,
+    currentWeek,
     parseMod,
     parseMapId,
     getModpool,
@@ -340,7 +391,9 @@ module.exports = {
     mapString,
     mapLink,
     convertSeconds,
+    closingTimes,
     getPlayer,
-    apiBeatmap,
+    getBeatmap,
+    getLeaderboard,
     beatmapObject
 }

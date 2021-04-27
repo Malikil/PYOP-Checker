@@ -1,0 +1,50 @@
+[
+    {
+        "division": "open",
+		"url": "pyop2v2nd_open",
+        "ranklimits": {
+            "low": 100000, "high": 0
+        },
+        "starlimits": [
+            { "low": 5.3, "high": 6.25 },
+            { "low": 5.45, "high": 6.5 },
+            { "low": 5.6, "high": 6.75 },
+            { "low": 5.75, "high": 7 },
+            { "low": 5.9, "high": 7.25 },
+            { "low": 6.05, "high": 7.5 }
+        ],
+        "drainlimits": [
+            { "low": 60, "high": 315 }
+        ],
+        "lengthlimits": [
+            { "high": 390 }
+        ],
+        "leaderboardlimits": [
+            { "low": 3 }
+        ]
+    },
+    {
+        "division": "10k",
+		"url": "pyop2v2nd_10k",
+        "ranklimits":{
+            "low": 100000, "high": 10000
+        },
+        "starlimits": [
+            { "low": 4.5, "high": 5.4 },
+            { "low": 4.7, "high": 5.7 },
+            { "low": 4.9, "high": 6 },
+            { "low": 5.1, "high": 6.3 },
+            { "low": 5.3, "high": 6.6 },
+            { "low": 5.5, "high": 6.9 }
+        ],
+        "drainlimits": [
+            { "low": 60, "high": 315 }
+        ],
+        "lengthlimits": [
+            { "high": 390 }
+        ],
+        "leaderboardlimits": [
+            { "low": 15 }
+        ]
+    }
+]

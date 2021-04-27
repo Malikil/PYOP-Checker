@@ -1,4 +1,11 @@
-module.exports = class CheckableMap {
+const readline = require('readline');
+const ojsama = require('ojsama');
+const fetch = require('node-fetch');
+
+/**
+ * @deprecated Use ApiBeatmap instead
+ */
+class CheckableMap {
     /**
      * @param {object} o
      * @param {number} o.bid
@@ -12,8 +19,8 @@ module.exports = class CheckableMap {
      * @param {number} o.mods
      * @param {{
      *  total_length: number,
-     *  ar_delay: number,
-     *  objects: {
+     *  ar_delay?: number,
+     *  objects?: {
      *      type: number,
      *      time: number,
      *      end?: number,
@@ -35,4 +42,69 @@ module.exports = class CheckableMap {
         this.mods = mods;
         this.data = data;
     }
+
+    /**
+     * gets the map file from the server and fills the internal hitobject
+     * array with it
+     */
+    async fillHitObjects() {
+        this.data.objects = await new Promise(async resolve => {
+            let response = await fetch(`https://osu.ppy.sh/osu/${this.bid}`);
+            let parser = new ojsama.parser();
+            readline.createInterface({
+                input: response.body,
+                terminal: false
+            })
+            .on('line', parser.feed_line.bind(parser))
+            .on('close', () => {
+                if (parser.map.objects.length < 1)
+                    return resolve([]);
+                // Convert hit objects
+                // Assume timing points are in order
+                let timingindex = 0;
+                let basems = parser.map.timing_points[0].ms_per_beat;
+                let inherited = -100;
+                let objects = parser.map.objects.map(hitobject => {
+                    let obj = {
+                        type: hitobject.type,
+                        time: hitobject.time
+                    };
+                    // If object is a slider
+                    if (hitobject.type & (1 << 1))
+                    {
+                        while (parser.map.timing_points.length > timingindex &&
+                                hitobject.time >= parser.map.timing_points[timingindex].time)
+                        {
+                            // Update ms per beat values
+                            if (parser.map.timing_points[timingindex].change)
+                            {
+                                basems = parser.map.timing_points[timingindex].ms_per_beat;
+                                inherited = -100;
+                            }
+                            else
+                                inherited = Math.max(parser.map.timing_points[timingindex].ms_per_beat, -1000);
+                            // Increment index
+                            timingindex++;
+                        }
+                        // Calculate the ms per beat
+                        let svms = basems / (-100 / inherited);
+                        let mslength = hitobject.data.distance / (parser.map.sv * 100) * svms * hitobject.data.repetitions;
+                        obj.end = hitobject.time + mslength;
+                    }
+                    // If the object has extended data, add the position
+                    // This should apply to everything except spinners
+                    else if (hitobject.data)
+                        obj.pos = {
+                            x: hitobject.data.pos[0],
+                            y: hitobject.data.pos[1]
+                        };
+                    return obj;
+                });
+
+                resolve(objects);
+            });
+        });
+    }
 }
+
+module.exports = CheckableMap;

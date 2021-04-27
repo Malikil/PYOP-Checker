@@ -85,77 +85,12 @@ async function checkPool(maps)
 }
 
 /**
- * Checks a single beatmap for simple itmes like drain time, star rating, and mode
- * @param beatmap The beatmap to check
- * @param {number} userid The osuid to check against the mapper
- * @param {boolean} lowDiv True if the low division should be used, otherwise open
- * @returns If the map fails, a message will be returned. Otherwise undefined.
- * @deprecated Use mapCheck() instead
+ * Checks a single beatmap for simple itmes like drain time, star rating, and mode.  
+ * In most cases mapCheck() should be preferred
+ * @param {CheckableMap|DbBeatmap} map The beatmap to check
+ * @param {"open"|"15k"} division The osuid to check against the mapper
  */
-function quickCheck(beatmap, userid = undefined, lowDiv = false)
-{
-    console.log({
-        bid: beatmap.beatmap_id,
-        artist: beatmap.artist,
-        title: beatmap.title,
-        version: beatmap.version,
-        creator: beatmap.creator,
-        approved: beatmap.approved,
-        mode: beatmap.mode,
-        drain: beatmap.drain,
-        length: beatmap.total_length,
-        stars: beatmap.stars
-    });
-    console.log(`For 15k? ${lowDiv}`);
-    if (!beatmap)
-        return "That map doesn't exist";
-    // Check the game mode
-    if (!!beatmap.mode)
-        return "This map is for the wrong gamemode";
-    // Check drain time
-    if (beatmap.drain - drainBuffer > maxLength)
-        return `Drain time is more than ${drainBuffer} seconds above the ${convertSeconds(maxLength)} limit. (${convertSeconds(beatmap.drain)})`;
-    else if (beatmap.drain + drainBuffer < minLength)
-        return `Drain time is more than ${drainBuffer} seconds below the ${convertSeconds(minLength)} limit. (${convertSeconds(beatmap.drain)})`;
-    // Check total time
-    if (beatmap.total_length > absoluteMax)
-        return `Total map time is above the ${convertSeconds(absoluteMax)} limit. (${convertSeconds(beatmap.total_length)})`;
-    // Check difficulty
-    let min = minStar;
-    let max = maxStar;
-    if (lowDiv)
-    {
-        min = lowMin;
-        max = lowMax;
-    }
-    if (beatmap.stars > max)
-        return `Star rating is above the ${max.toFixed(2)} maximum. (${beatmap.stars})`;
-    else if (beatmap.stars < min)
-        return `Star rating is below the ${min.toFixed(2)} minimum. (${beatmap.stars})`;
-    console.log("Seems okay");
-    // Make sure the user didn't make this map themself
-    if (userid)
-    {
-        console.log(`Did ${userid} map this?`);
-        console.log(`Unranked: ${beatmap.approved != 1} | Creator matches: ${beatmap.creator_id == userid}`);
-        if (beatmap.approved != 1 && beatmap.creator_id == userid)
-            return `You can't submit your own maps unless they're ranked`;
-    }
-}
-
-/**
- * Checks a map for basic items like star rating, drain length, and creator
- * @param {CheckableMap} map The map object to check
- * @param {"Open"|"15k"} division Which division the map should fall into
- * @param user The osu username of the person performing the check
- * @returns {Promise<{
- *  rejected: boolean,
- *  reject_on?: "Drain"|"Length"|"Stars"|"User"|"Data",
- *  reject_type?: "High"|"Low",
- *  issues?: ("2b"|"slider2b"|"spinner"|"position")[]
- * }>} A map object with all needed basic info
- */
-async function mapCheck(map, division = undefined, user = "")
+function quickCheck(map, division = undefined)
 {
     // Check drain length
     if (map.drain - drainBuffer > maxLength)
@@ -169,12 +104,6 @@ async function mapCheck(map, division = undefined, user = "")
             rejected: true,
             reject_on: "Drain",
             reject_type: "Low"
-        };
-    // Check total length
-    if (map.data.total_length > absoluteMax)
-        return {
-            rejected: true,
-            reject_on: "Length"
         };
     // Check stars
     let min = minStar;
@@ -196,50 +125,95 @@ async function mapCheck(map, division = undefined, user = "")
             reject_on: "Stars",
             reject_type: "Low"
         };
-    // Check map creator
-    if (map.creator === user)
+}
+
+/**
+ * Checks a map for basic items like star rating, drain length, and creator
+ * @param {CheckableMap} map The map object to check
+ * @param {"Open"|"15k"} division Which division the map should fall into
+ * @param user The osu username of the person performing the check
+ * @returns {Promise<{
+ *  rejected: boolean,
+ *  reject_on?: "Drain"|"Length"|"Stars"|"Data",
+ *  reject_type?: "High"|"Low",
+ *  issues?: {
+ *      type: "2b"|"slider2b"|"spinner"|"position"|"user",
+ *      time?: number
+ *  }[]
+ * }>} A map object with all needed basic info
+ */
+async function mapCheck(map, division = undefined, user = "")
+{
+    let quick = quickCheck(map, division);
+    if (quick)
+        return quick;
+    // Check total length
+    if (map.data.total_length > absoluteMax)
         return {
             rejected: true,
-            reject_on: "User"
+            reject_on: "Length",
+            reject_type: "High"
         };
+    // Check map creator
+    /** @type {{
+     *  type: "2b"|"slider2b"|"spinner"|"position"|"user",
+     *  time?: number
+     * }[]} */
+    let issues = [];
+    if (map.creator === user)
+        issues.push({ type: "user" });
     // Check object data
+    // Make sure the hit objects are loaded
+    if (!map.data.objects)
+        await map.fillHitObjects();
     // 2b and circles appearing before spinner
     let last;
-    /** @type {("2b"|"slider2b"|"spinner"|"position")[]} */
-    let issues = [];
     map.data.objects.forEach(obj => {
         if (last)
         {
             // Check 2b circles
             if (Math.abs(obj.time - last.time) <= 10)
-                issues.push("2b");
+                issues.push({
+                    type: "2b",
+                    time: obj.time
+                });
             // Check circles during slider
             // It looks like the library I use for parsing beatmaps doesn't
             // save spinner lengths >:(
             // I'd like to avoid parsing manually if possible D:
             // I'll see how well things go if I just leave it out
             else if ((last.type & (1 << 1)) && (obj.time < last.end)) // Slider
-                issues.push("slider2b");
+                issues.push({
+                    type: "slider2b",
+                    time: obj.time
+                });
             else if ((last.type & (1 << 3)) && (obj.time - map.data.ar_delay) < (last.time - 330))
-                issues.push("spinner");
+                issues.push({
+                    type: "spinner",
+                    time: obj.time
+                });
             
             // How big is the playfield?
             // 512 x 384
+            // But some notes are technically outside but still fine enough
             if (obj.pos && (
-                    obj.pos.x > 512 || obj.pos.x < 0 ||
-                    obj.pos.y > 384 || obj.pos.y < 0
-            )) issues.push("position");
+                    obj.pos.x > 513 || obj.pos.x < -1 ||
+                    obj.pos.y > 391 || obj.pos.y < -1
+            )) issues.push({
+                type: "position",
+                time: obj.time
+            });
         }
         last = obj;
     });
     if (issues.length > 0)
         return {
-            rejected: issues.includes("slider2b") || issues.includes("2b"),
+            rejected: !!issues.find(o => o.type === "slider2b" || o.type === "2b"),
             reject_on: "Data",
             issues
         };
-
-    return { rejected: false };
+    else
+        return { rejected: false };
 }
 
 /**
@@ -257,7 +231,7 @@ async function mapCheck(map, division = undefined, user = "")
  */
 async function leaderboardCheck(mapid, mod, division, userid)
 {
-    console.log(`Checking leaderboard for ${mapid} +${mod}`);
+    console.log(`Checking ${mapid} +${mod} leaderboard for scores from ${userid}`);
     let response = await fetch(`${osuapi}/get_scores?k=${key}&b=${mapid}&mods=${mod}`);
     let scores = await response.json();
     // If there aren't any passes with the mod, the map needs manual approval
@@ -272,7 +246,7 @@ async function leaderboardCheck(mapid, mod, division, userid)
     // first score is perfect, or if the user themself has a score
     console.log(`Found ${scores.length} leaderboard scores. Top score:`);
     let s = scores[0];
-    console.log(`${s.username} - ${
+    console.log(`${s.user_id} ${s.username} - ${
         ((s.count50 / 6) + (s.count100 / 3) + parseInt(s.count300))
         / (parseInt(s.count50) + parseInt(s.count100) + parseInt(s.count300) + parseInt(s.countmiss))
         * 100

@@ -11,10 +11,10 @@ module.exports = class DbBeatmap {
      * @param {string} o.version
      * @param {string} o.creator
      * @param {number} o.mods
-     * @param {"nm"|"hd"|"hr"|"dt"|"cm"} o.pool
+     * @param {string[]?} o.passes
      */
     constructor({
-        bid, status, drain, stars, bpm, artist, title, version, creator, mods, pool
+        bid, status, drain, stars, bpm, artist, title, version, creator, mods, passes
     }) {
         this.bid = bid;
         this.status = status;
@@ -26,22 +26,7 @@ module.exports = class DbBeatmap {
         this.version = version;
         this.creator = creator;
         this.mods = mods;
-        this.pool = pool;
-    }
-
-    toObject() {
-        return {
-            bid: this.bid,
-            status: this.status,
-            drain: this.drain,
-            stars: this.stars,
-            bpm: this.bpm,
-            artist: this.artist,
-            title: this.title,
-            version: this.version,
-            creator: this.creator,
-            mods: this.mods,
-            pool: this.pool
-        };
+        if (passes)
+            this.passes = passes; // Doesn't create a copy, can use [...passes] if a copy is needed
     }
 }
