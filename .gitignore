@@ -1,9 +1,13 @@
 # Custom ignores
 # Google login info
 gsheet-credentials.json
+
 # Files for testing locally
 Procfile.test
 test.js
+
+# Typescript output directory
+dist/
 
 # Generated ignores
 # Logs
