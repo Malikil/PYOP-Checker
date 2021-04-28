@@ -75,3 +75,23 @@ export interface BanchoBeatmap {
     max_combo: string;
     packs: string;
 };
+
+export interface BanchoScore {
+    score_id: string;
+    score: string;
+    username: string;
+    count300: string;
+    count100: string;
+    count50: string;
+    countmiss: string;
+    maxcombo: string;
+    countkatu: string;
+    countgeki: string;
+    perfect: string;
+    enabled_mods: string;
+    user_id: string;
+    date: string;
+    rank: string;
+    pp: string;
+    replay_available: string;
+};

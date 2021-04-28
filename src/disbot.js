@@ -8,7 +8,7 @@ const Discord = require('discord.js');
 const validator = require('./validator');
 const util = require('util');
 const client = new Discord.Client();
-const { closingTimes } = require('./helpers/helpers');
+const { closingTimes } = require('./helpers/helpers').default;
 const sheet = require('./gsheets');
 const { archiveMaps } = require('./database/db-manager');
 
@@ -185,4 +185,8 @@ client.login(process.env.DISCORD_TOKEN)
     // I think heroku restarts itself every day, so I can cheat a bit and
     // not actually add these as recurring intervals.
     // If it turns out I'm wrong then I'll have to fix it somehow.
+})
+.catch(err => {
+    console.error("Couldn't set up actions");
+    console.error(err);
 });

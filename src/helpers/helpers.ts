@@ -1,24 +1,27 @@
-const fetch = require('node-fetch');
-const ojsama = require('ojsama');
-const readline = require('readline');
-const { CheckableMap, DbBeatmap } = require('./../types');
-const MODS = require('./bitwise');
+//import nfetch = require('node-fetch');
+//import ojsama = require('ojsama');
+//import readline = require('readline');
+import Beatmap from '../types/bancho/beatmap';
+import Mods from '../types/bancho/mods';
+import { BanchoScore } from '../types/bancho/types';
+import { DbBeatmap } from './../types/types';
+import { days } from './mstime';
 
-const osuapi = "https://osu.ppy.sh/api";
 const key = process.env.OSUKEY;
+const ALLOWED_MODS = Mods.Hidden | Mods.HardRock | Mods.DoubleTime | Mods.Nightcore | Mods.Easy | Mods.HalfTime;
 
 /**
  * Gets which week the tournament is currently in
- * @param {*[]} arr An array of objects to return from
- * @returns {Number|*} If an array is given, the object at this week's index will
+ * @param arr An array of objects to return from
+ * @returns If an array is given, the object at this week's index will
  * be returned. Otherwise the index for this week will be given
  */
-function currentWeek(arr) {
+function currentWeek<T>(arr?: T[]): T | number {
     // The date will determine which week we're in
     const firstDue = new Date(process.env.FIRST_POOLS_DUE);
     let now = new Date();
     // Add one because firstDue marks the end of week 1 rather than the beginning
-    let week = ((now - firstDue) / (1000 * 60 * 60 * 24 * 7) + 1) | 0;
+    let week = ((now.getTime() - firstDue.getTime()) / days(7) + 1) | 0;
     if (arr)
     {
         if (week < 0)
@@ -34,14 +37,16 @@ function currentWeek(arr) {
 
 function closingTimes() {
     const lastClose = new Date(process.env.FIRST_POOLS_DUE);
+    console.log(`First closing time ${lastClose}`);
     const now = new Date();
     // While it's more than an hour since pools should have closed
-    while (now > lastClose) {
+    while (now > lastClose)
         lastClose.setUTCDate(lastClose.getUTCDate() + 7);
-        console.log(`Incrementing closing time to ${lastClose}`);
-    }
+    console.log(`Incrementing closing time to ${lastClose}`);
+
     const nextClose = new Date(lastClose);
     lastClose.setUTCDate(lastClose.getUTCDate() - 7);
+    console.log(`Last closed at ${lastClose}`);
     return {
         lastClose,
         nextClose,
@@ -51,71 +56,72 @@ function closingTimes() {
 
 /**
  * Converts a mod string into its number equivalent
- * @param {"NM"|"HD"|"HR"|"DT"|"EZ"|"HT"} modstr Mods in string form. Case insensitive
+ * @param modstr Mods in string form. Case insensitive
  * @returns The bitwise number representation of the selected mods
  */
-function parseMod(modstr)
+function parseMod(modstr: string): Mods
 {
     // Undefined check
     if (!modstr) return 0;
 
-    let mod = 0;
+    let mod = Mods.None;
     modstr = modstr.toUpperCase();
     // Parse mods
-    if (modstr.includes('HD'))      mod |= MODS.HD;
-    if (modstr.includes('HR'))      mod |= MODS.HR;
-    else if (modstr.includes('EZ')) mod |= MODS.EZ;
-    if (modstr.includes('DT'))      mod |= MODS.DT;
-    else if (modstr.includes('NC')) mod |= MODS.NC | MODS.DT;
-    else if (modstr.includes('HT')) mod |= MODS.HT;
+    if (modstr.includes('HD'))      mod |= Mods.Hidden;
+    if (modstr.includes('HR'))      mod |= Mods.HardRock;
+    else if (modstr.includes('EZ')) mod |= Mods.Easy;
+    if (modstr.includes('DT'))      mod |= Mods.DoubleTime;
+    else if (modstr.includes('NC')) mod |= Mods.DoubleTime | Mods.Nightcore;
+    else if (modstr.includes('HT')) mod |= Mods.HalfTime;
     
-    return mod & MODS.ALLOWED;
+    return mod & ALLOWED_MODS;
 }
 
 /**
  * Gets a mod pool string from a mod combination
- * @param {number} bitwise The bitwise number representation of the mods
+ * @param bitwise The bitwise number representation of the mods
  * @deprecated The concept of dedicated pools is deprecated.
  * Actual mods value should be preferred
  */
-function getModpool(bitwise)
+function getModpool(bitwise: Mods)
 {
     switch (bitwise)
     {
         case 0:       return "nm";
-        case MODS.HD: return "hd";
-        case MODS.HR: return "hr";
-        case MODS.DT: return "dt";
+        case Mods.Hidden: return "hd";
+        case Mods.HardRock: return "hr";
+        case Mods.DoubleTime: return "dt";
         default:      return "cm";
     }
 }
 
 /**
  * Converts a mod number to its string form
- * @param {number} mod Mods in bitwise form, as per osu api
+ * @param mod Mods in bitwise form, as per osu api
  */
-function modString(mod)
+function modString(mod: Mods)
 {
     let str = '';
-    if (mod & MODS.HD)      str += 'HD';
-    if (mod & MODS.NC)      str += 'NC';
-    else if (mod & MODS.DT) str += 'DT';
-    else if (mod & MODS.HT) str += 'HT';
-    if (mod & MODS.HR)      str += 'HR';
-    else if (mod & MODS.EZ) str = 'EZ' + str;
-    if (str == '')          str = 'NM';
+    if (mod & Mods.Hidden)          str += 'HD';
+    if (mod & Mods.Nightcore)       str += 'NC';
+    else if (mod & Mods.DoubleTime) str += 'DT';
+    else if (mod & Mods.HalfTime)   str += 'HT';
+    if (mod & Mods.HardRock)        str += 'HR';
+    else if (mod & Mods.Easy)       str = 'EZ' + str;
+    if (str == '')                  str = 'NM';
     return str;
 }
 
 /**
  * Gets a map id from a link, or just returns the id received if given one
- * @param {string} mapString A string containing a link to the new or old site, or just the id
+ * @param mapString A string containing a link to the new or old site, or just the id
  * @returns The map id for the given link, or undefined if no id was found
  */
-function parseMapId(mapString = '')
+function parseMapId(mapString: string)
 {
+    let num = parseInt(mapString);
     // If link is already a number then nothing needs to be done
-    if (isNaN(mapString))
+    if (isNaN(num))
     {
         // If the link isn't to a beatmap, then ignore it
         // If the link is a /s/ link, ignore it
@@ -127,28 +133,28 @@ function parseMapId(mapString = '')
             mapString = mapString.substring(mapString.lastIndexOf("/") + 1);
             // The parseInt function will convert the beginning of a string to a number
             // until it finds a non-number character
-            mapString = parseInt(mapString);
+            num = parseInt(mapString);
         }
-        else
-            return undefined;
     }
   
-    return mapString | 0;
+    return num;
 }
 
 /**
  * Converts a map object to the artist - title [version] format
  */
-const mapString = map => `${map.artist} - ${map.title} [${map.version}]`;
+const mapString = (map: DbBeatmap | Beatmap) => `${map.artist} - ${map.title} [${map.version}]`;
 /** osu.ppy.sh/b/${beatmap id} */
-const mapLink = map => `https://osu.ppy.sh/b/${map.bid || map.beatmap_id}`;
+const mapLink = (map: DbBeatmap | Beatmap) => 'bid' in map ?
+    `https://osu.ppy.sh/b/${map.bid}` :
+    `https://osu.ppy.sh/b/${map.beatmap_id}`;
 
 /**
  * Converts from integer seconds to mm:ss time format
- * @param {Number} length The length, in seconds, to convert to string time
- * @returns {String} The passed length, in mm:ss format
+ * @param length The length, in seconds, to convert to string time
+ * @returns The passed length, in mm:ss format
  */
-function convertSeconds(length)
+function convertSeconds(length: number): string
 {
     let seconds = '';
     if (length % 60 < 10)
@@ -157,81 +163,7 @@ function convertSeconds(length)
     return (Math.floor(length / 60) + ':' + seconds);
 }
 
-/**
- * Gets a single player from the osu server based on id or username
- * @param {String|Number} osuid 
- * @deprecated Use ApiPlayer
- */
-async function getPlayer(osuid)
-{
-    let response = await fetch(`${osuapi}/get_user?k=${key}&u=${osuid}`);
-    let user = (await response.json())[0];
-    if (!user)
-        return undefined;
-    // The user id should be an int
-    user.user_id = parseInt(user.user_id);
-    return user;
-}
-
-/**
- * Gets a single beatmap from the server, and verifies all values are proper
- * @param {Number} mapid The map id to get info for
- * @param {Number} mods The bitwise value of the selected mods
- * @returns {Promise<CheckableMap>} A promise which will resolve to a beatmap object, or undefined if
- *     no beatmap was found
- * @deprecated Use ApiBeatmap
- */
-async function getBeatmap(mapid, mods)
-{
-    console.log(`Getting map with id ${mapid} and mods ${mods}`);
-    let response = await fetch(`${osuapi}/get_beatmaps?k=${key}&b=${mapid}&m=0&mods=${mods & MODS.DIFFMODS}`);
-    let data = await response.json();
-    let beatmap = data[0];
-    if (!beatmap)
-        return;
-    let map = new CheckableMap({
-        bid: parseInt(beatmap.beatmap_id),
-        artist: beatmap.artist,
-        title: beatmap.title,
-        version: beatmap.version,
-        creator: beatmap.creator,
-        mods: mods & MODS.ALLOWED,
-        drain: parseInt(beatmap.hit_length),
-        bpm: parseFloat(beatmap.bpm),
-        stars: parseFloat(parseFloat(beatmap.difficultyrating).toFixed(2)),
-        data: {
-            total_length: parseInt(beatmap.total_length)
-        }
-    });
-    // Find the ms delay
-    let ar = beatmap.diff_approach;
-    if (mods & MODS.HR)
-        ar = Math.min(ar * 1.4, 10);
-    else if (mods & MODS.EZ)
-        ar /= 2;
-    let arscale = 750;
-    if (ar < 5)
-        arscale = 600;
-    map.data.ar_delay = 1200 + (arscale * (5 - ar) / 5);
-    // Update length/bpm if DT/HT
-    if (mods & MODS.DT)
-    {
-        map.data.total_length = (map.data.total_length * (2.0 / 3.0)) | 0;
-        map.drain = (map.drain * (2.0 / 3.0)) | 0;
-        map.data.ar_delay *= (2.0 / 3.0);
-        map.bpm = parseFloat((map.bpm * (3.0 / 2.0)).toFixed(3));
-    }
-    else if (mods & MODS.HT)
-    {
-        map.data.total_length = (map.data.total_length * (4.0 / 3.0)) | 0;
-        map.drain = (map.drain * (4.0 / 3.0)) | 0;
-        map.data.ar_delay *= (4.0 / 3.0);
-        map.bpm = parseFloat((map.bpm * (3.0 / 4.0)).toFixed(3));
-    }
-    return map;
-}
-
-async function getLeaderboard(mapid, mods = 0)
+async function getLeaderboard(mapid: number, mods: Mods = Mods.None): Promise<BanchoScore[]>
 {
     let response = await fetch(`https://osu.ppy.sh/api/get_scores?k=${key}&b=${mapid}&m=0&mods=${mods}`);
     return response.json();
@@ -239,12 +171,11 @@ async function getLeaderboard(mapid, mods = 0)
 
 /**
  * Gets a beatmap object which can be used to calculate sr or find hitobjects
- * @param {number} mapid The beatmap id to get info for
- * @param {number} mods The mods to use when parsing the map
- * @returns {Promise<CheckableMap>}
- * @deprecated Go back to using getBeatmap
+ * {number} mapid The beatmap id to get info for
+ * {number} mods The mods to use when parsing the map
+ * {Promise<CheckableMap>}
  */
-function beatmapObject(mapid, mods = 0)
+/*function beatmapObject(mapid, mods = 0)
 {
     return new Promise(async (resolve, reject) => {
         let response = await fetch(`https://osu.ppy.sh/osu/${mapid}`);
@@ -380,9 +311,9 @@ function beatmapObject(mapid, mods = 0)
             }
         });
     });
-}
+}*/
 
-module.exports = {
+export default {
     currentWeek,
     parseMod,
     parseMapId,
@@ -392,8 +323,5 @@ module.exports = {
     mapLink,
     convertSeconds,
     closingTimes,
-    getPlayer,
-    getBeatmap,
-    getLeaderboard,
-    beatmapObject
-}
+    getLeaderboard
+};
