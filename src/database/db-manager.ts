@@ -542,7 +542,7 @@ async function archiveMaps() {
     );
 }
 //#endregion
-module.exports = {
+export default module.exports = {
     addTeam, // Teams/players
     eliminateTeam,
     setNotify,

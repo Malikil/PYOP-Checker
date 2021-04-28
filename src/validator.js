@@ -1,13 +1,11 @@
 const MODS = require('./helpers/bitwise');
 const divInfo = require('../divisions.json');
+const { CommandArg, Command } = require('./types/types');
 
 /**
  * Validates and converts a string into an args object based on the provided
  * expected args
- * @param {{
- *  arg: string,
- *  required: boolean
- * }[]} expected 
+ * @param {CommandArg[]} expected 
  * @param {string} actual 
  */
 function validateArgs(expected, actual) {
@@ -69,17 +67,7 @@ function validateArgs(expected, actual) {
 
 /**
  * Constructs a useage string for a set of expected arguments
- * @param {{
- *  name: string,
- *  help: string,
- *  args?: {
- *      arg: string,
- *      required: boolean,
- *      name?: string,
- *      description?: string
- *  }[],
- *  alias?: string[]
- * }} command Name of the command
+ * @param {Command} command Name of the command
  */
 function usageString(command) {
     const seen = [];
