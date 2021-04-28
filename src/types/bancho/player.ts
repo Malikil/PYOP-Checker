@@ -1,8 +1,31 @@
-const fetch = require('node-fetch');
+import nfetch from 'node-fetch';
+import { BanchoUser } from './types';
 const OSUKEY = process.env.OSUKEY;
 
-class ApiPlayer {
-    constructor(player) {
+export default class Player {
+    user_id: number;
+    username: string;
+    join_date: Date;
+    country: string;
+    count300: number;
+    count100: number;
+    count50: number;
+    playcount: number;
+    ranked_score: number;
+    total_score: number;
+    pp_rank: number;
+    level: number;
+    pp_raw: number;
+    accuracy: number;
+    count_rank_ss: number;
+    count_rank_ssh: number;
+    count_rank_s: number;
+    count_rank_sh: number;
+    count_rank_a: number;
+    total_seconds_played: number;
+    pp_country_rank: number;
+
+    constructor(player: BanchoUser) {
         // This should always be a proper player object, as returned by the osu api.
         // As such, everything is a string and needs to be converted
 
@@ -35,14 +58,12 @@ class ApiPlayer {
         //  - events
     }
 
-    static async buildFromApi(userid, mode = 0) {
-        let player = await fetch(`https://osu.ppy.sh/api/get_user?k=${OSUKEY}&u=${userid}&m=${mode}`)
+    static async buildFromApi(userid: string | number, mode = 0) {
+        let player = await nfetch(`https://osu.ppy.sh/api/get_user?k=${OSUKEY}&u=${userid}&m=${mode}`)
             .then(res => res.json())
-            .then(data => data[0]);
+            .then((data: BanchoUser[]) => data[0]);
         if (player)
-            return new ApiPlayer(player);
+            return new Player(player);
         // Undefined if the player doesn't exist
     }
 }
-
-module.exports = ApiPlayer;

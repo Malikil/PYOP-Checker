@@ -3,7 +3,7 @@ const ojsama = require('ojsama');
 const fetch = require('node-fetch');
 
 /**
- * @deprecated Use ApiBeatmap instead
+ * @deprecated Use bancho/Beatmap instead
  */
 class CheckableMap {
     /**

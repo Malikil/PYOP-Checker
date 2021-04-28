@@ -2,55 +2,30 @@
 This module should handle connecting to the database and all the CRUD operations
 */
 //const { MongoClient, Db } = require('mongodb');
-const util = require('util');
-const { DbBeatmap, DbPlayer, DbTeam } = require('../types');
-const MODS = require('../helpers/bitwise');
-MODS.DEFAULT = MODS.HD | MODS.HR | MODS.DT; // Does this modify MODS everywhere?
+import util = require('util');
+import { DbBeatmap, DbPlayer, DbTeam, MapStatus, PlayerId } from '../types/types';
+import MODS from '../types/bancho/mods';
+const POOLED_MODS = MODS.Hidden | MODS.HardRock | MODS.DoubleTime;
 
-/*const mongoUser = process.env.MONGO_USER;
-const mongoPass = process.env.MONGO_PASS;
-const mongoUri = process.env.MONGO_URI;
-const uri = `mongodb+srv://${mongoUser}:${mongoPass}@${mongoUri}`;
-const client = new MongoClient(uri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-});
-
-/** @type {Db} */
-/*var db;
-client.connect(err => {
-    if (err)
-        return console.log(err);
-    else
-        console.log("Connected to mongodb");
-
-    db = client.db('pyopdb');
-});//*/
-
-const db = require('./mdb');
+import db = require('./mdb');
 //#region ============================== Helpers/General ==============================
 /**
  * Performs the given action for each item in the database, and return an array of the results
- * @param {function(DbTeam):Promise<*>} action 
- * @returns {Promise<*[]>} An array containing return values from each function call
+ * @returns An array containing return values from each function call
  */
-async function map(action)
+async function map<T>(action: (team: DbTeam) => Promise<T>): Promise<T[]>
 {
     let cursor = db.collection('teams').find();
     let results = [];
-    await cursor.forEach(async p => results.push(await action(new DbTeam(p))));
+    await cursor.forEach(async (p: DbTeam) => results.push(await action(p)));
     return results;
 }
 
-/**
- * 
- * @param {function(*, import('../types/dbteam')):Promise<*>} action 
- */
-async function reduce(action, initial) {
+async function reduce<T>(action: (previous: T, current: DbTeam) => Promise<T>, initial: T) {
     const cursor = db.collection('teams').find();
     let result = initial;
     while (await cursor.hasNext()) {
-        let team = new DbTeam(await cursor.next());
+        let team: DbTeam = await cursor.next();
         result = await action(result, team);
     }
     return result;
@@ -58,10 +33,8 @@ async function reduce(action, initial) {
 
 /**
  * Prepares a string to be used as the match in a regex match
- * @param {String} str 
- * @param {String} options
  */
-function regexify(str, options)
+function regexify(str: string, options: string)
 {
     str = str.replace(/_/g, "(?: |_)")
         .replace('[', '\\[')
@@ -70,35 +43,42 @@ function regexify(str, options)
     return new RegExp(`^${str}$`, options);
 }
 
+/**
+ * Creates an object to match to a player on a team
+ * @param id The player's id, either discord or osu id, or osu username
+ */
+function identify(id: string | number) {
+    let queryArray: { 'players.discordid'?: string, 'players.osuid'?: number, 'players.osuname'?: RegExp }[] = [];
+    if (typeof id === "string") {
+        queryArray.push({ 'players.discordid': id });
+        queryArray.push({ 'players.osuname': regexify(id, 'i') });
+    }
+    else
+        queryArray.push({ 'players.osuid': id });
+
+    return { $or: queryArray };
+}
+
 //#endregion
 //#region ============================== Manage Teams/Players ==============================
 /**
  * Adds a new team with the given players
- * @param {string} teamname 
- * @param {string} division 
- * @param {{
- *  osuid: number,
- *  osuname: string,
- *  discordid: string,
- *  utc: string
- * }[]} players 
  */
-async function addTeam(teamname, division, players)
+async function addTeam(teamname: string, division: string, players: DbPlayer[])
 {
     console.log(`Adding new team: ${teamname}`);
-    let result = await db.collection('teams').insertOne(
-        {
-            teamname,
-            division,
-            players,
-            maps: [],
-            oldmaps: []
-        }
-    );
+    const adding: DbTeam = {
+        teamname,
+        division,
+        players,
+        maps: [],
+        oldmaps: []
+    };
+    let result = await db.collection('teams').insertOne(adding);
     return !!result.result.ok;
 }
 
-async function eliminateTeam(teamname) {
+async function eliminateTeam(teamname: string): Promise<DbTeam> {
     console.log(`\x1b[32mdb-manager.js#eliminateTeam \x1b[0m Eliminating team ${teamname}`);
     const result = await db.collection('teams')
         .findOneAndUpdate(
@@ -109,19 +89,18 @@ async function eliminateTeam(teamname) {
 
     console.log(result.value);
     if (result.value)
-        return new DbTeam(result.value);
+        return result.value;
 }
 
 /**
  * Toggles whether the player wants to receive notifications of map updates
- * @param {string} discordid The Discord id of the player to update
- * @param {boolean} setting
+ * @param discordid The Discord id of the player to update
  * @returns True/False indicating the current/new status, or undefined if the player
  * wasn't found
  */
-async function setNotify(discordid, setting)
+async function setNotify(discordid: string, setting: boolean): Promise<boolean | undefined>
 {
-    let team = await db.collection('teams').findOne({ 'players.discordid': discordid });
+    let team: DbTeam = await db.collection('teams').findOne({ 'players.discordid': discordid });
     if (!team)
         return;
     let player = team.players.find(p => p.discordid === discordid);
@@ -150,23 +129,18 @@ async function setNotify(discordid, setting)
 
 /**
  * Gets a team with a given player on it
- * @param {string|number} id The player's id, either discord or osu id, or osu username
+ * @param id The player's id, either discord or osu id, or osu username
  */
-async function getTeamByPlayerid(id)
+async function getTeamByPlayerid(id: string | number)
 {
     console.log(`Finding team for player ${id}`);
-    let team = await db.collection('teams').findOne({
-        $or: [
-            { 'players.discordid': id },
-            { 'players.osuid': id },
-            { 'players.osuname': regexify(id, 'i') }
-        ]
-    });
+    
+    let team: DbTeam = await db.collection('teams').findOne(identify(id));
     if (team)
-        return new DbTeam(team);
+        return team;
 }
 
-async function getTeamByPlayerlist(players)
+async function getTeamByPlayerlist(players: PlayerId[])
 {
     let filter = [];
     players.forEach(p => {
@@ -177,47 +151,47 @@ async function getTeamByPlayerlist(players)
         if (p.discordid)
             filter.push({ 'players.discordid': p.discordid });
     });
-    let team = await db.collection('teams').findOne({
+    let team: DbTeam = await db.collection('teams').findOne({
         $or: filter
     });
     if (team)
-        return new DbTeam(team);
+        return team;
 }
 
-async function getTeamByName(teamname) {
-    const team = await db.collection('teams').findOne({ teamname });
+async function getTeamByName(teamname: string) {
+    const team: DbTeam = await db.collection('teams').findOne({ teamname });
     if (team)
-        return new DbTeam(team);
+        return team;
 }
 
 /**
  * Gets a player based on their osu id or discord id
- * @param {string|number} id The player's id, either discord or osu id, or osu username
+ * @param id The player's id, either discord or osu id, or osu username
  */
-async function getPlayer(id)
+async function getPlayer(id: string | number)
 {
     console.log(`Finding player with id ${id}`);
     let team = await getTeamByPlayerid(id);
     if (team) {
         // Get the specific player from the team
-        let player = team.players.find(p =>
+        let player: DbPlayer = team.players.find(p =>
             p.discordid === id ||
             p.osuid === id ||
-            p.osuname.match(regexify(id, 'i'))
+            (typeof id === "string" && p.osuname.match(regexify(id, 'i')))
         );
 
         if (player)
-            return new DbPlayer(player);
+            return player;
     }
 }
 
 /**
  * Updates a player with the given info
- * @param {number} osuid The player's osu id
- * @param {string} osuname The player's new osu username
+ * @param osuid The player's osu id
+ * @param osuname The player's new osu username
  * @returns Whether a player was updated
  */
-async function updatePlayerName(osuid, osuname) {
+async function updatePlayerName(osuid: number, osuname: string) {
     let result = await db.collection('teams').updateOne(
         { 'players.osuid': osuid },
         { $set: { 'players.$.osuname': osuname } }
@@ -230,23 +204,23 @@ async function updatePlayerName(osuid, osuname) {
 /**
  * Adds a map to the given mod bracket. Removes the first map on the list if
  * two maps are already present.
- * @param {string} team The player identifier, either osuid or discordid
- * @param {DbBeatmap} map The map object to add
+ * @param team The player identifier, either osuid or discordid
+ * @param map The map object to add
  * @returns True if the map was added without issue, false if the map wasn't added,
  * and a map object if a map got replaced.
  */
-async function addMap(team, map)
+async function addMap(team: string, map: DbBeatmap): Promise<boolean | DbBeatmap>
 {
     console.log(`Adding map ${map.bid} to ${team}'s pool`);
     // let updateobj = { $push: {}};
     // updateobj.$push[`maps.${mod}`] = map;
-    const idobj = { teamname: team };
+    const idobj: { teamname: string, maps?: any } = { teamname: team };
     const findUpdateResult = await db.collection('teams').findOneAndUpdate(
         idobj,
         { $push: { maps: { ...map } } },
         { returnOriginal: false }
     );
-    const teamobj = new DbTeam(findUpdateResult.value);
+    const teamobj: DbTeam = findUpdateResult.value;
     console.log(`Team ok: ${findUpdateResult.ok}`);
     // Find a count of CM maps, and the map that should be removed
     // if the pool is full
@@ -258,7 +232,7 @@ async function addMap(team, map)
         
         // Increment count
         // If only a single mod is selected, and that mod is a default mod
-        if (m.mods === 0 || (((m.mods - 1) & m.mods) === 0 && (m.mods & MODS.DEFAULT))) {
+        if (m.mods === 0 || (((m.mods - 1) & m.mods) === 0 && (m.mods & POOLED_MODS))) {
             // If there are more than the minimum for this modcount,
             // then the map is a candidate for removal
             if (++pa[m.mods] > 2) {
@@ -274,13 +248,13 @@ async function addMap(team, map)
             pa.remover = m;
         }
         return pa;
-    }, { 0: 0, [MODS.HD]: 0, [MODS.HR]: 0, [MODS.DT]: 0, cm: 0, remover: new DbBeatmap({}) })
+    }, { 0: 0, [MODS.Hidden]: 0, [MODS.HardRock]: 0, [MODS.DoubleTime]: 0, cm: 0, remover: <DbBeatmap>{} })
     // If a modpool is overfilled, then a map should be removed
     if (teamobj.maps.length > 10 ||
             poolAccumulator[0] > 4 ||
-            poolAccumulator[MODS.HD] > 4 ||
-            poolAccumulator[MODS.HR] > 4 ||
-            poolAccumulator[MODS.DT] > 4 ||
+            poolAccumulator[MODS.Hidden] > 4 ||
+            poolAccumulator[MODS.HardRock] > 4 ||
+            poolAccumulator[MODS.DoubleTime] > 4 ||
             poolAccumulator.cm > 2) {
         // Remove the map
         idobj.maps = {
@@ -299,31 +273,33 @@ async function addMap(team, map)
             {
                 updateOne: {
                     filter: { teamname: team },
-                    update: { $pull: { maps: null } }
+                    update: { $pull: <any>{ maps: null } }
+                    // I don't think anything's changed from when this was js,
+                    // but ts was really not happy with it
                 }
             }
         ]);
         return poolAccumulator.remover;
     }
-    return findUpdateResult.ok;
+    return !!findUpdateResult.ok;
 }
 
 /**
  * Removes a map from a team's pool. If two maps in the pool are the same, only one
  * will be removed.
- * @param {string} team Which team to remove the map from
- * @param {Number} mapid The beatmap id to remove
- * @param {number} mods Which mods the map uses
+ * @param team Which team to remove the map from
+ * @param mapid The beatmap id to remove
+ * @param mods Which mods the map uses
  * @returns The number of modified documents
  */
-async function removeMap(team, mapid, mods)
+async function removeMap(team: string, mapid: number, mods: number)
 {
     // I can't guarantee there will only be one matching map
     // Set one matching map to null, then pull nulls
     let filter = {
         teamname: team,
         maps: {
-            $elemMatch: { bid: mapid }
+            $elemMatch: <{bid: number, mods?: number}>{ bid: mapid }
         }
     };
     if (mods !== undefined)
@@ -340,7 +316,7 @@ async function removeMap(team, mapid, mods)
         } },
         { updateOne: {
             filter: { teamname: team },
-            update: { $pull: { maps: null } }
+            update: { $pull: <any>{ maps: null } } // See note above
         } }
     ]);
     return result.modifiedCount;
@@ -348,10 +324,10 @@ async function removeMap(team, mapid, mods)
 
 /**
  * Removes all maps from the given team's pool
- * @param {string} teamname Team name
+ * @param teamname Team name
  * @returns The number of teams modified
  */
-async function removeAllMaps(teamname)
+async function removeAllMaps(teamname: string)
 {
     let result = await db.collection('teams').updateOne(
         { teamname },
@@ -362,19 +338,18 @@ async function removeAllMaps(teamname)
 
 /**
  * Finds all maps with a given status, grouped by their mods
- * @param {string|RegExp} status What status the map should have
- * @returns {Promise<{
- *  _id: number,
- *  maps: {
- *      bid: number,
- *      artist: string,
- *      title: string,
- *      version: string,
- *      passes: string[]
- *  }[]
- * }[]>}
+ * @param status What status the map should have
  */
-async function findMapsWithStatus(status)
+async function findMapsWithStatus(status: MapStatus): Promise<{
+    _id: number;
+    maps: {
+        bid: number;
+        artist: string;
+        title: string;
+        version: string;
+        passes: string[];
+    }[];
+}[]>
 {
     let cursor = db.collection('teams').aggregate([
         { $match: {
@@ -401,7 +376,7 @@ async function findMapsWithStatus(status)
 /**
  * @returns A list of teams that have missing maps or rejected maps
  */
-async function findMissingMaps()
+async function findMissingMaps(): Promise<DbTeam[]>
 {
     let result = db.collection('teams').find({
         eliminated: { $ne: true },
@@ -413,28 +388,28 @@ async function findMissingMaps()
                     }
                 }
             },
-            { 'maps.status': /^Rejected/ }
+            { 'maps.status': MapStatus.Rejected }
         ]
     });
-    return result.map(team => new DbTeam(team));
+    return result.toArray();
 }
 
 /**
  * Adds a pass to a map and updates the status
- * @param {String} discordid The player to update
- * @param {Number} mapid The map id to update
- * @param {string} pass A reference link to the pass
- * @param {boolean} pending Whether the status should be left as-is or changed to pending
+ * @param discordid The player to update
+ * @param mapid The map id to update
+ * @param pass A reference link to the pass
+ * @param pending Whether the status should be left as-is or changed to pending
  * @returns The number of modified teams
  */
-async function addScreenshot(discordid, mapid, pass, pending)
+async function addScreenshot(discordid: string, mapid: number, pass: string, pending: boolean)
 {
     // We don't care about mod at this point, they're not supposed to have
     // the same map more than once anyways.
     // Only update the status if pending is true
-    let updateObj = { $push: { 'maps.$[pendmap].passes': pass } };
+    let updateObj: { $push: any, $set?: any } = { $push: { 'maps.$[pendmap].passes': pass } };
     if (pending)
-        updateObj.$set = { 'maps.$[pendmap].status': "Pending" };
+        updateObj.$set = { 'maps.$[pendmap].status': MapStatus.Pending };
 
     let result = await db.collection('teams').updateOne(
         {
@@ -452,10 +427,10 @@ async function addScreenshot(discordid, mapid, pass, pending)
 
 /**
  * Approves a map in a given modpool/with mods
- * @param {Number} mapid The map id to update
- * @param {Number} mods The mods the map uses
+ * @param mapid The map id to update
+ * @param mods The mods the map uses
  */
-async function approveMap(mapid, mods)
+async function approveMap(mapid: number, mods: number)
 {
     console.log(`Approving ${mapid} +${mods}`);
     // Search for maps with the given mod
@@ -464,7 +439,7 @@ async function approveMap(mapid, mods)
             bid: mapid,
             mods
         } } },
-        { $set: { 'maps.$[pendmap].status': "Approved" } },
+        { $set: { 'maps.$[pendmap].status': MapStatus.Approved } },
         { arrayFilters: [
             {
                 'pendmap.bid': mapid,
@@ -479,22 +454,25 @@ async function approveMap(mapid, mods)
 
 /**
  * Rejects a given map/mod combo.
- * @param {Number} mapid The map id to update
- * @param {Number} mods The mods the map uses
- * @param {string} message The reject message to add to the end
+ * @param mapid The map id to update
+ * @param mods The mods the map uses
+ * @param message The reject message to add to the end
  * @returns A list of players to notify of the change, along with the number of
  * updated teams
  */
-async function rejectMap(mapid, mods, message)
+async function rejectMap(mapid: number, mods: number, message: string)
 {
     console.log(`Rejecting mapid ${mapid} +${mods}`);
     // Get a list of notification players on teams with maps to be rejected
-    const playerlist = await db.collection('teams').aggregate([
+    const playerlist: {
+        _id?: boolean,
+        players: DbPlayer[]
+    }[] = await db.collection('teams').aggregate([
         { $match: {
             maps: { $elemMatch: {
                 bid: mapid,
                 mods,
-                status: { $not: /^Rejected/ }
+                status: { $not: MapStatus.Rejected }
             } }
         } },
         { $project: {
@@ -508,12 +486,11 @@ async function rejectMap(mapid, mods, message)
         } }
     ]).toArray();
 
+    let list: DbPlayer[] = [];
     let playerNotif = playerlist.find(i => i._id);
     if (playerNotif)
-        playerNotif = playerNotif.players.map(p => new DbPlayer(p));
-    else
-        playerNotif = [];
-    console.log(playerNotif);
+        list = playerNotif.players;
+    console.log(list);
     // Update the status
     // Not limiting to pending maps here because it's conceivable that a
     // screenshot required map can be rejected, and maps that are rejected
@@ -522,58 +499,25 @@ async function rejectMap(mapid, mods, message)
         { maps: { $elemMatch: {
             bid: mapid,
             mods,
-            'map.status': { $not: /^Rejected/ }
+            'map.status': { $not: MapStatus.Rejected }
         } } },
-        { $set: { 'maps.$[map].status': `Rejected - ${message}` } },
+        { $set: {
+            'maps.$[map].status': MapStatus.Rejected,
+            'maps.$[map].message': message
+        } },
         { arrayFilters: [
             {
                 'map.bid': mapid,
                 'map.mods': mods,
-                'map.status': { $not: /^Rejected/ }
+                'map.status': { $not: MapStatus.Rejected }
             }
         ] }
     );
     console.log(`Matched ${result.matchedCount}, modified ${result.modifiedCount}`);
     return {
-        playerNotif,
+        playerNotif: list,
         modified: result.modifiedCount
     };
-}
-
-/**
- * Rejects a list of maps in bulk using the same message for each
- * @param {[
- *  {
- *      bid: Number,
- *      mods: Number
- *  }
- * ]} maps An array of maps to reject
- * @param {String} message The reject message to use
- * @param {"open"|"15k"} division Which division to update
- */
-async function bulkReject(maps, message, division)
-{
-    message = 'Rejected - ' + message;
-    // If possible, I'd like to do away with this manually constructing
-    // arrayFilters
-    let filters = maps.map(item => {
-        return {
-            'badmap.bid': item.bid,
-            'badmap.mods': item.mods
-        };
-    });
-
-    // Reject all maps matching the criteria
-    let result = await db.collection('teams').updateMany(
-        { division },
-        { $set: { 'maps.$[badmap].status': message } },
-        { arrayFilters: [
-            { $or: filters }
-        ] }
-    );
-
-    console.log(`Modified ${result.modifiedCount} documents in bulk update`);
-    return result.modifiedCount;
 }
 
 /**
@@ -616,7 +560,7 @@ module.exports = {
     rejectMap,
     findMissingMaps,
     archiveMaps,
-    bulkReject,  // General management
+    // General management
     map,
     reduce
 };

@@ -1,10 +1,54 @@
-const fetch = require('node-fetch');
-const DbBeatmap = require('./dbbeatmap');
-const MODS = require('../helpers/bitwise');
+import nfetch from 'node-fetch';
+import { BanchoBeatmap } from './types';
+import Mods from './mods';
+import { Mode } from './enums';
 const OSUKEY = process.env.OSUKEY;
 
-class ApiBeatmap {
-    constructor(map, mods = 0) {
+export default class Beatmap {
+    beatmapset_id: number;
+    beatmap_id: number;
+    creator_id: number;
+    file_md5: string;
+    tags: string[];
+    genre_id: number;
+    language_id: number;
+    artist: string;
+    title: string;
+    version: string;
+    creator: string;
+    artist_unicode: string;
+    title_unicode: string;
+    source: string;
+    approved: number;
+    submit_date: Date;
+    approved_date: Date;
+    last_update: Date;
+    total_length: number;
+    hit_length: number;
+    diff_size: number;
+    diff_overall: number;
+    diff_approach: number;
+    diff_drain: number;
+    diff_aim: number;
+    diff_speed: number;
+    difficultyrating: number;
+    bpm: number;
+    mode: Mode;
+    count_normal: number;
+    count_slider: number;
+    count_spinner: number;
+    favourite_count: number;
+    rating: number;
+    storyboard: boolean;
+    video: boolean;
+    download_unavailable: boolean;
+    audio_unavailable: boolean;
+    playcount: number;
+    passcount: number;
+    max_combo: number;
+    mods: number;
+
+    constructor(map: BanchoBeatmap, mods = Mods.None) {
         // This should always be a proper map object, as returned by the osu api.
         // As such, everything is a string and needs to be converted
 
@@ -66,27 +110,27 @@ class ApiBeatmap {
 
         // If mods were used, update required values
         this.mods = mods;
-        if (mods & MODS.DT)
+        if (mods & Mods.DoubleTime)
         {
             this.total_length = (this.total_length * (2.0 / 3.0)) | 0;
             this.hit_length = (this.hit_length * (2.0 / 3.0)) | 0;
             this.bpm = parseFloat((this.bpm * (3.0 / 2.0)).toFixed(3));
         }
-        else if (mods & MODS.HT)
+        else if (mods & Mods.HalfTime)
         {
             this.total_length = (this.total_length * (4.0 / 3.0)) | 0;
             this.hit_length = (this.hit_length * (4.0 / 3.0)) | 0;
             this.bpm = parseFloat((this.bpm * (3.0 / 4.0)).toFixed(3));
         }
 
-        if (mods & MODS.HR)
+        if (mods & Mods.HardRock)
         {
             this.diff_approach *= 1.4;
             this.diff_drain *= 1.4;
             this.diff_overall *= 1.4;
             this.diff_size *= 1.3;
         }
-        else if (mods & MODS.EZ)
+        else if (mods & Mods.Easy)
         {
             this.diff_approach /= 2;
             this.diff_drain /= 2;
@@ -95,33 +139,18 @@ class ApiBeatmap {
         }
     }
 
-    static async buildFromApi(mapid, mods = 0) {
-        let beatmap = await fetch(`https://osu.ppy.sh/api/get_beatmaps?k=${OSUKEY}&b=${mapid}&mods=${mods & MODS.DIFFMODS}`)
-            .then(res => res.json())
+    static async buildFromApi(mapid: number, mods = Mods.None) {
+        const beatmap = await nfetch(`https://osu.ppy.sh/api/get_beatmaps?k=${OSUKEY}&b=${mapid}&mods=${mods & Mods.DifficultyMods}`)
+            .then((res): Promise<BanchoBeatmap[]> => res.json())
             .then(data => data[0]);
         if (beatmap)
-            return new ApiBeatmap(beatmap, mods);
+            return new Beatmap(beatmap, mods);
         // Undefined if the beatmap doesn't exist
     }
 
-    /**
-     * @param {string} status 
-     */
-    toDbBeatmap(status) {
-        let obj = new DbBeatmap({
-            bid: this.beatmap_id,
-            drain: this.hit_length,
-            stars: parseFloat(this.difficultyrating.toFixed(2)),
-            bpm: this.bpm,
-            artist: this.artist,
-            title: this.title,
-            version: this.version,
-            creator: this.creator,
-            mods: this.mods,
-            status
-        });
-        return obj;
+    static async getMapset(mapsetId: number) {
+        const maps = await nfetch(`https://osu.ppy.sh/api/get_beatmaps?k=${OSUKEY}&s=${mapsetId}`)
+            .then((res): Promise<BanchoBeatmap[]> => res.json());
+        return maps.map(m => new Beatmap(m));
     }
 }
-
-module.exports = ApiBeatmap;
