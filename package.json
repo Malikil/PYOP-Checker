@@ -19,9 +19,10 @@
     "ojsama": "^1.2.5"
   },
   "engines": {
-    "node": "11.x"
+    "node": "13.x"
   },
   "devDependencies": {
-    "nodemon": "^2.0.7"
+    "nodemon": "^2.0.7",
+    "typescript": "^4.2.4"
   }
 }
