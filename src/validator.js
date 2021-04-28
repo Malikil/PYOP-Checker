@@ -1,5 +1,5 @@
 const MODS = require('./helpers/bitwise');
-const divInfo = require('./divisions.json');
+const divInfo = require('../divisions.json');
 
 /**
  * Validates and converts a string into an args object based on the provided

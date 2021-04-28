@@ -1,4 +1,4 @@
-const divInfo = require('./divisions.json');
+const divInfo = require('../divisions.json');
 const challonge = require('challonge')
     .createClient({
         apiKey: process.env.CHALLONGE_KEY

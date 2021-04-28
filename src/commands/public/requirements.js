@@ -1,5 +1,5 @@
 const helpers = require('../../helpers/helpers');
-const divInfo = require('../../divisions.json');
+const divInfo = require('../../../divisions.json');
 
 module.exports = {
     name: "requirements",

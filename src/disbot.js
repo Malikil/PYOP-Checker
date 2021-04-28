@@ -14,9 +14,9 @@ const { archiveMaps } = require('./database/db-manager');
 
 // Load commands from files
 client.commands = new Discord.Collection();
-fs.readdir('./commands',
+fs.readdir('./dist/commands',
     (_, folders) => folders.forEach(folder => {
-        fs.readdir(`./commands/${folder}`,
+        fs.readdir(`./dist/commands/${folder}`,
             (_, files) => {
                 files.filter(f => f.endsWith('.js')).forEach(file => {
                     const command = require(`./commands/${folder}/${file}`);

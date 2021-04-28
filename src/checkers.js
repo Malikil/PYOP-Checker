@@ -1,5 +1,5 @@
 const { Checker, Rule } = require('./beatmap_checker');
-const divInfo = require('./divisions.json');
+const divInfo = require('../divisions.json');
 const { currentWeek } = require('./helpers/helpers');
 
 /** @type {Object<string, import('./beatmap_checker/checker')>} */

@@ -1,6 +1,6 @@
 const Discord = require('discord.js');
 const db = require('../../database/db-manager');
-const divInfo = require('../../divisions.json');
+const divInfo = require('../../../divisions.json');
 const { inspect } = require('util');
 
 module.exports = {

@@ -15,10 +15,10 @@ module.exports = {
      * @param {Discord.Message} msg 
      */
     async run(msg, { command }) {
-        const commandFolders = fs.readdirSync('./commands');
+        const commandFolders = fs.readdirSync('./dist/commands');
         const commands = {};
         commandFolders.forEach(folder => {
-            const subCommands = fs.readdirSync(`./commands/${folder}`)
+            const subCommands = fs.readdirSync(`./dist/commands/${folder}`)
             .filter(f => f.endsWith('.js'))
             .map(file => {
                 if (file === "help.js")
