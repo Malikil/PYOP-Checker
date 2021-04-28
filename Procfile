@@ -1,1 +1,1 @@
-worker: node disbot.js
+worker: node dist/disbot.js

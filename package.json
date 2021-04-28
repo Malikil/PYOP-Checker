@@ -1,13 +1,16 @@
 {
   "name": "pyopchecker",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Check maps for PYOP, send rejections to discord",
-  "main": "index.js",
+  "main": "dist/disbot.js",
   "scripts": {
-    "test": "nodemon --exec \"heroku local -f Procfile.test\" -e js",
-    "start": "nodemon --exec \"heroku local\" -e js"
+    "postinstall": "tsc",
+    "compile": "tsc && heroku local",
+    "devcompile": "tsc && heroku local -f Procfile.test",
+    "start": "nodemon --exec \"npm run compile\" -e ts",
+    "test": "nodemon --exec \"npm run devcompile\" -e ts"
   },
-  "author": "Eric",
+  "author": "Eric Hagen",
   "license": "ISC",
   "dependencies": {
     "bancho.js": "^0.9.6",
