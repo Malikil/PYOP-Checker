@@ -1,25 +1,23 @@
-const db = require('../../database/db-manager');
-const scheduler = require('../../database/scheduler');
-const Discord = require('discord.js');
+import { Command } from "../../types/types";
+import { Message, MessageEmbed } from 'discord.js';
+import db from '../../database/db-manager';
+import { getTime, generateTimes } from '../../database/scheduler';
 
-module.exports = {
-    name: "schedule",
-    description: "Finds a time for a match to happen",
-    args: [
+export default class implements Command {
+    name = "schedule";
+    description = "Finds a time for a match to happen";
+    args = [
         { arg: 'any', name: "team", description: "Team name", required: true },
         { arg: 'any', name: "team", description: "Team name", required: true }
-    ],
+    ];
     
-    /**
-     * @param {Discord.Message} msg 
-     */
-    async run(msg, { team }) {
+    async run(msg: Message, { team }: { team: string[] }) {
         const team1 = await db.getTeamByName(team[0]);
         const team2 = await db.getTeamByName(team[1]);
         if (!team1 || !team2)
             return msg.channel.send("Teams not found");
 
-        const resultEmbed = new Discord.MessageEmbed()
+        const resultEmbed = new MessageEmbed()
             .setTitle("Generated Match Time")
             .addField(
                 team1.teamname,
@@ -35,10 +33,10 @@ module.exports = {
         const offsets = team1.players.map(p => p.utc)
             .concat(team2.players.map(p => p.utc));
 
-        const time = await scheduler.getTime(offsets);
+        const time = await getTime(offsets);
         console.log(time);
         if (time) {
-            const timestamp = t => {
+            const timestamp = (t: number) => {
                 const hours = t | 0;
                 const minutes = ((t - hours) * 60) | 0;
                 return `${hours}:${minutes < 10 ? "0" : ""}${minutes}`;
@@ -53,7 +51,7 @@ module.exports = {
             );
         }
         else {
-            const generated = scheduler.generateTimes(offsets);
+            const generated = generateTimes(offsets);
             if (generated) 
                 // Display the found time range
                 resultEmbed.addField(
@@ -68,6 +66,6 @@ module.exports = {
                 );
         }
 
-        return msg.channel.send(resultEmbed.setTimestamp());
+        return msg.channel.send(resultEmbed);
     }
 }

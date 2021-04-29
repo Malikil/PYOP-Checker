@@ -1,14 +1,15 @@
-const scheduler = require('../../database/scheduler');
-const db = require('../../database/db-manager');
-const util = require('util');
-const Discord = require('discord.js');
+import { Command } from "../../types/types";
+import { Message, MessageEmbed } from 'discord.js';
+import { setTime } from '../../database/scheduler';
+import db from '../../database/db-manager';
+import { inspect } from 'util';
 
-module.exports = {
-    name: "played",
-    description: "Adds a given time to the schedule knowledge base using " +
-        "offsets from two given teams",
-    permissions: [ process.env.ROLE_ADMIN ],
-    args: [
+export default class implements Command {
+    name = "played";
+    description = "Adds a given time to the schedule knowledge base using " +
+        "offsets from two given teams";
+    permissions = [ process.env.ROLE_ADMIN ];
+    args = [
         { arg: 'any', name: "team", description: "Team name", required: true },
         { arg: 'any', name: "team", description: "Team name", required: true },
         {
@@ -17,12 +18,9 @@ module.exports = {
             description: "The time the team played at, in decimal hours form",
             required: true
         }
-    ],
+    ];
 
-    /**
-     * @param {Discord.Message} msg 
-     */
-    async run(msg, { team, time }) {
+    async run(msg: Message, { team, time }: { team: string[], time: string }) {
         // Make sure time is in a valid format
         const timeval = parseFloat(time);
         if (isNaN(timeval) || timeval < 0 || timeval >= 24)
@@ -42,13 +40,13 @@ module.exports = {
                 return arr;
             }, []);
 
-        const result = await scheduler.setTime(offsets, timeval);
+        const result = await setTime(offsets, timeval);
         // Construct an embed for the result
-        const embed = new Discord.MessageEmbed()
+        const embed = new MessageEmbed()
             .setTitle("Updated Scheduler Times")
-            .setDescription(`Using offsets:\n${util.inspect(offsets)}`)
-            .addField("Old Time", "```js\n" + util.inspect(result.oldTime) + "\n```")
-            .addField("New Time", "```js\n" + util.inspect(result.newTime) + "\n```");
+            .setDescription(`Using offsets:\n${inspect(offsets)}`)
+            .addField("Old Time", "```js\n" + inspect(result.oldTime) + "\n```")
+            .addField("New Time", "```js\n" + inspect(result.newTime) + "\n```");
 
         return msg.channel.send(embed.setTimestamp());
     }

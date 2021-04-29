@@ -1,23 +1,21 @@
-const db = require('../../database/db-manager');
-const Logger = require('../../helpers/logger');
+import { Command } from "../../types/types";
+import { Message } from 'discord.js';
+import db from '../../database/db-manager';
 
-module.exports = {
-    name: "eliminate",
-    description: "Cleans up a team when they are eliminated",
-    permissions: [ process.env.ROLE_ADMIN ],
-    args: [
+export default class implements Command {
+    name = "eliminate";
+    description = "Cleans up a team when they are eliminated";
+    permissions = [ process.env.ROLE_ADMIN ];
+    args = [
         {
             arg: 'any',
             name: "teamname",
             description: "The name of the eliminated team",
             required: true
         }
-    ],
+    ];
 
-    /**
-     * @param {import('discord.js').Message} msg 
-     */
-    async run(msg, { teamname }) {
+    async run(msg: Message, { teamname }: { teamname: string }) {
         const team = await db.eliminateTeam(teamname);
         if (!team)
             return msg.channel.send("Could not find team");
@@ -36,7 +34,7 @@ module.exports = {
                         member = await members.fetch(player.discordid);
 
                 // If the member isn't cached, attempt to fetch them
-                Logger.log(`Removing ${playerRole} from ${member}`, "eliminate.js");
+                console.log(`eliminate.js - Removing ${playerRole} from ${member}`);
 
                 if (member)
                     return member.roles.remove(playerRole);

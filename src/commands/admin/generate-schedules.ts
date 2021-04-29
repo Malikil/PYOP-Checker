@@ -1,13 +1,15 @@
-const db = require('../../database/db-manager');
-const scheduler = require('../../database/scheduler');
-const Discord = require('discord.js');
-const challonge = require('../../challonge-manager');
+import { Command } from "../../types/types";
+import { Message, MessageEmbed } from 'discord.js';
+import db from '../../database/db-manager';
+import { getTime, generateTimes } from '../../database/scheduler';
+import challonge = require('../../challonge-manager');
+import { LegacyDivision } from "../../types/divisions";
 
-module.exports = {
-    name: "generate-schedule",
-    description: "Generates times for all pending matches in the given division",
-    permissions: [ process.env.ROLE_ADMIN ],
-    args: [
+export default class implements Command {
+    name = "generate-schedule";
+    description = "Generates times for all pending matches in the given division";
+    permissions = [ process.env.ROLE_ADMIN ];
+    args = [
         { arg: 'division', required: true },
         {
             arg: 'any',
@@ -15,19 +17,16 @@ module.exports = {
             description: '"potential" if potential losers matches should be scheduled',
             required: false
         }
-    ],
-    alias: [ "schedgen" ],
+    ];
+    alias = [ "schedgen" ];
     
-    /**
-     * @param {Discord.Message} msg 
-     */
-    async run(msg, { division, set }) {
+    async run(msg: Message, { division, set }: { division: LegacyDivision, set: string }) {
         console.log(`Looking for matches from ${division.url}`);
         const matches = await getMatches(division.url, set === "potential");
         const teams = challonge.getParticipants(division.division);
         console.log(`Got ${matches.length} matches for ${teams.length} teams`);
         const dbTeams = await db.map(async t => t);
-        const resultEmbed = new Discord.MessageEmbed()
+        const resultEmbed = new MessageEmbed()
             .setTitle(`Scheduling ${division.division} matches`)
             .setColor("#5555aa")
             .setFooter(`Found ${matches.length} matches`);
@@ -46,7 +45,7 @@ module.exports = {
             console.log(offsets);
 
             // Schedule the match
-            const time = await scheduler.getTime(offsets);
+            const time = await getTime(offsets);
             if (time) {
                 const range = time.stdev ?
                     ` ±${timestamp(time.stdev)}` :
@@ -58,7 +57,7 @@ module.exports = {
                 );
             }
             else {
-                const generated = scheduler.generateTimes(offsets);
+                const generated = generateTimes(offsets);
                 if (generated)
                     return resultEmbed.addField(
                         `${match.suggestedPlayOrder}: (${p1.name}) vs (${p2.name})`,
@@ -74,16 +73,15 @@ module.exports = {
             }
         }));
 
-        return msg.channel.send(resultEmbed.setTimestamp());
+        return msg.channel.send(resultEmbed);
     }
 };
 
 /**
- * @param {string} div Division url
- * @param {boolean} pending Should pending matches be found
- * @returns {Promise<any[]>}
+ * @param div Division url
+ * @param pending Should pending matches be found
  */
-async function getMatches(div, pending) {
+async function getMatches(div: string, pending: boolean): Promise<any[]> {
     if (!pending)
         return challonge.getOpenMatches(div);
 

@@ -2,7 +2,8 @@ const db = require('./mdb');
 
 /**
  * Makes sure offset array is in the correct format
- * @param {number[]} offsets Array of offsets from UTC
+ * @param {string[]} offsets Array of offsets from UTC
+ * @returns {number[]} Offsets array converted to integers
  */
 function verifyOffsets(offsets) {
     return offsets.map(n => parseInt(n))
@@ -15,10 +16,10 @@ function verifyOffsets(offsets) {
 }
 
 /**
- * @param {number[]} offsets Array of offsets from UTC
+ * @param {string[]} offsets Array of offsets from UTC
  * @param {number} time The time the match took place
  */
-async function setTime(offsets, time) {
+export async function setTime(offsets, time) {
     const offs = verifyOffsets(offsets);
     console.log(offs);
 
@@ -78,14 +79,14 @@ async function setTime(offsets, time) {
 }
 
 /**
- * @param {number[]} offsets Array of offsets from UTC
+ * @param {string[]} offsets Array of offsets from UTC
  * @returns {Promise<{
  *  time: number,
  *  count: number,
  *  stdev?: number
  * }>}
  */
-async function getTime(offsets) {
+export async function getTime(offsets) {
     const offs = verifyOffsets(offsets);
     console.log(offs);
     const times = await db.collection('times').findOne({ depth: offs.length });
@@ -99,7 +100,7 @@ async function getTime(offsets) {
     }, times);
 }
 
-function generateTimes(offsets) {
+export function generateTimes(offsets) {
     const offs = verifyOffsets(offsets);
     console.log(offs);
 
@@ -133,9 +134,3 @@ function generateTimes(offsets) {
         };
     }
 }
-
-module.exports = {
-    setTime,
-    getTime,
-    generateTimes
-};
