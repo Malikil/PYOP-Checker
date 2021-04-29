@@ -1,10 +1,8 @@
 //import nfetch = require('node-fetch');
 //import ojsama = require('ojsama');
 //import readline = require('readline');
-import Beatmap from '../types/bancho/beatmap';
 import Mods from '../types/bancho/mods';
 import { BanchoScore } from '../types/bancho/types';
-import { DbBeatmap } from './../types/types';
 import { days } from './mstime';
 import nfetch from 'node-fetch';
 

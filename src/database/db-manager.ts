@@ -3,7 +3,7 @@ This module should handle connecting to the database and all the CRUD operations
 */
 //const { MongoClient, Db } = require('mongodb');
 import util = require('util');
-import { DbBeatmap, DbPlayer, DbTeam, MapStatus } from '../types/types';
+import { DbBeatmap, DbPlayer, DbTeam, MapStatus } from '../types/database';
 import { Mods } from '../types/bancho';
 const POOLED_MODS = Mods.Hidden | Mods.HardRock | Mods.DoubleTime;
 

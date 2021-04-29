@@ -1,4 +1,4 @@
-import { Command } from "../../types/types";
+import { Command } from "../../types/commands";
 import { Message } from 'discord.js';
 import db from '../../database/db-manager';
 import { Player } from '../../types/bancho';

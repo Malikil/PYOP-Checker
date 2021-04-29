@@ -3,7 +3,7 @@ import db from '../../database/db-manager';
 import { Beatmap, Mods } from '../../types/bancho';
 import { Message } from 'discord.js';
 import { inspect } from 'util';
-import { Command } from '../../types/types';
+import { Command } from '../../types/commands';
 
 export default class implements Command {
     name = "check";

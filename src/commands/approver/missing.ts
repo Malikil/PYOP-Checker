@@ -1,4 +1,5 @@
-import { Command, MapStatus } from "../../types/types";
+import { Command } from "../../types/commands";
+import { MapStatus } from '../../types/database';
 import { Message } from 'discord.js';
 import db from '../../database/db-manager';
 import { inspect } from 'util';

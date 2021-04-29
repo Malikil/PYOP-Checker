@@ -1,5 +1,5 @@
 import { Message } from "discord.js";
-import { Command } from "../../types/types";
+import { Command } from "../../types/commands";
 import helpers from '../../helpers/helpers';
 import { LegacyDivision } from "../../types/divisions";
 

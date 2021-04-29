@@ -1,4 +1,4 @@
-import { Command } from "../../types/types";
+import { Command } from "../../types/commands";
 import { Message } from 'discord.js';
 import { exportAllMaps } from '../../gsheets';
 

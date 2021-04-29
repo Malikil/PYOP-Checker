@@ -7,7 +7,7 @@ import fs = require('fs');
 import { Client, Collection } from 'discord.js';
 import validator = require('./validator');
 import { inspect } from 'util';
-import { Command } from './types/types';
+import { Command } from './types/commands';
 import actions from './actions';
 const client = new Client();
 

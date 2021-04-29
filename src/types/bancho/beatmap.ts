@@ -2,7 +2,7 @@ import nfetch from 'node-fetch';
 import { BanchoBeatmap } from './types';
 import Mods from './mods';
 import { Mode } from './enums';
-import { DbBeatmap, MapStatus } from '../types';
+import { DbBeatmap, MapStatus } from '../database';
 const OSUKEY = process.env.OSUKEY;
 
 export default class Beatmap {

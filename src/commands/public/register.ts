@@ -1,5 +1,5 @@
 import { Message } from 'discord.js';
-import { Command } from '../../types/types';
+import { Command } from '../../types/commands';
 
 export default class implements Command {
     name = "register";

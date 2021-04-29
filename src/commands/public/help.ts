@@ -1,7 +1,7 @@
 import fs = require('fs');
 import { Message } from 'discord.js';
 import { usageString } from '../../validator';
-import { Command } from '../../types/types';
+import { Command } from '../../types/commands';
 
 export default class implements Command {
     name = "help";

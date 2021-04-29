@@ -1,4 +1,5 @@
-import { Command, MapStatus } from "../../types/types";
+import { Command } from "../../types/commands";
+import { MapStatus } from '../../types/database';
 import { Message, MessageEmbed } from 'discord.js';
 import helpers from '../../helpers/helpers';
 import { checkers } from '../../checkers';

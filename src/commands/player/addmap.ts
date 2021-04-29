@@ -3,7 +3,8 @@ import db from '../../database/db-manager';
 import { Beatmap, Mods } from '../../types/bancho';
 import { checkers } from '../../checkers';
 import helpers from '../../helpers/helpers';
-import { Command, DbBeatmap, MapStatus } from '../../types/types';
+import { Command } from '../../types/commands';
+import { MapStatus } from '../../types/database';
 import { hours } from '../../helpers/mstime';
 
 export default class implements Command {
@@ -92,18 +93,7 @@ export default class implements Command {
                 await db.removeMap(team.teamname, rejected.bid, rejected.mods);
         }
         
-        const mapitem: DbBeatmap = {
-            bid: beatmap.beatmap_id,
-            artist: beatmap.artist,
-            bpm: beatmap.bpm,
-            creator: beatmap.creator,
-            drain: beatmap.hit_length,
-            mods: beatmap.mods,
-            stars: beatmap.difficultyrating,
-            status,
-            title: beatmap.title,
-            version: beatmap.version
-        };
+        const mapitem = beatmap.toDbBeatmap(status);
         const result = await db.addMap(team.teamname, mapitem);
         if (result)
         {

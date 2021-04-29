@@ -1,4 +1,5 @@
-import { Command, DbBeatmap, MapStatus } from "../../types/types";
+import { Command } from "../../types/commands";
+import { MapStatus } from '../../types/database';
 import { Message } from 'discord.js';
 import db from '../../database/db-manager';
 import helpers from '../../helpers/helpers';
@@ -26,7 +27,7 @@ export default class implements Command {
                 str += `**__${helpers.modString(modpool._id)}:__**\n`;
                 modpool.maps.forEach(map => {
                     if (str.length < 1800)
-                        str += `<${helpers.mapLink(<DbBeatmap>map)}> ${helpers.mapString(<DbBeatmap>map)}\n`;
+                        str += `<${helpers.mapLink(map)}> ${helpers.mapString(map)}\n`;
                 });
             }
         });

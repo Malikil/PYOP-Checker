@@ -71,10 +71,9 @@ CHANNEL_ANNOUNCEMENTS=123456789
 * `CHALLONGE_KEY` Your challonge api key, available from https://challonge.com/settings/developer
 * `CHANNEL_ANNOUNCEMENTS` The Discord Channel ID for which channel to make announcements in
 * `CHANNEL_SCREENSHOTS` The channel where the bot will post screenshots which players submit for maps
-* `CHANNEL_MAPPOOLS` The channel where approver commands are available
+* `CHANNEL_MAPPOOLS` The channel where the bot will post pool maintenance messages
 * `DISCORD_GUILD` This is the discord server's ID that you're adding the bot to
 * `DISCORD_TOKEN` This is the token from the bot tab on the application's developer page. It's not shown on the page by default, you click a button to copy it. After you copy it should look something like `xxxxxxxxxxxxxxxxxxxxxxxx.xxxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxx`
-* `DRAIN_BUFFER` How many seconds above/below the drain limit can maps be
 * `FIRST_POOLS_DUE` The date in ISO format for when the first week's pool submission should close. ISO format looks like this `yyyy-mm-ddThh:mm:ssZ` for UTC time
 * `GOOGLE_APPLICATION_CREDENTIALS` This is the content of the json file Google gave you when setting up a service account to edit sheets. (Need to figure out how to generate this again, and how to shove it into heroku)
 * `MONGO_PASS` The password for mongodb. There's a button on the access management page to copy the password for a created user
@@ -85,3 +84,17 @@ CHANNEL_ANNOUNCEMENTS=123456789
 * `ROLE_MAP_APPROVER` This is the role for who has access to approver commands
 * `ROLE_PLAYER` This is the role to ping when the bot makes an announcement
 * `SPREADSHEET_ID` The spreadsheet id to push maps to. You can copy this from the link when you've got the sheet open. It's the part between `/d/` and `/edit`
+
+## Specifying Tournament Rules
+<u>**\*\*INCOMPLETE\*\***</u>
+
+Once you've added the bot to your server, you'll need to tell it what restrictions should apply to submitted maps.
+
+* !addDiv - Create a division
+* !remDiv - Remove a division
+* !divUrl - Set the Challonge url id
+* !rankLimit Division ValueRange
+* !setRule Division RuleType ValueRange
+* !remRule Division RuleType
+* !setPool [Mods | "Custom"] MapCount
+    * MapCount = 0 to remove
