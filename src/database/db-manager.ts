@@ -3,7 +3,7 @@ This module should handle connecting to the database and all the CRUD operations
 */
 //const { MongoClient, Db } = require('mongodb');
 import util = require('util');
-import { DbBeatmap, DbPlayer, DbTeam, MapStatus, PlayerId } from '../types/types';
+import { DbBeatmap, DbPlayer, DbTeam, MapStatus } from '../types/types';
 import MODS from '../types/bancho/mods';
 const POOLED_MODS = MODS.Hidden | MODS.HardRock | MODS.DoubleTime;
 
@@ -140,7 +140,7 @@ async function getTeamByPlayerid(id: string | number)
         return team;
 }
 
-async function getTeamByPlayerlist(players: PlayerId[])
+async function getTeamByPlayerlist(players: { osuid?: number, osuname?: string, discordid?: string }[])
 {
     let filter = [];
     players.forEach(p => {
@@ -542,7 +542,7 @@ async function archiveMaps() {
     );
 }
 //#endregion
-export default module.exports = {
+export default {
     addTeam, // Teams/players
     eliminateTeam,
     setNotify,

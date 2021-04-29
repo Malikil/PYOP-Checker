@@ -1,27 +1,25 @@
-const { checkers } = require('../../checkers');
-const db = require('../../database/db-manager');
-const ApiBeatmap = require('../../types/apibeatmap');
-const Discord = require('discord.js');
-const util = require('util');
+import { checkers } from '../../checkers';
+import db from '../../database/db-manager';
+import { Beatmap, Mods } from '../../types/bancho';
+import { Message } from 'discord.js';
+import { inspect } from 'util';
+import { Command } from '../../types/types';
 
-module.exports = {
-    name: "check",
-    description: "Checks whether a map would be allowed in a pool",
-    args: [
+export default class implements Command {
+    name = "check";
+    description = "Checks whether a map would be allowed in a pool";
+    args = [
         { arg: "map", required: true },
-        { arg: "mods" },
-        { arg: "division" }
-    ],
-    alias: [ "map" ],
+        { arg: "mods", required: false },
+        { arg: "division", required: false }
+    ];
+    alias = [ "map" ];
 
-    /**
-     * @param {Discord.Message} msg 
-     */
-    async run(msg, { map, mods, division }) {
+    async run(msg: Message, { map, mods, division }: { map: number, mods: Mods, division: any }) {
         if (division)
             division = division.division;
         if (!mods)
-            mods = 0;
+            mods = Mods.None;
         console.log(`Checking map ${map} with mods ${mods} using ${division} division`);
         // If division is included, use that. Otherwise try to
         // get the division based on who sent the message
@@ -33,11 +31,11 @@ module.exports = {
             else // Use the first division as default
                 division = Object.keys(checkers)[0];
         }
-        let beatmap = await ApiBeatmap.buildFromApi(map, mods);
+        let beatmap = await Beatmap.buildFromApi(map, mods);
         if (!beatmap)
             return msg.channel.send(`Couldn't find map with id ${map}`);
         let check = await checkers[division].check(beatmap);
-        console.log(`Rules check returned: ${util.inspect(check)}`);
+        console.log(`Rules check returned: ${inspect(check)}`);
 
         return msg.channel.send(`${division} division: ${check.message}`);
     }

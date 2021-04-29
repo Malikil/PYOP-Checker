@@ -41,12 +41,6 @@ export interface DbTeam {
     eliminated?: boolean
 };
 
-export interface PlayerId {
-    discordid?: string,
-    osuname?: string,
-    osuid?: number
-};
-
 export interface CommandArg {
     arg: string,
     required: boolean,

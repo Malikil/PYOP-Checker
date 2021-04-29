@@ -1,28 +1,26 @@
-const Discord = require('discord.js');
+import { Message } from 'discord.js';
+import { Command } from '../../types/types';
 
-module.exports = {
-    name: "register",
-    description: "The team captain should register for the whole team, please " +
+export default class implements Command {
+    name = "register";
+    description = "The team captain should register for the whole team, please " +
         "make sure all items are in the correct order.\n" +
         "Divisions are open or 10k.\n" +
         "You can use either the link to your osu profile or your osu username. If using username " +
         "all spaces should be replaced with underscore. Eg 'Example User Name' becomes 'Example\\_User\\_Name'\n" +
         "UTC times should be some sort of offset from utc, eg UTC-7 or just -7. If one of your players " +
         "doesn't want their time zone considered while scheduling enter a single underscore instead. Eg " +
-        "`@Malikil Malikil _`\nIf you need to make changes to your team, please let Malikil know.",
-    args: [],
-    skipValidation: true,
+        "`@Malikil Malikil _`\nIf you need to make changes to your team, please let Malikil know.";
+    args = [];
+    skipValidation = true;
 
-    /**
-     * @param {Discord.Message} msg 
-     */
-    async run(msg) {
+    async run(msg: Message) {
         return msg.channel.send("Registrations are closed");
 
         // !!!!!!!!!!!!!! NOT UPDATED FROM OLD SYSTEM !!!! VERY BROKEN !!!!!!!!!!!!!!!
 
         // Verify arguments
-        let division = args[0].toLowerCase();
+        /*let division = args[0].toLowerCase();
         if (!divInfo.find(d => d.division === division))
             return msg.channel.send("Division not found");
         const parseProfile = p => {

@@ -1,12 +1,16 @@
-const helpers = require('../../helpers/helpers');
-const divInfo = require('../../../divisions.json');
+import { Message } from "discord.js";
+import { Command } from "../../types/types";
+import helpers from '../../helpers/helpers';
+import { LegacyDivision } from "../../types/divisions";
 
-module.exports = {
-    name: "requirements",
-    description: "Shows requirements for the current week",
-    alias: [ "req" ],
+const divInfo: LegacyDivision[] = require('../../../divisions.json');
 
-    async run(msg) {
+export default class implements Command {
+    name = "requirements";
+    description = "Shows requirements for the current week";
+    alias = [ "req" ];
+
+    async run(msg: Message) {
         const minTotal = parseInt(process.env.MIN_TOTAL);       // Pool drain limit, per map
         const maxTotal = parseInt(process.env.MAX_TOTAL);       // Pool drain limit, per map
         const poolCount = 10; // 10 maps per pool

@@ -16,6 +16,8 @@ const ALLOWED_MODS = Mods.Hidden | Mods.HardRock | Mods.DoubleTime | Mods.Nightc
  * @returns If an array is given, the object at this week's index will
  * be returned. Otherwise the index for this week will be given
  */
+function currentWeek(): number;
+function currentWeek<T>(arr: T[]): T;
 function currentWeek<T>(arr?: T[]): T | number {
     // The date will determine which week we're in
     const firstDue = new Date(process.env.FIRST_POOLS_DUE);
