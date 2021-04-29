@@ -1,4 +1,4 @@
-const db = require('./mdb');
+const db = require('./mdb').default;
 
 /**
  * Makes sure offset array is in the correct format

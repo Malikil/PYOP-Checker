@@ -5,9 +5,9 @@ This module should handle connecting to the database and all the CRUD operations
 import util = require('util');
 import { DbBeatmap, DbPlayer, DbTeam, MapStatus } from '../types/database';
 import { Mods } from '../types/bancho';
-const POOLED_MODS = Mods.Hidden | Mods.HardRock | Mods.DoubleTime;
+import db from './mdb';
 
-import db = require('./mdb');
+const POOLED_MODS = Mods.Hidden | Mods.HardRock | Mods.DoubleTime;
 //#region ============================== Helpers/General ==============================
 /**
  * Performs the given action for each item in the database, and return an array of the results

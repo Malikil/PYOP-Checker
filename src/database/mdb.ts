@@ -1,4 +1,4 @@
-const { MongoClient, Db } = require('mongodb');
+import { MongoClient, Db } from 'mongodb';
 
 const DB_KEY = Symbol.for("PYOP.db");
 const globalSymbols = Object.getOwnPropertySymbols(global);
@@ -24,10 +24,9 @@ if (!hasDb) {
     global[DB_KEY] = client;
 }
 
-module.exports = {
-    collection(coll) {
-        /** @type {Db} */
-        const db = global[DB_KEY].db('pyopdb');
-        return db.collection(coll);
+export default {
+    collection<T = any>(coll: string) {
+        const db: Db = global[DB_KEY].db('pyopdb');
+        return db.collection<T>(coll);
     }
 };
