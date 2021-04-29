@@ -1,4 +1,7 @@
-const divInfo = require('../divisions.json');
+import { ChallongeMatch, ChallongeParticipant } from "./types/challonge";
+import { LegacyDivision } from "./types/divisions";
+
+const divInfo: LegacyDivision[] = require('../divisions.json');
 const challonge = require('challonge')
     .createClient({
         apiKey: process.env.CHALLONGE_KEY
@@ -13,7 +16,7 @@ if (!hasParticipants) {
     divInfo.forEach(div =>
         challonge.participants.index({
             id: div.url,
-            callback: (err, data) => {
+            callback: (err, data: { [index: string]: { participant: ChallongeParticipant }}) => {
                 if (err)
                     console.error(err);
                 else
@@ -26,23 +29,21 @@ if (!hasParticipants) {
 
 /**
  * Gets the list of participants of a division
- * @param {string} division division name
- * @returns {*[]}
+ * @param division division name
  */
-function getParticipants(division) {
+export function getParticipants(division: string): ChallongeParticipant[] {
     return global[PARTICIPANTS_KEY][division];
 }
 
 /**
- * @param {string} divId division url
- * @returns {Promise<*[]>}
+ * @param divId division url
  */
-function getOpenMatches(divId) {
+export function getOpenMatches(divId: string): Promise<ChallongeMatch[]> {
     return new Promise((resolve, reject) =>
         challonge.matches.index({
             id: divId,
             state: 'open',
-            callback: (err, data) => {
+            callback: (err, data: { [index: string]: { match: ChallongeMatch }}) => {
                 if (err)
                     reject(err);
                 else
@@ -52,11 +53,11 @@ function getOpenMatches(divId) {
     );
 }
 
-async function getNextMatches(divId) {
-    const matches = await new Promise((resolve, reject) =>
+export async function getNextMatches(divId: string): Promise<ChallongeMatch[]> {
+    const matches: ChallongeMatch[] = await new Promise((resolve, reject) =>
         challonge.matches.index({
             id: divId,
-            callback: (err, data) => {
+            callback: (err, data: { [index: string]: { match: ChallongeMatch }}) => {
                 if (err)
                     reject(err);
                 else
@@ -67,8 +68,8 @@ async function getNextMatches(divId) {
 
     // Split into current matches and pending matches
     // We don't care about past matches
-    const open = {};
-    const pending = [];
+    const open: { [key: number]: ChallongeMatch } = {};
+    const pending: ChallongeMatch[] = [];
     matches.forEach(match => {
         if (match.state === "open")
             open[match.id] = match;
@@ -86,8 +87,8 @@ async function getNextMatches(divId) {
                 });
 }
 
-module.exports = {
+export default {
     getParticipants,
-    getOpenMatches,
-    getNextMatches
+    getNextMatches,
+    getOpenMatches
 };

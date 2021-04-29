@@ -2,7 +2,7 @@ import { Command } from "../../types/types";
 import { Message, MessageEmbed } from 'discord.js';
 import db from '../../database/db-manager';
 import { getTime, generateTimes } from '../../database/scheduler';
-import challonge = require('../../challonge-manager');
+import { getParticipants, getOpenMatches, getNextMatches } from '../../challonge-manager';
 import { LegacyDivision } from "../../types/divisions";
 
 export default class implements Command {
@@ -23,7 +23,7 @@ export default class implements Command {
     async run(msg: Message, { division, set }: { division: LegacyDivision, set: string }) {
         console.log(`Looking for matches from ${division.url}`);
         const matches = await getMatches(division.url, set === "potential");
-        const teams = challonge.getParticipants(division.division);
+        const teams = getParticipants(division.division);
         console.log(`Got ${matches.length} matches for ${teams.length} teams`);
         const dbTeams = await db.map(async t => t);
         const resultEmbed = new MessageEmbed()
@@ -83,9 +83,9 @@ export default class implements Command {
  */
 async function getMatches(div: string, pending: boolean): Promise<any[]> {
     if (!pending)
-        return challonge.getOpenMatches(div);
+        return <Promise<any[]>>getOpenMatches(div);
 
-    const pend = await challonge.getNextMatches(div)
+    const pend = await getNextMatches(div)
         .then(pend => pend.filter(m =>
             // We only want the losers bracket potential matches
             !m.player1IsPrereqMatchLoser &&
