@@ -146,11 +146,11 @@ function parseMapId(mapString: string)
 /**
  * Converts a map object to the artist - title [version] format
  */
-const mapString = (map: DbBeatmap | Beatmap) => `${map.artist} - ${map.title} [${map.version}]`;
+const mapString = (map: { artist: string, title: string, version: string }) =>
+    `${map.artist} - ${map.title} [${map.version}]`;
 /** osu.ppy.sh/b/${beatmap id} */
-const mapLink = (map: DbBeatmap | Beatmap) => 'bid' in map ?
-    `https://osu.ppy.sh/b/${map.bid}` :
-    `https://osu.ppy.sh/b/${map.beatmap_id}`;
+const mapLink = (map: { bid?: number, beatmap_id?: number }) =>
+    `https://osu.ppy.sh/b/${map.bid || map.beatmap_id}`;
 
 /**
  * Converts from integer seconds to mm:ss time format

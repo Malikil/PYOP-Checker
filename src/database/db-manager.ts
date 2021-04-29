@@ -430,7 +430,7 @@ async function addScreenshot(discordid: string, mapid: number, pass: string, pen
  * @param mapid The map id to update
  * @param mods The mods the map uses
  */
-async function approveMap(mapid: number, mods: number)
+async function approveMap(mapid: number, mods: Mods)
 {
     console.log(`Approving ${mapid} +${mods}`);
     // Search for maps with the given mod
@@ -460,7 +460,7 @@ async function approveMap(mapid: number, mods: number)
  * @returns A list of players to notify of the change, along with the number of
  * updated teams
  */
-async function rejectMap(mapid: number, mods: number, message: string)
+async function rejectMap(mapid: number, mods: Mods, message: string)
 {
     console.log(`Rejecting mapid ${mapid} +${mods}`);
     // Get a list of notification players on teams with maps to be rejected
@@ -472,7 +472,7 @@ async function rejectMap(mapid: number, mods: number, message: string)
             maps: { $elemMatch: {
                 bid: mapid,
                 mods,
-                status: { $not: MapStatus.Rejected }
+                status: { $ne: MapStatus.Rejected }
             } }
         } },
         { $project: {
@@ -499,7 +499,7 @@ async function rejectMap(mapid: number, mods: number, message: string)
         { maps: { $elemMatch: {
             bid: mapid,
             mods,
-            'map.status': { $not: MapStatus.Rejected }
+            'map.status': { $ne: MapStatus.Rejected }
         } } },
         { $set: {
             'maps.$[map].status': MapStatus.Rejected,
@@ -509,7 +509,7 @@ async function rejectMap(mapid: number, mods: number, message: string)
             {
                 'map.bid': mapid,
                 'map.mods': mods,
-                'map.status': { $not: MapStatus.Rejected }
+                'map.status': { $ne: MapStatus.Rejected }
             }
         ] }
     );

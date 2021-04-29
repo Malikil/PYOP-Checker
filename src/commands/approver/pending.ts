@@ -1,22 +1,20 @@
-const Discord = require('discord.js');
-const db = require('../../database/db-manager');
-const helpers = require('../../helpers/helpers');
-const util = require('util');
+import { Command, MapStatus } from "../../types/types";
+import { Message, MessageEmbed } from 'discord.js';
+import db from '../../database/db-manager';
+import helpers from '../../helpers/helpers';
+import { Mods } from "../../types/bancho";
 
-module.exports = {
-    name: "pending",
-    description: "Shows all maps with a pending status, waiting to " +
-        "be approved. Optionally limit to a specific mod combination.",
-    permissions: [ process.env.ROLE_MAP_APPROVER ],
-    args: [
+export default class implements Command {
+    name = "pending";
+    description = "Shows all maps with a pending status, waiting to " +
+        "be approved. Optionally limit to a specific mod combination.";
+    permissions = [ process.env.ROLE_MAP_APPROVER ];
+    args = [
         { arg: 'mods', required: false }
-    ],
+    ];
 
-    /**
-     * @param {Discord.Message} msg 
-     */
-    async run(msg, { mods }) {
-        const maplist = await db.findMapsWithStatus("Pending");
+    async run(msg: Message, { mods }: { mods: Mods }) {
+        const maplist = await db.findMapsWithStatus(MapStatus.Pending);
         console.log(maplist);
 
         // Try using an embed here
@@ -27,12 +25,12 @@ module.exports = {
         // Start the count with colour and title
         let skipped = 0;
         let total = 0;
-        const pendingEmbed = new Discord.MessageEmbed();
+        const pendingEmbed = new MessageEmbed();
         pendingEmbed
             .setColor("#a0ffff")
             .setTitle("Pending Maps")
             .addFields(
-                maplist.filter(m => !mods || m._id === mods.mods)
+                maplist.filter(m => !mods || m._id === mods)
                     .map(modpool => {
                         // Update the total count
                         total += modpool.maps.length;
@@ -68,6 +66,6 @@ module.exports = {
         if (skipped > 0)
             pendingEmbed.setFooter(`${total} maps - ${skipped} maps skipped`);
             
-        return msg.channel.send(pendingEmbed.setTimestamp());
+        return msg.channel.send(pendingEmbed);
     }
 }

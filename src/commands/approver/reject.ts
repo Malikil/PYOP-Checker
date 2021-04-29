@@ -1,14 +1,16 @@
-const Discord = require('discord.js');
-const db = require('../../database/db-manager');
-const helpers = require('../../helpers/helpers');
+import { Command } from "../../types/types";
+import { Message } from 'discord.js';
+import db from '../../database/db-manager';
+import helpers from '../../helpers/helpers';
+import { Mods } from "../../types/bancho";
 
-module.exports = {
-    name: "reject",
-    description: "Rejects a map with a message for the players indicating " +
+export default class implements Command {
+    name = "reject";
+    description = "Rejects a map with a message for the players indicating " +
         "why the map was rejected. Mods are required to help prevent " +
-        "rejecting unintended maps.",
-    permissions: [ process.env.ROLE_MAP_APPROVER ],
-    args: [
+        "rejecting unintended maps.";
+    permissions = [ process.env.ROLE_MAP_APPROVER ];
+    args = [
         { arg: 'map', required: true },
         { arg: 'mods', required: true },
         {
@@ -18,13 +20,10 @@ module.exports = {
                 "everything after the mods will be used",
             required: true
         }
-    ],
-    skipValidation: true,
+    ];
+    skipValidation = true;
 
-    /**
-     * @param {Discord.Message} msg 
-     */
-    async run(msg, { map, mods }) {
+    async run(msg: Message, { map, mods }: { map: number, mods: Mods }) {
         if (!map)
             return msg.channel.send("Map not recognised");
         if (!mods && mods !== 0)

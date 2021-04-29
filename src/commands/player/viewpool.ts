@@ -41,6 +41,9 @@ export default class implements Command {
             // Convert the map to a string
             mapinfo.str += `[${helpers.mapString(map)}](${helpers.mapLink(map)}) ${map.bid}\n`;
             mapinfo.str += `\u2003Drain: ${helpers.convertSeconds(map.drain)}, Stars: ${map.stars}\n\u2003Status: ${MapStatus[map.status]}`;
+            // If the map is rejected, show the message for why
+            if (map.status === MapStatus.Rejected)
+                mapinfo.str += `\n\u2003Message: ${map.message}`;
             if (map.status === MapStatus.ScreenshotRequired) {
                 let passes = (map.passes || []).length;
                 let missing = 2 - passes;
