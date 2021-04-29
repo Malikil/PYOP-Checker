@@ -2,6 +2,7 @@ import nfetch from 'node-fetch';
 import { BanchoBeatmap } from './types';
 import Mods from './mods';
 import { Mode } from './enums';
+import { DbBeatmap, MapStatus } from '../types';
 const OSUKEY = process.env.OSUKEY;
 
 export default class Beatmap {
@@ -114,13 +115,13 @@ export default class Beatmap {
         {
             this.total_length = (this.total_length * (2.0 / 3.0)) | 0;
             this.hit_length = (this.hit_length * (2.0 / 3.0)) | 0;
-            this.bpm = parseFloat((this.bpm * (3.0 / 2.0)).toFixed(3));
+            this.bpm = this.bpm * (3.0 / 2.0);
         }
         else if (mods & Mods.HalfTime)
         {
             this.total_length = (this.total_length * (4.0 / 3.0)) | 0;
             this.hit_length = (this.hit_length * (4.0 / 3.0)) | 0;
-            this.bpm = parseFloat((this.bpm * (3.0 / 4.0)).toFixed(3));
+            this.bpm = this.bpm * (3.0 / 4.0);
         }
 
         if (mods & Mods.HardRock)
@@ -152,5 +153,20 @@ export default class Beatmap {
         const maps = await nfetch(`https://osu.ppy.sh/api/get_beatmaps?k=${OSUKEY}&s=${mapsetId}`)
             .then((res): Promise<BanchoBeatmap[]> => res.json());
         return maps.map(m => new Beatmap(m));
+    }
+
+    toDbBeatmap(status: MapStatus): DbBeatmap {
+        return {
+            artist: this.artist,
+            bid: this.beatmap_id,
+            bpm: parseFloat(this.bpm.toFixed(3)),
+            creator: this.creator,
+            drain: this.hit_length,
+            mods: this.mods,
+            stars: parseFloat(this.difficultyrating.toFixed(2)),
+            status,
+            title: this.title,
+            version: this.version
+        };
     }
 }

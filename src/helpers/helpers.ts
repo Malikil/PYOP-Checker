@@ -6,6 +6,7 @@ import Mods from '../types/bancho/mods';
 import { BanchoScore } from '../types/bancho/types';
 import { DbBeatmap } from './../types/types';
 import { days } from './mstime';
+import nfetch from 'node-fetch';
 
 const key = process.env.OSUKEY;
 const ALLOWED_MODS = Mods.Hidden | Mods.HardRock | Mods.DoubleTime | Mods.Nightcore | Mods.Easy | Mods.HalfTime;
@@ -167,11 +168,11 @@ function convertSeconds(length: number): string
 
 async function getLeaderboard(mapid: number, mods: Mods = Mods.None): Promise<BanchoScore[]>
 {
-    let response = await fetch(`https://osu.ppy.sh/api/get_scores?k=${key}&b=${mapid}&m=0&mods=${mods}`);
+    let response = await nfetch(`https://osu.ppy.sh/api/get_scores?k=${key}&b=${mapid}&m=0&mods=${mods}`);
     return response.json();
 }
 
-/**
+/*
  * Gets a beatmap object which can be used to calculate sr or find hitobjects
  * {number} mapid The beatmap id to get info for
  * {number} mods The mods to use when parsing the map

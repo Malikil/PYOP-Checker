@@ -1,4 +1,4 @@
-const helpers = require('../helpers/helpers');
+const helpers = require('../helpers/helpers').default;
 const Rule = require('./rule');
 const { ApiBeatmap } = require('../types');
 

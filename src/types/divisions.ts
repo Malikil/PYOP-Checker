@@ -1,3 +1,5 @@
+import { Mods } from "./bancho";
+
 export interface ValueRange {
     low?: number;
     high?: number;
@@ -19,6 +21,10 @@ export interface Division {
     rules: {
         type: RuleType
         limits: ValueRange[]
+    }[],
+    pools: {
+        mods: Mods | "Custom",
+        count: number
     }[]
 };
 

@@ -1,30 +1,29 @@
-const Discord = require('discord.js');
-const helpers = require('../../helpers/helpers');
-const db = require('../../database/db-manager');
-const ApiBeatmap = require('../../types/apibeatmap');
-const { checkers } = require('../../checkers');
+import { Command } from "../../types/types";
+import { Message, MessageEmbed } from 'discord.js';
+import helpers from '../../helpers/helpers';
+import db from '../../database/db-manager';
+import { Beatmap, Mods } from '../../types/bancho';
+import { checkers } from '../../checkers';
+import { hours } from '../../helpers/mstime';
 
-module.exports = {
-    name: "bulkadd",
-    description: "Add multiple maps to your pool at once. " +
+export default class implements Command {
+    name = "bulkadd";
+    description = "Add multiple maps to your pool at once. " +
         "There should be one map per line, and mods should be included for all. eg:\n" +
         "    !bulkadd <https://osu.ppy.sh/b/8708> NM\n    <https://osu.ppy.sh/b/8708> HD\n" +
-        "    <https://osu.ppy.sh/b/75> HR\n    <https://osu.ppy.sh/b/75> DT\n",
-    skipValidation: true,
-    args: [
+        "    <https://osu.ppy.sh/b/75> HR\n    <https://osu.ppy.sh/b/75> DT\n";
+    skipValidation = true;
+    args = [
         {
             arg: 'any',
             name: "maps...",
             description: "map id/link and mods for each map",
             required: true
         }
-    ],
-    alias: [ 'addbulk' ],
+    ];
+    alias = [ 'addbulk' ];
 
-    /**
-     * @param {Discord.Message} msg 
-     */
-    async run(msg) {
+    async run(msg: Message) {
         // Get the user's team
         const team = await db.getTeamByPlayerid(msg.author.id);
         if (!team)
@@ -35,7 +34,7 @@ module.exports = {
         // Make sure pools aren't closed
         const { lastClose, now } = helpers.closingTimes();
         // If it's less than a 16 hours since closing
-        if ((now - lastClose) < (1000 * 60 * 60 * 16))
+        if ((now.getTime() - lastClose.getTime()) < hours(16))
             return msg.channel.send(
                 "Pools are closed, please wait until pools release before " +
                 "submitting new maps. If you are replacing a map which was " +
@@ -43,7 +42,7 @@ module.exports = {
             );
 
         console.log(`bulkadd: Adding maps to team ${team.teamname}`);
-        const resultEmbed = new Discord.MessageEmbed()
+        const resultEmbed = new MessageEmbed()
             .setTitle("Adding multiple maps")
             .setColor("#a0ffa0");
         // Skip over the !addbulk command and split into lines
@@ -66,7 +65,7 @@ module.exports = {
                     mapid, mods
                 });
             return arr;
-        }, []);
+        }, <{ mapid: number, mods: Mods }[]>[]);
 
         // Add all the maps
         let addStr = await maps.reduce(async (res, map) => {
@@ -80,7 +79,7 @@ module.exports = {
                     count: prev.count
                 };
             // Get the map
-            const beatmap = await ApiBeatmap.buildFromApi(map.mapid, map.mods);
+            const beatmap = await Beatmap.buildFromApi(map.mapid, map.mods);
             let checkResult = await checkers[team.division].check(beatmap);
             if (!checkResult.passed)
                 return {
@@ -99,7 +98,7 @@ module.exports = {
             // Add map
             let added = await db.addMap(team.teamname, mapitem);
             if (added) {
-                if (added.bid)
+                if (added !== true)
                     return {
                         str: `${prev.str}${adding}Replaced [${helpers.mapString(added)}](${helpers.mapLink(added)}) ${added.bid}\n`,
                         count: prev.count + 1

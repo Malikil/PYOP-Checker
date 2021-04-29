@@ -1,22 +1,20 @@
-const Discord = require('discord.js');
-const db = require('../../database/db-manager');
-const { ApiPlayer } = require('../../types');
+import { Command } from "../../types/types";
+import { Message } from 'discord.js';
+import db from '../../database/db-manager';
+import { Player } from '../../types/bancho';
 
-module.exports = {
-    name: "osuname",
-    description: "Updates your osu username. Only works if you're a player.",
+export default class implements Command {
+    name = "osuname";
+    description = "Updates your osu username. Only works if you're a player.";
 
-    /**
-     * @param {Discord.Message} msg 
-     */
-    async run(msg) {
+    async run(msg: Message) {
         // Get the player's current info
         const player = await db.getPlayer(msg.author.id);
         if (!player)
             return msg.channel.send("Couldn't find player");
         
         // Get the player's new info from the server
-        const newp = await ApiPlayer.buildFromApi(player.osuid);
+        const newp = await Player.buildFromApi(player.osuid);
         if (!newp)
             return msg.channel.send("Osu api returned null");
         

@@ -1,21 +1,21 @@
-const Discord = require('discord.js');
-const db = require('../../database/db-manager');
-const helpers = require('../../helpers/helpers');
+import { Command } from "../../types/types";
+import { Message } from 'discord.js';
+import db from '../../database/db-manager';
+import helpers from '../../helpers/helpers';
+import { hours } from '../../helpers/mstime';
+import { Mods } from "../../types/bancho";
 
-module.exports = {
-    name: "removemap",
-    description: "Remove a map from your pool. " +
-        "If there's more than one matching map the first one will be removed.",
-    args: [
+export default class implements Command {
+    name = "removemap";
+    description = "Remove a map from your pool. " +
+        "If there's more than one matching map the first one will be removed.";
+    args = [
         { arg: 'map', required: true },
         { arg: 'mods', required: false }
-    ],
-    alias: [ 'remove', 'rem' ],
+    ];
+    alias = [ 'remove', 'rem' ];
 
-    /**
-     * @param {Discord.Message} msg 
-     */
-    async run(msg, { map, mods }) {
+    async run(msg: Message, { map, mods }: { map: number, mods: Mods }) {
         // Get which team the player is on
         const team = await db.getTeamByPlayerid(msg.author.id);
         if (!team)
@@ -24,7 +24,7 @@ module.exports = {
         // Make sure pools aren't closed
         const { lastClose, now } = helpers.closingTimes();
         // If it's less than 16 hours since closing
-        if ((now - lastClose) < (1000 * 60 * 60 * 16))
+        if ((now.getTime() - lastClose.getTime()) < hours(16))
             return msg.channel.send(
                 "Pools are closed, please wait until pools release before " +
                 "submitting new maps. If you are replacing a map which was " +

@@ -4,8 +4,8 @@ This module should handle connecting to the database and all the CRUD operations
 //const { MongoClient, Db } = require('mongodb');
 import util = require('util');
 import { DbBeatmap, DbPlayer, DbTeam, MapStatus } from '../types/types';
-import MODS from '../types/bancho/mods';
-const POOLED_MODS = MODS.Hidden | MODS.HardRock | MODS.DoubleTime;
+import { Mods } from '../types/bancho';
+const POOLED_MODS = Mods.Hidden | Mods.HardRock | Mods.DoubleTime;
 
 import db = require('./mdb');
 //#region ============================== Helpers/General ==============================
@@ -248,13 +248,13 @@ async function addMap(team: string, map: DbBeatmap): Promise<boolean | DbBeatmap
             pa.remover = m;
         }
         return pa;
-    }, { 0: 0, [MODS.Hidden]: 0, [MODS.HardRock]: 0, [MODS.DoubleTime]: 0, cm: 0, remover: <DbBeatmap>{} })
+    }, { 0: 0, [Mods.Hidden]: 0, [Mods.HardRock]: 0, [Mods.DoubleTime]: 0, cm: 0, remover: <DbBeatmap>{} })
     // If a modpool is overfilled, then a map should be removed
     if (teamobj.maps.length > 10 ||
             poolAccumulator[0] > 4 ||
-            poolAccumulator[MODS.Hidden] > 4 ||
-            poolAccumulator[MODS.HardRock] > 4 ||
-            poolAccumulator[MODS.DoubleTime] > 4 ||
+            poolAccumulator[Mods.Hidden] > 4 ||
+            poolAccumulator[Mods.HardRock] > 4 ||
+            poolAccumulator[Mods.DoubleTime] > 4 ||
             poolAccumulator.cm > 2) {
         // Remove the map
         idobj.maps = {
@@ -292,7 +292,7 @@ async function addMap(team: string, map: DbBeatmap): Promise<boolean | DbBeatmap
  * @param mods Which mods the map uses
  * @returns The number of modified documents
  */
-async function removeMap(team: string, mapid: number, mods: number)
+async function removeMap(team: string, mapid: number, mods: Mods)
 {
     // I can't guarantee there will only be one matching map
     // Set one matching map to null, then pull nulls

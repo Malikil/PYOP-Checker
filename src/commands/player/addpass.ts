@@ -1,23 +1,21 @@
-const Discord = require('discord.js');
-const db = require('../../database/db-manager');
-const helpers = require('../../helpers/helpers');
+import { Command, MapStatus } from "../../types/types";
+import { Message } from 'discord.js';
+import db from '../../database/db-manager';
+import helpers from '../../helpers/helpers';
 
-module.exports = {
-    name: "addpass",
-    description: "Adds a screenshot of a pass for one of your maps. " +
+export default class implements Command {
+    name = "addpass";
+    description = "Adds a screenshot of a pass for one of your maps. " +
         "Mods should not be included, the map is only in your pool " +
         "once so link/id is enough to identify it.\n" +
-        "You may upload the image directly to discord or include a link to your image.",
-    args: [
+        "You may upload the image directly to discord or include a link to your image.";
+    args = [
         { arg: 'map', required: true },
-        { arg: 'any', name: "link", description: "Link to screenshot of pass" }
-    ],
-    alias: [ 'pass' ],
+        { arg: 'any', name: "link", description: "Link to screenshot of pass", required: false }
+    ];
+    alias = [ 'pass' ];
 
-    /**
-     * @param {Discord.Message} msg 
-     */
-    async run(msg, { map, link }) {
+    async run(msg: Message, { map, link }: { map: number, link: string }) {
         // Make sure there's something to update with
         if (msg.attachments.size === 0 && !(link && link.includes("http")))
             return msg.channel.send("Please include a link or image attachment");
@@ -35,12 +33,12 @@ module.exports = {
         const beatmap = team.maps.find(m => m.bid === map);
         if (!beatmap)
             return msg.channel.send("Map not found");
-        else if (beatmap.status.startsWith("Approved"))
+        else if (beatmap.status === MapStatus.Approved || beatmap.status === MapStatus.AutoApproved)
             return msg.channel.send(`Screenshot for ${beatmap.bid} not required`);
 
         // Forward the screenshot to the screenshots channel
         const passChannel = msg.client.channels.cache.get(process.env.CHANNEL_SCREENSHOTS);
-        let passReference;
+        let passReference: Message;
         if (passChannel && passChannel.isText()) {
             if (msg.attachments.size > 0) {
                 // Copy the attachment itself into the screenshots channel

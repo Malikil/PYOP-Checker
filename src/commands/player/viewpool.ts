@@ -1,25 +1,23 @@
-const Discord = require('discord.js');
-const helpers = require('../../helpers/helpers');
-const { checkers } = require('../../checkers');
-const db = require('../../database/db-manager');
+import { Command, MapStatus } from "../../types/types";
+import { Message, MessageEmbed } from 'discord.js';
+import helpers from '../../helpers/helpers';
+import { checkers } from '../../checkers';
+import db from '../../database/db-manager';
 const MAP_COUNT = 10;
 
-module.exports = {
-    name: "viewpool",
-    description: "View maps in your pool and their statuses.",
-    alias: [ 'view', 'list', 'pool', 'mappool' ],
+export default class implements Command {
+    name = "viewpool";
+    description = "View maps in your pool and their statuses.";
+    alias = [ 'view', 'list', 'pool', 'mappool' ];
 
-    /**
-     * @param {Discord.Message} msg 
-     */
-    async run(msg) {
+    async run(msg: Message) {
         // Get which team the player is on
         const team = await db.getTeamByPlayerid(msg.author.id);
         if (!team)
             return msg.channel.send("Could not find player");
 
         // Prepare the message embed
-        const resultEmbed = new Discord.MessageEmbed()
+        const resultEmbed = new MessageEmbed()
             .setTitle(`Mappool for ${team.teamname}`)
             .setColor("#00ffa0");
 
@@ -42,8 +40,8 @@ module.exports = {
             };
             // Convert the map to a string
             mapinfo.str += `[${helpers.mapString(map)}](${helpers.mapLink(map)}) ${map.bid}\n`;
-            mapinfo.str += `\u2003Drain: ${helpers.convertSeconds(map.drain)}, Stars: ${map.stars}\n\u2003Status: ${map.status}`;
-            if (map.status === "Screenshot Required") {
+            mapinfo.str += `\u2003Drain: ${helpers.convertSeconds(map.drain)}, Stars: ${map.stars}\n\u2003Status: ${MapStatus[map.status]}`;
+            if (map.status === MapStatus.ScreenshotRequired) {
                 let passes = (map.passes || []).length;
                 let missing = 2 - passes;
                 mapinfo.str += ` - ${passes} submitted, ${missing} missing`;
@@ -93,6 +91,6 @@ module.exports = {
         }
         resultEmbed.addField("\u200b", footer);
 
-        return msg.channel.send(resultEmbed.setTimestamp());
+        return msg.channel.send(resultEmbed);
     }
 }
