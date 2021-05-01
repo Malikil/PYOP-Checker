@@ -16,3 +16,13 @@ export enum Rank {
     SS,
     SSH
 };
+
+export enum ApprovedStatus {
+    Graveyard = -2,
+    Wip,
+    Pending,
+    Ranked,
+    Approved,
+    Qualified,
+    Loved
+};

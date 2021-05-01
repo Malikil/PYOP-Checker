@@ -1,27 +1,16 @@
 import { Mods } from "./bancho";
-
-export interface ValueRange {
-    low?: number;
-    high?: number;
-    buffer?: number;
-    bufferCount?: number;
-};
-
-export enum RuleType {
-    Stars = "StarRatingRule",
-    Drain = "DrainTimeRule",
-    Leaderboard = "LeaderboardRule",
-    TotalTime = "TotalTimeRule"
-};
+import { Aggregate, ValueRange } from "./rules";
 
 export interface Division {
     division: string
     url?: string
     rankLimits?: ValueRange
     rules: {
-        type: RuleType
-        limits: ValueRange[]
-    }[],
+        type: string,
+        limits: ValueRange[],
+        strict: boolean
+    }[]
+    poolRules: Aggregate[]
     pools: {
         mods: Mods | "Custom",
         count: number

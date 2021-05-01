@@ -23,15 +23,13 @@ function currentWeek<T>(arr?: T[]): T | number {
     let now = new Date();
     // Add one because firstDue marks the end of week 1 rather than the beginning
     let week = ((now.getTime() - firstDue.getTime()) / days(7) + 1) | 0;
+    // Don't return negative week numbers
+    if (week < 0) week = 0;
     if (arr)
-    {
-        if (week < 0)
-            return arr[0];
-        else if (week < arr.length)
+        if (week < arr.length)
             return arr[week];
         else
             return arr[arr.length - 1];
-    }
     else
         return week;
 }

@@ -1,6 +1,8 @@
 import db from './mdb';
-import { Division, RuleType, ValueRange } from '../types/divisions';
+import { Division } from '../types/divisions';
 import { Mods } from '../types/bancho';
+import { ValueRange } from '../types/rules';
+import { Rule } from '../beatmap_checker/rule';
 
 //#region ========== Division Management ==========
 export async function createDivision(divName: string) {
@@ -9,7 +11,8 @@ export async function createDivision(divName: string) {
         { $setOnInsert: {
             division: divName,
             pools: [],
-            rules: []
+            rules: [],
+            poolRules: []
         } },
         { upsert: true }
     );
@@ -104,5 +107,17 @@ export async function removeModpool(mods: Mods | "Custom", divName?: string) {
         { $pull: { pools: { mods } } }
     );
     return res.matchedCount;
+}
+
+export async function addRule(rule: Rule, divName?: string) {
+    throw new Error("Not implemented yet");
+}
+
+/**
+ * Gets all rules for a given division. If no division is specified will get rules that
+ * exist in all divisions.
+ */
+export async function getRules(divName?: string): Promise<Rule[]> {
+    throw new Error("Not implemented yet");
 }
 //#endregion

@@ -46,6 +46,7 @@ export interface BanchoBeatmap {
     artist_unicode: string;
     title_unicode: string;
     source: string;
+    /** 4 = loved, 3 = qualified, 2 = approved, 1 = ranked, 0 = pending, -1 = WIP, -2 = graveyard */
     approved: string;
     submit_date: string;
     approved_date: string;

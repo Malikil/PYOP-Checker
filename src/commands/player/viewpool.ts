@@ -4,7 +4,7 @@ import { Message, MessageEmbed } from 'discord.js';
 import helpers from '../../helpers/helpers';
 import { checkers } from '../../checkers';
 import db from '../../database/db-manager';
-const MAP_COUNT = 10;
+import { getDivision } from '../../database/db-divisions';
 
 export default class implements Command {
     name = "viewpool";
@@ -80,10 +80,11 @@ export default class implements Command {
         );
         // Check the pool as a whole
         let result = await checkers[team.division].checkPool(team.maps);
+        const div = await getDivision(team.division);
+        const mapCount = div.pools.reduce((sum, pool) => sum + pool.count, 0);
+    
         // Display pool stats
-        let footer = `Total drain: ${helpers.convertSeconds(result.totalDrain)}\n` +
-            `${result.overUnder} maps are within ${process.env.DRAIN_BUFFER} seconds of drain time limit\n` +
-            `There are ${MAP_COUNT - team.maps.length} unfilled slots\n`;
+        let footer = `There are ${mapCount - team.maps.length} unfilled slots\n`;
         // Show pool problems
         if (result.messages.length > 0)
             result.messages.forEach(item => footer += `\n${item}`);

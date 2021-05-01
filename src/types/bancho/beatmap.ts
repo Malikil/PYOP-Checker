@@ -1,7 +1,7 @@
 import nfetch from 'node-fetch';
 import { BanchoBeatmap } from './types';
 import Mods from './mods';
-import { Mode } from './enums';
+import { ApprovedStatus, Mode } from './enums';
 import { DbBeatmap, MapStatus } from '../database';
 const OSUKEY = process.env.OSUKEY;
 
@@ -20,7 +20,7 @@ export default class Beatmap {
     artist_unicode: string;
     title_unicode: string;
     source: string;
-    approved: number;
+    approved: ApprovedStatus;
     submit_date: Date;
     approved_date: Date;
     last_update: Date;
@@ -47,7 +47,7 @@ export default class Beatmap {
     playcount: number;
     passcount: number;
     max_combo: number;
-    mods: number;
+    mods: Mods;
 
     constructor(map: BanchoBeatmap, mods = Mods.None) {
         // This should always be a proper map object, as returned by the osu api.
