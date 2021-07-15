@@ -7,8 +7,8 @@ export default class implements Command {
     name = "schedule";
     description = "Finds a time for a match to happen";
     args = [
-        { arg: 'any', name: "team", description: "Team name", required: true },
-        { arg: 'any', name: "team", description: "Team name", required: true }
+        { arg: "team", description: "Team name", required: true },
+        { arg: "team", description: "Team name", required: true }
     ];
     
     async run(msg: Message, { team }: { team: string[] }) {

@@ -6,11 +6,15 @@ import { Beatmap } from '../types/bancho';
 import { DbBeatmap } from '../types/database';
 // Load rules
 const Rules: { [type: string]: RuleConstructor } = {}
+export const ruleKeys = [];
 fs.readdir('./dist/beatmap_checker/rules',
     (_, files) => files.filter(f => f.endsWith('.js'))
         .forEach(ruleFile =>
             import(`./rules/${ruleFile}`)
-            .then(rule => Rules[rule.type] = rule.default)
+            .then(rule => {
+                Rules[rule.type] = rule.default;
+                ruleKeys.push(rule.type);
+            })
         )
 );
 

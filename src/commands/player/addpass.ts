@@ -12,7 +12,7 @@ export default class implements Command {
         "You may upload the image directly to discord or include a link to your image.";
     args = [
         { arg: 'map', required: true },
-        { arg: 'any', name: "link", description: "Link to screenshot of pass", required: false }
+        { arg: "link", description: "Link to screenshot of pass", required: false }
     ];
     alias = [ 'pass' ];
 

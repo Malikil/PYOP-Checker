@@ -5,7 +5,7 @@ the 'commands' module, but those methods will be called from here.
 */
 import fs = require('fs');
 import { Client, Collection } from 'discord.js';
-import validator = require('./validator');
+import { validateArgs, usageString } from './validator';
 import { inspect } from 'util';
 import { Command } from './types/commands';
 import actions from './actions';
@@ -57,9 +57,9 @@ client.on('message', msg => {
                 return msg.channel.send("You don't have the required role to access this command");
         }
         // Validate args
-        const validation = validator.validateArgs(command.args, msg.content);
+        const validation = validateArgs(command.args, msg.content);
         if (validation.rejected && !command.skipValidation)
-            return msg.channel.send(`${validation.error || ""}\n\n${validator.usageString(command)}`);
+            return msg.channel.send(`${validation.error || ""}\n\n${usageString(command)}`);
         // Run command
         command.run(msg, validation.args)
         .catch(err => {

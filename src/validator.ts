@@ -1,16 +1,17 @@
-const MODS = require('./helpers/bitwise');
-const divInfo = require('../divisions.json');
-const { CommandArg, Command } = require('./types/types');
+import { CommandArg, Command } from './types/commands';
+import helpers from './helpers/helpers';
 
 /**
  * Validates and converts a string into an args object based on the provided
  * expected args
- * @param {CommandArg[]} expected 
- * @param {string} actual 
  */
-function validateArgs(expected, actual) {
+export function validateArgs(expected: CommandArg[], actual: string) {
     const cmdargs = getArgs(actual).slice(1);
-    const validation = {
+    const validation: {
+        rejected: boolean,
+        args: { [key: string]: any },
+        error?: string
+    } = {
         rejected: false,
         args: {}
     };
@@ -31,9 +32,10 @@ function validateArgs(expected, actual) {
             // Arg doesn't exist => Ignore
             
         if (i < cmdargs.length) {
-            // Special 'any' argument type doesn't need to be validated
-            if (arg.arg !== 'any') {
-                const value = valid[arg.arg].validate(cmdargs[i]);
+            // If we have a validation for the arg, perform that validation
+            const argValid = valid[arg.arg];
+            if (argValid) {
+                const value = argValid.validate(cmdargs[i]);
                 if (value || value === 0) {
                     // If we haven't seen this arg yet, add it
                     if (!validation.args[arg.arg])
@@ -43,14 +45,14 @@ function validateArgs(expected, actual) {
                 }
                 else {
                     validation.rejected = true;
-                    validation.error = valid[arg.arg].error;
+                    validation.error = argValid.error;
                 }
             }
-            // 'any' argument type
-            else if (!validation.args[arg.name])
-                validation.args[arg.name] = [ cmdargs[i] ];
+            // unknown argument types
+            else if (!validation.args[arg.arg])
+                validation.args[arg.arg] = [ cmdargs[i] ];
             else
-                validation.args[arg.name].push(cmdargs[i]);
+                validation.args[arg.arg].push(cmdargs[i]);
         }
         else if (arg.required)
             validation.rejected = true;
@@ -67,17 +69,18 @@ function validateArgs(expected, actual) {
 
 /**
  * Constructs a useage string for a set of expected arguments
- * @param {Command} command Name of the command
+ * @param command Name of the command
  */
-function usageString(command) {
+export function usageString(command: Command) {
     const seen = [];
     let header = "";
     let description = "";
     let alias = "";
     if (command.args)
         command.args.forEach(arg => {
-            // Special 'any' arg type will come with its own description
-            if (arg.arg !== "any") {
+            // If the arg isn't known by the validator it needs to provide its own usage string
+            const argValid = valid[arg.arg];
+            if (argValid) {
                 if (arg.required)
                     header += ` <${arg.arg}>`;
                 else {
@@ -86,23 +89,23 @@ function usageString(command) {
                         description += `(Optional) `;
                 }
                 if (!seen.includes(arg.arg)) {
-                    description += `${arg.arg}: ${valid[arg.arg].description}\n`;
+                    description += `${arg.arg}: ${argValid.description}\n`;
                     seen.push(arg.arg);
                 }
             }
             // 'any' argument type
             else if (arg.required) {
-                header += ` <${arg.name}>`;
-                if (!seen.includes(arg.name)) {
-                    description += `${arg.name}: ${arg.description}\n`;
-                    seen.push(arg.name);
+                header += ` <${arg.arg}>`;
+                if (!seen.includes(arg.arg)) {
+                    description += `${arg.arg}: ${arg.description || "No description available."}\n`;
+                    seen.push(arg.arg);
                 }
             }
             else {
-                header += ` [${arg.name}]`;
-                if (!seen.includes(arg.name)) {
-                    description += `(Optional) ${arg.name}: ${arg.description}\n`;
-                    seen.push(arg.name);
+                header += ` [${arg.arg}]`;
+                if (!seen.includes(arg.arg)) {
+                    description += `(Optional) ${arg.arg}: ${arg.description || "No description available."}\n`;
+                    seen.push(arg.arg);
                 }
             }
         });
@@ -111,57 +114,22 @@ function usageString(command) {
     return `Usage: !${command.name}${header}\n${command.description}\n${description}${alias}`;
 }
 
-const valid = {
+const valid: {
+    [key: string]: {
+        validate: (input: string) => any,
+        description: string,
+        error: string
+    }
+} = {
     map: {
-        validate(mapString) {
-            // If link is already a number then nothing needs to be done
-            if (isNaN(mapString))
-            {
-                // If the link isn't to a beatmap, then ignore it
-                // If the link is a /s/ link, ignore it
-                // ...ppy.sh/beatmapsets...
-                // ...ppy.sh/b/###
-                if (mapString && mapString.includes("sh/b"))
-                {
-                    // Get everything after the last slash, this should be the beatmap id
-                    mapString = mapString.substring(mapString.lastIndexOf("/") + 1);
-                    // The parseInt function will convert the beginning of a string to a number
-                    // until it finds a non-number character
-                    mapString = parseInt(mapString);
-                }
-                else
-                    return undefined;
-            }
-        
-            return mapString | 0;
-        },
+        validate: mapString => helpers.parseMapId(mapString),
         description: "Beatmap id or link",
         error: "Couldn't recognise beatmap id"
     },
     mods: {
-        validate(modstr) {
-            let mods = 0;
-            modstr = modstr.toUpperCase();
-            // Parse mods
-            if (modstr.includes('HD'))      mods |= MODS.HD;
-            if (modstr.includes('HR'))      mods |= MODS.HR;
-            else if (modstr.includes('EZ')) mods |= MODS.EZ;
-            if (modstr.includes('NC'))      mods |= MODS.DT | MODS.NC;
-            else if (modstr.includes('DT')) mods |= MODS.DT;
-            else if (modstr.includes('HT')) mods |= MODS.HT;
-            
-            return mods;
-        },
+        validate: modstr => helpers.parseMod(modstr),
         description: "Some combination of HD|HR|DT|NM|HT|EZ",
         error: "Couldn't parse mod string"
-    },
-    division: {
-        validate(arg) {
-            arg = arg.toLowerCase();
-            return divInfo.find(div => div.division === arg);
-        },
-        description: "open or 10k",
-        error: "Invalid division"
     },
     setting: {
         description: "on or off",
@@ -188,9 +156,8 @@ const valid = {
 
 /**
  * Splits a string into args
- * @param {string} s 
  */
-function getArgs(s)
+function getArgs(s: string)
 {
     // Handle multiple lines
     let lines = s.split('\n');
@@ -203,14 +170,9 @@ function getArgs(s)
             else
                 p.a[p.a.length - 1] += c.replace(/\\(.)/, "$1");
             
-            return  p;
-        }, { a: [''] }).a;
+            return p;
+        }, { a: [''], quote: undefined }).a;
         return arr.concat(args.reduce((p, c) => c ? p.concat(c) : p, []));
     }, []);
     //str.match(/(?:[^\s"]+|"[^"]*")+/g);
-}
-
-module.exports = {
-    validateArgs,
-    usageString
 }

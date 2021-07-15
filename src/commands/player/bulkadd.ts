@@ -15,8 +15,7 @@ export default class implements Command {
     skipValidation = true;
     args = [
         {
-            arg: 'any',
-            name: "maps...",
+            arg: "maps...",
             description: "map id/link and mods for each map",
             required: true
         }

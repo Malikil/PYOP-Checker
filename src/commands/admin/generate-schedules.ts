@@ -12,8 +12,7 @@ export default class implements Command {
     args = [
         { arg: 'division', required: true },
         {
-            arg: 'any',
-            name: "set",
+            arg: "set",
             description: '"potential" if potential losers matches should be scheduled',
             required: false
         }

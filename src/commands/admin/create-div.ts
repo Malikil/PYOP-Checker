@@ -7,7 +7,7 @@ export default class implements Command {
     description = "Creates a new division with the given name";
     permissions = [ process.env.ROLE_ADMIN ];
     args = [
-        { arg: "any", name: "divName", description: "The name of the division", required: true }
+        { arg: "divName", description: "The name of the division", required: true }
     ];
     alias = [ "newdiv" ];
     async run(msg: Message, { divName }: { divName: string }) {

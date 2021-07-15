@@ -8,8 +8,7 @@ export default class implements Command {
     permissions = [ process.env.ROLE_ADMIN ];
     args = [
         {
-            arg: 'any',
-            name: "teamname",
+            arg: "teamname",
             description: "The name of the eliminated team",
             required: true
         }

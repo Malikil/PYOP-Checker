@@ -14,8 +14,7 @@ export default class implements Command {
         { arg: 'map', required: true },
         { arg: 'mods', required: true },
         {
-            arg: 'any',
-            name: "message",
+            arg: "message",
             description: "The rejection message. Quotes aren't required, " +
                 "everything after the mods will be used",
             required: true

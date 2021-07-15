@@ -3,7 +3,6 @@ import { Message, RoleResolvable } from "discord.js";
 export interface CommandArg {
     arg: string,
     required: boolean,
-    name?: string,
     description?: string
 };
 

@@ -5,7 +5,7 @@
   "main": "dist/disbot.js",
   "scripts": {
     "postinstall": "tsc",
-    "compile": "tsc && heroku local",
+    "compile": "tsc && heroku local || exit 1",
     "devcompile": "tsc && heroku local -f Procfile.test",
     "start": "nodemon --exec \"npm run compile\" -e ts",
     "test": "nodemon --exec \"npm run devcompile\" -e ts"

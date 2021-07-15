@@ -36,10 +36,10 @@ I'll be using Heroku and MongoDB Atlas here, but if you have different services 
     * If you have the Heroku CLI you can add multiple vars at a time using command line.  
         To do so, clone the repo first and add heroku as a remote. Then use the command `heroku config:set KEY=VALUE KEY=VALUE ...`
 4. There are two ways to deploy the code, you can download this repo to your computer then push to Heroku, or fork this repo and let Heroku find it on its own.
-    * If you have [git](https://git-scm.com/) installed:
+    * If you have [git](https://git-scm.com/) and [heroku cli](https://devcenter.heroku.com/articles/heroku-cli) installed:
         1. clone this repo to your own computer
-        2. add `https://git.heroku.com/<app name>.git` as a remote
-        3. push to heroku
+        2. link to your heroku app using `heroku git:remote -a <heroku app name>`
+        3. push to the heroku remote
 
         Using git is a bit more detailed than I want to get into here. If you don't know what to do then look it up or ask someone for help.
     * If you don't have git or if you want to fork:
@@ -48,7 +48,7 @@ I'll be using Heroku and MongoDB Atlas here, but if you have different services 
         3. Connect your GitHub account. Search for and connect your forked repo
         4. Click "Deploy Branch" at the bottom
 
-Heroku limits how many free hours you get per month. The base amount isn't enough to run an app all the time. Adding a credit card to your Heroku account doubles the amount of free hours you get so there is enough to run an app 24/7, and the `Resources` tab will let you turn off the app when it's not needed.
+Heroku limits how many free hours you get per month. The basic amount isn't enough to run an app all the time. Adding a credit card to your Heroku account doubles the amount of free hours you get so there is enough to run an app 24/7, and the `Resources` tab will let you turn off the app when it's not needed.
 
 ### Setting up Google Sheets
 
@@ -66,8 +66,8 @@ CHANNEL_ANNOUNCEMENTS=123456789
 ...
 ```
 
-* `BANCHO_PASS` The IRC password for the account the bot uses. Keep in mind this is different from your normal osu password. Get your irc password from https://osu.ppy.sh/p/irc
-* `BANCHO_USER` Your osu username, or whatever account the bot will be run on
+* `BANCHO_PASS` _(Not Currently Used)_ The IRC password for the account the bot uses. Keep in mind this is different from your normal osu password. Get your irc password from https://osu.ppy.sh/p/irc
+* `BANCHO_USER` _(Not Currently Used)_ Your osu username, or whatever account the bot will be run on
 * `CHALLONGE_KEY` Your challonge api key, available from https://challonge.com/settings/developer
 * `CHANNEL_ANNOUNCEMENTS` The Discord Channel ID for which channel to make announcements in
 * `CHANNEL_SCREENSHOTS` The channel where the bot will post screenshots which players submit for maps

@@ -10,11 +10,10 @@ export default class implements Command {
         "offsets from two given teams";
     permissions = [ process.env.ROLE_ADMIN ];
     args = [
-        { arg: 'any', name: "team", description: "Team name", required: true },
-        { arg: 'any', name: "team", description: "Team name", required: true },
+        { arg: "team", description: "Team name", required: true },
+        { arg: "team", description: "Team name", required: true },
         {
-            arg: 'any',
-            name: "time",
+            arg: "time",
             description: "The time the team played at, in decimal hours form",
             required: true
         }
