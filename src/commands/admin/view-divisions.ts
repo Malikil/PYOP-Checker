@@ -11,7 +11,7 @@ export default class implements Command {
     args = [
         { arg: "division", description: "Which division to get details of.", required: false }
     ]
-    alias = [ "viewdivs", "viewdiv", "getdiv" ];
+    alias = [ "viewdivs", "viewdiv", "getdiv", "divs" ];
     async run(msg: Message, { division }: { division?: string }) {
         const embed = new MessageEmbed();
         embed.setColor(randomColour());
@@ -35,7 +35,7 @@ export default class implements Command {
             if (div.rules.length > 0) {
                 // Display rules in columns made by embed fields.
                 let typeField = {
-                    name: "RuleType",
+                    name: "Rule Type",
                     inline: true,
                     value: ""
                 };
@@ -66,7 +66,7 @@ export default class implements Command {
                         rangeField.value += rangeVal;
 
                         if (lim.buffer)
-                            rangeField.value += `, ${lim.buffer} buffer ±${lim.bufferCount}`;
+                            rangeField.value += `, ±${lim.buffer} buffer ${lim.bufferCount}`;
                         
                         typeField.value += "\n";
                         rangeField.value += "\n";

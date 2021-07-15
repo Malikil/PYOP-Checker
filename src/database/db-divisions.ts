@@ -109,8 +109,40 @@ export async function removeModpool(mods: Mods | "Custom", divName?: string) {
     return res.matchedCount;
 }
 
-export async function addRule(rule: Rule, divName?: string) {
-    throw new Error("Not implemented yet");
+/**
+ * @param rule The rule to set. If a matching rule type already exists it will be overwritten
+ * @param divName Which division to update
+ * @returns -1 if the rule couldn't be added.
+ *     0 if an existing rule was updated.
+ *     1 if a new rule was inserted.
+ */
+export async function setRule(rule: { type: string, limits: ValueRange[], strict: boolean }, divName?: string) {
+    const filter: { division?: string } = {};
+    if (divName)
+        filter.division = divName;
+    let res = await db.collection<Division>('divisions').updateMany(
+        {
+            ...filter,
+            'rules.type': rule.type
+        },
+        { $set: {
+            'rules.$': rule
+        } }
+    );
+    if (res.matchedCount === 0) {
+        res = await db.collection<Division>('divisions').updateMany(
+            filter,
+            { $push: {
+                rules: rule
+            } }
+        );
+        if (res.modifiedCount === 0)
+            return -1;
+        else
+            return 1;
+    }
+    else
+        return 0;
 }
 
 /**

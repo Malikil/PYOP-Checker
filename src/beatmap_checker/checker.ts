@@ -1,22 +1,9 @@
 import { inspect } from 'util';
-import { Rule, RuleConstructor } from './rule';
+import { Rule } from './rule';
 import { Aggregate, ValueRange } from '../types/rules';
-import fs = require('fs');
 import { Beatmap } from '../types/bancho';
 import { DbBeatmap } from '../types/database';
-// Load rules
-const Rules: { [type: string]: RuleConstructor } = {}
-export const ruleKeys = [];
-fs.readdir('./dist/beatmap_checker/rules',
-    (_, files) => files.filter(f => f.endsWith('.js'))
-        .forEach(ruleFile =>
-            import(`./rules/${ruleFile}`)
-            .then(rule => {
-                Rules[rule.type] = rule.default;
-                ruleKeys.push(rule.type);
-            })
-        )
-);
+import { ruleClasses } from '.';
 
 export default class Checker {
     rules: Rule[];
@@ -32,7 +19,7 @@ export default class Checker {
             rules: { type: string, limit: ValueRange, strict: boolean }[],
             aggregates: Aggregate[]
     ) {
-        this.rules = rules.map(r => new Rules[r.type](r.limit, r.strict));
+        this.rules = rules.map(r => new ruleClasses[r.type](r.limit, r.strict));
         this.aggregates = aggregates;
     }
 
