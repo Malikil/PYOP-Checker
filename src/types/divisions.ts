@@ -3,6 +3,7 @@ import { Aggregate, ValueRange } from "./rules";
 
 export interface Division {
     division: string
+    /** The id part of the challonge url, that is: challonge.com/&lt;this part&gt; */
     url?: string
     rankLimits?: ValueRange
     rules: {

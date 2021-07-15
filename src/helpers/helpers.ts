@@ -162,10 +162,19 @@ function convertSeconds(length: number): string
     return (Math.floor(length / 60) + ':' + seconds);
 }
 
+/**
+ * @returns The leaderboard for the given map using the selected mods
+ * @deprecated Getting leaderboards should use the same system as maps/users
+ */
 async function getLeaderboard(mapid: number, mods: Mods = Mods.None): Promise<BanchoScore[]>
 {
     let response = await nfetch(`https://osu.ppy.sh/api/get_scores?k=${key}&b=${mapid}&m=0&mods=${mods}`);
     return response.json();
+}
+
+export function randomColour() {
+    let rgb = () => ((Math.random() * 256) | 0).toString(16);
+    return `#${rgb()}${rgb()}${rgb()}`;
 }
 
 /*
