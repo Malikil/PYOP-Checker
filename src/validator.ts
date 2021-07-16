@@ -1,5 +1,6 @@
 import { CommandArg, Command } from './types/commands';
 import helpers from './helpers/helpers';
+import { ValueRange } from './types/rules';
 
 /**
  * Validates and converts a string into an args object based on the provided
@@ -90,6 +91,8 @@ export function usageString(command: Command) {
                 }
                 if (!seen.includes(arg.arg)) {
                     description += `${arg.arg}: ${argValid.description}\n`;
+                    if (arg.description)
+                        description += arg.description + "\n";
                     seen.push(arg.arg);
                 }
             }
@@ -150,6 +153,34 @@ const valid: {
                 playerid = matches[1];
             // Otherwise just return it as-is. We can't really do anything extra
             return playerid;
+        }
+    },
+    range: {
+        description: 'Surround with quotes `"`, separate values with spaces. ' +
+            "Item order should be minimum, maximum, buffer (opt.), and buffer count (opt.)",
+        error: "Couldn't parse value range",
+        validate(values) {
+            const rangeVals = values.split(' ').map(v => parseFloat(v));
+            // If any values are NaN that's a problem
+            if (rangeVals.includes(NaN))
+                return;
+
+            const range: ValueRange = {
+                min: rangeVals[0],
+                max: rangeVals[1]
+            };
+            // Make sure the lower value is in minimum
+            if (rangeVals[1] < rangeVals[0]) {
+                range.min = rangeVals[1];
+                range.max = rangeVals[0];
+            }
+            
+            if (rangeVals[2]) {
+                range.buffer = rangeVals[2];
+                range.bufferCount = rangeVals[3] || 1
+            }
+
+            return range;
         }
     }
 }

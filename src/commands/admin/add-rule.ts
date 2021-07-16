@@ -1,7 +1,7 @@
 import { Message } from 'discord.js';
 import { Command } from '../../types/commands';
 import { ruleKeys } from '../../beatmap_checker';
-import { setRule } from '../../database/db-divisions';
+import { getDivision, getDivisions, setRule } from '../../database/db-divisions';
 import { ValueRange } from '../../types/rules';
 
 export default class implements Command {
@@ -22,16 +22,15 @@ export default class implements Command {
         },
         {
             arg: "range",
-            description: 'Surround with quotes `"`, separate values with spaces. ' +
-                "Item order should be minimum, maximum, buffer (opt.), and buffer count (opt.)\n" +
-                'Eg. `DrainTimeRule "60 300 15 2"` will require drain time to be between 1 and 5 ' +
+            description: 'Eg. `DrainTimeRule "60 300 15 2"` will require drain time to be between 1 and 5 ' +
                 'minutes, while allowing two maps to be 15 seconds above or below that.',
             required: true
         },
         {
             arg: "division",
             description: "Which division does this rule apply to. " +
-                "If left out it will apply to all currently existing divisions",
+                "If left out it will apply to all currently existing divisions. Using a division " +
+                "called 'open' or the first division in the list as a starting point.",
             required: false
         },
         {
@@ -51,30 +50,47 @@ export default class implements Command {
         }
     ];
     alias = [ "setrule" ];
-    async run(msg: Message, args: { ruleType: string, range: string, week?: string, division?: string, strict?: string }) {
-        console.log(ruleKeys);
-        console.log(args.ruleType);
-        console.log(ruleKeys.includes(args.ruleType));
+    async run(msg: Message, args: { ruleType: string, range: ValueRange, week?: string, division?: string, strict?: string }) {
         if (!(ruleKeys.includes(args.ruleType)))
             return msg.channel.send("Unknown rule type.");
 
-        const rangeVals = args.range.split(' ').map(v => parseFloat(v));
-        const valueRange: ValueRange = {
-            min: rangeVals[0],
-            max: rangeVals[1]
-        };
-        if (rangeVals[2]) {
-            valueRange.buffer = rangeVals[2];
-            valueRange.bufferCount = rangeVals[3] || 1
+        // Try to get the division, if there's no division given then make sure all divisions would be
+        // compatible with this change
+        let div = await getDivision(args.division || "open");
+        if (!div)
+            if (args.division)
+                return msg.channel.send("Unknown division.");
+            else
+                div = (await getDivisions())[0];
+
+        // Figure out where the new rule slots in
+        const existingRule = div.rules.find(r => r.type === args.ruleType);
+        let result: -1 | 0 | 1;
+        if (!existingRule) {
+            // The rule doesn't exist yet, it can just be added as-is
+            result = await setRule({
+                type: args.ruleType,
+                limits: [ args.range ],
+                strict: (args.strict || "strict").toLowerCase() !== "approve"
+            }, args.division);
+        }
+        else {
+            // Update the existing rule to account for the new value
+            const week = parseInt(args.week) - 1;
+            if (week < 0)
+                existingRule.limits.unshift(args.range);
+            else if (week >= existingRule.limits.length || !week)
+                existingRule.limits.push(args.range);
+            else
+                existingRule.limits[week] = args.range;
+            // Update with the new values
+            result = await setRule(existingRule, args.division);
         }
 
-        const result = await setRule({
-            type: args.ruleType,
-            limits: [ valueRange ],
-            strict: true
-        }, args.division);
-
+        // Indicate success
         if (result > -1)
             return msg.channel.send("Updated rule");
+        else
+            return msg.channel.send("Couldn't update rule");
     };
 }

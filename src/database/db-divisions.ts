@@ -43,6 +43,9 @@ export async function setDivisionUrl(divName: string, url: string) {
     return res.modifiedCount;
 }
 
+/**
+ * @returns Modified Count
+ */
 export async function setRankLimit(divName: string, limits: ValueRange) {
     const res = await db.collection<Division>('divisions').updateOne(
         { division: divName },
